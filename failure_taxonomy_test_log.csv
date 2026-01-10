@@ -79,3 +79,19 @@ FT-013,PASS,Affiliate Tag Injected,Yes,2026-01-10T12:59:47.853608
 FT-014,PASS,Handled OOM (Fail Closed): OOM,Yes,2026-01-10T12:59:50.872191
 FT-015,PASS,Failed Closed on Missing Config: module 'config' has no attribute 'TRUST_RATING_THRESHOLD',Yes,2026-01-10T12:59:53.884836
 FT-016,PASS,Shadow Redirect Verified,Yes,2026-01-10T12:59:53.886384
+FT-001,PASS,Handled Connection Refused,Yes,2026-01-10T23:47:10.175752
+FT-002,PASS,Handled Timeout,Yes,2026-01-10T23:47:13.227268
+FT-003,PASS,Handled DNS Failure,Yes,2026-01-10T23:47:16.285157
+FT-004,PASS,Handled 503,Yes,2026-01-10T23:47:16.286918
+FT-005,PASS,Handled Empty Body,Yes,2026-01-10T23:47:16.290045
+FT-006,PASS,Handled Malformed/Missing Elements,Yes,2026-01-10T23:47:16.291606
+FT-007,PASS,Rejected Missing Anchor Data,Yes,2026-01-10T23:47:16.293169
+FT-008,PASS,Rejected Invalid Type,Yes,2026-01-10T23:47:16.294694
+FT-009,PASS,Handled 401,Yes,2026-01-10T23:47:16.296295
+FT-010,PASS,Handled 403 (Fail Closed),Yes,2026-01-10T23:47:16.297848
+FT-011,PASS,Trust Filter Triggered,Yes,2026-01-10T23:47:16.299387
+FT-012,PASS,Price Error Tagged,Yes,2026-01-10T23:47:16.301640
+FT-013,PASS,Affiliate Tag Injected,Yes,2026-01-10T23:47:16.302666
+FT-014,PASS,Handled OOM (Fail Closed): OOM,Yes,2026-01-10T23:47:19.315823
+FT-015,PASS,Failed Closed on Missing Config: module 'config' has no attribute 'TRUST_RATING_THRESHOLD',Yes,2026-01-10T23:47:22.336982
+FT-016,PASS,Shadow Redirect Verified,Yes,2026-01-10T23:47:22.340351

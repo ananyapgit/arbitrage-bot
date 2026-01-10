@@ -10,7 +10,7 @@ TEST_SUITES = [
     "tests/run_failure_taxonomy_tests.py",
     "tests/run_redirect_tests.py",
     "tests/run_shadow_chaos_tests.py",
-    # "tests/run_phase6_validation.py" # Optional, might be redundant or long-running
+    "tests/run_extreme_chaos_tests.py"
 ]
 
 def run_test_suite(script_path):

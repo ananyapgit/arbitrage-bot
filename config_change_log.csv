@@ -1,0 +1,2 @@
+timestamp,config_key,old_value,new_value,change_source,git_commit_hash,restart_required
+2026-01-10T23:45:53.772816,TEST_KEY,OLD,NEW,manual/deploy,TEST_HASH,yes
