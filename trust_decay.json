@@ -1,0 +1,14 @@
+[
+  {
+    "timestamp": "2026-01-10T12:55:03.182135",
+    "user_id": "system",
+    "event_type": "SPAM_FLOOD_DETECTED",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-01-10T12:59:57.309558",
+    "user_id": "system",
+    "event_type": "SPAM_FLOOD_DETECTED",
+    "decay_score_increment": 1
+  }
+]

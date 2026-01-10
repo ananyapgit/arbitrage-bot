@@ -1,0 +1,28 @@
+{
+  "batches": [
+    {
+      "timestamp": "2026-01-10T02:26:43.938259",
+      "stats": {
+        "sent": 2,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 2,
+        "throttled": 0,
+        "variant_a": 2,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    }
+  ],
+  "daily_stats": {
+    "2026-01-10": {
+      "sent": 2,
+      "clicks": 0,
+      "revenue": 0.0
+    }
+  }
+}
