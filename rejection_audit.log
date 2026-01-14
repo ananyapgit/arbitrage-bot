@@ -1,0 +1,17 @@
+timestamp,deal_identifier,reason,source
+2026-01-14T23:46:28.847792,http://test.com/bad_rating,Trust Failure | rating_below_threshold,scraper
+2026-01-14T23:46:29.045785,http://test.com/high_shipping,Trust Failure | shipping_too_high,scraper
+2026-01-14T23:46:29.498542,http://test.com/normal,Buyability Failure | no_buy_button,scraper
+2026-01-14T23:46:29.648610,http://test.com/normal,Buyability Failure | no_buy_button,scraper
+2026-01-14T23:46:29.803029,http://test.com/normal,Buyability Failure | no_buy_button,scraper
+2026-01-14T23:46:29.927315,http://test.com/normal,Buyability Failure | no_buy_button,scraper
+2026-01-14T23:46:30.130501,http://test.com/normal,Buyability Failure | no_buy_button,scraper
+2026-01-14T23:46:30.256079,http://test.com/normal,Buyability Failure | no_buy_button,scraper
+2026-01-14T23:46:30.457569,http://test.com/normal,Buyability Failure | no_buy_button,scraper
+2026-01-14T23:46:30.626688,http://test.com/normal,Buyability Failure | no_buy_button,scraper
+2026-01-14T23:46:30.832291,http://test.com/normal,Buyability Failure | no_buy_button,scraper
+2026-01-14T23:46:30.970640,http://test.com/normal,Buyability Failure | no_buy_button,scraper
+2026-01-14T23:46:31.094008,http://test.com/normal,Buyability Failure | no_buy_button,scraper
+2026-01-14T23:46:31.279164,http://test.com/403,Network Failure | 403_forbidden,scraper
+2026-01-14T23:46:34.480085,http://test.com/403,Network Failure | client_error_Network Down,scraper
+2026-01-14T23:46:34.683907,http://test.com/403,Trust Failure | rating_below_threshold,scraper

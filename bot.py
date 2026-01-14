@@ -155,21 +155,36 @@ def update_category_throttles():
     except Exception as e:
         logging.error(f"Throttle Update Failed: {e}")
 
-def log_rejection(deal_identifier, reason, source="scraper"):
+def log_rejection(deal_identifier, reason_obj, source="scraper"):
     """
     Logs rejected deals to rejection_audit.log for audit compliance.
+    Expects structured reasons as: {"stage": str, "rule": str, "detail": str}.
     """
     timestamp = datetime.now().isoformat()
-    log_entry = f"{timestamp},{deal_identifier},{reason},{source}\n"
+    
+    if isinstance(reason_obj, dict):
+        stage = str(reason_obj.get("stage", "General")).strip()
+        rule = str(reason_obj.get("rule", "generic")).strip()
+        detail = str(reason_obj.get("detail", "unknown_reason")).strip()
+        stage_label = stage.title()
+        if "Failure" not in stage_label and "Error" not in stage_label:
+            stage_label += " Failure"
+        reason_str = f"{stage_label} | {detail}"
+    else:
+        reason_str = str(reason_obj)
+
+    log_entry = f"{timestamp},{deal_identifier},{reason_str},{source}\n"
     
     try:
         with open("rejection_audit.log", "a", encoding="utf-8") as f:
-             # Add header if file is empty
             if os.stat("rejection_audit.log").st_size == 0:
                 f.write("timestamp,deal_identifier,reason,source\n")
             f.write(log_entry)
     except Exception as e:
-        logging.error(f"Failed to write to rejection log: {e}")
+        try:
+            logging.error(f"Failed to write to rejection log: {e}")
+        except:
+            print(f"CRITICAL: Logging failed during rejection log write: {e}")
 
 def log_post(deal_identifier, category, platform="telegram"):
     """
@@ -304,12 +319,27 @@ async def enrich_deal(session, deal: dict) -> dict:
     """
     Validates and enriches deal data asynchronously.
     Checks: HTTP 200, Stock Status, Keywords, Trust Filters, Price Errors.
+    Enforces Failure Precedence: Network > Schema > Trust > Buyability > Revenue.
     """
+    if not deal:
+        log_rejection("N/A", {"stage": "Schema", "detail": "empty_payload"})
+        return {"valid": False, "enrich_error": "None Payload"}
+
     url = deal.get("url")
     if not url:
         deal["valid"] = False
-        log_rejection("N/A", "Missing URL")
+        log_rejection("N/A", {"stage": "Schema", "detail": "missing_url"})
         return deal
+
+    # Category Inference (if missing or unknown)
+    # FT-023: Sanitize unknown categories to 'general'
+    valid_categories = list(config.SUB_IDS.keys()) if hasattr(config, "SUB_IDS") else ["general", "audio", "laptop", "fashion", "accessory"]
+    if "category" not in deal or (deal["category"] not in valid_categories and deal["category"] != "general"):
+         # Simple inference
+         title_lower = str(deal.get("title", "")).lower()
+         if "audio" in title_lower or "headphone" in title_lower: deal["category"] = "audio"
+         elif "laptop" in title_lower: deal["category"] = "laptop"
+         else: deal["category"] = "general"
 
     # Anti-Ban: User-Agent Rotation
     headers = {
@@ -317,9 +347,7 @@ async def enrich_deal(session, deal: dict) -> dict:
     }
     
     # Anti-Ban: Jitter (Human Mimic)
-    # 45-75s delay is significant, so we only apply it if not in Test Mode or if configured
     if not TEST_MODE and config.SHADOW_MODE: 
-        # Apply jitter in Shadow/Production
         jitter = random.uniform(config.SCRAPE_INTERVAL_MIN, config.SCRAPE_INTERVAL_MAX)
         logging.info(f"Jitter sleep for {jitter:.1f}s before scraping {url}")
         await asyncio.sleep(jitter)
@@ -328,26 +356,27 @@ async def enrich_deal(session, deal: dict) -> dict:
     for attempt in range(3):
         try:
             async with session.get(url, headers=headers, allow_redirects=True, timeout=10) as response:
+                # LEVEL 1: Network / HTTP Errors
                 if response.status == 403:
-                     logging.warning(f"403 Forbidden: {url}. Rotating UA/Proxy logic should trigger.")
-                     # In a real scenario, we'd switch proxy here. For now, we fail closed.
+                     logging.warning(f"403 Forbidden: {url}")
                      deal["valid"] = False
                      deal["enrich_error"] = "403 Forbidden"
-                     log_rejection(url, "403 Forbidden")
+                     log_rejection(url, {"stage": "Network", "detail": "403_forbidden"})
                      return deal
 
                 if response.status != 200:
                     logging.warning(f"URL Validation Failed ({response.status}): {url}")
                     deal["valid"] = False
                     deal["enrich_error"] = f"HTTP {response.status}"
-                    log_rejection(url, f"HTTP {response.status}")
+                    log_rejection(url, {"stage": "Network", "detail": f"http_{response.status}"})
                     return deal
 
                 text = await response.text()
                 text_lower = text.lower()
                 
-                # --- TRUST FILTER (Seller Rating & Shipping) ---
-                # Heuristic Extraction (Mock-able)
+                # LEVEL 3: Trust Violations (Seller Rating & Shipping)
+                # (Level 2 Schema is handled by scraper/initial checks)
+                
                 # Seller Rating
                 rating_match = re.search(r"(\d+(\.\d+)?) out of 5 stars", text_lower)
                 if rating_match:
@@ -356,12 +385,10 @@ async def enrich_deal(session, deal: dict) -> dict:
                         deal["valid"] = False
                         deal["enrich_error"] = f"Trust Violation: Seller Rating {rating} < {config.TRUST_RATING_THRESHOLD}"
                         logging.warning(f"Rejecting {url}: {deal['enrich_error']}")
-                        log_rejection(url, deal["enrich_error"])
+                        log_rejection(url, {"stage": "Trust", "detail": "rating_below_threshold"})
                         return deal
                 
                 # Shipping Cost
-                # Look for "+ $X.XX shipping" or similar.
-                # Simplified regex for demo.
                 shipping_match = re.search(r"\+\s?[\$₹]?(\d+(\.\d+)?)\s+shipping", text_lower)
                 if shipping_match:
                     shipping_cost = float(shipping_match.group(1))
@@ -370,44 +397,63 @@ async def enrich_deal(session, deal: dict) -> dict:
                         price_val = float(str(price).replace(",", ""))
                         if price_val > 0 and (shipping_cost / price_val) > config.MAX_SHIPPING_PERCENT:
                             deal["valid"] = False
-                            deal["enrich_error"] = f"Trust Violation: Shipping {shipping_cost} > {config.MAX_SHIPPING_PERCENT*100}% of Price {price_val}"
+                            deal["enrich_error"] = f"Trust Violation: Shipping too high"
                             logging.warning(f"Rejecting {url}: {deal['enrich_error']}")
-                            log_rejection(url, deal["enrich_error"])
+                            log_rejection(url, {"stage": "Trust", "detail": "shipping_too_high"})
                             return deal
                     except:
                         pass
 
-                # Hard Gate: Buyability Check (Strict)
+                # LEVEL 4: Buyability Failures
                 if config.STRICT_BUYABILITY_CHECK:
-                    # Must have "Buy Now" or "Add to Cart" or "Proceed to Buy"
-                    # Must NOT have "Notify Me", "Unavailable", "Sold Out", "Coming Soon", "Pre-order"
-                    is_buyable = False
-                    if any(x in text_lower for x in ["add to cart", "buy now", "proceed to buy"]):
-                        is_buyable = True
-                    
-
-                    if any(x in text_lower for x in ["notify me", "currently unavailable", "sold out", "out of stock", "coming soon", "pre-order", "item is unavailable", "page not found", "not deliverable"]):
-                        is_buyable = False
-                    
-                    if not is_buyable:
+                    # Explicit Reason 1: Missing Critical Fields
+                    if not deal.get("title") or not deal.get("new_price"):
                         deal["valid"] = False
-                        deal["enrich_error"] = "Strict Buyability Check Failed (No Button or Invalid Status)"
-                        logging.warning(f"Strict Buyability Check Failed: {url}")
-                        log_rejection(url, "Strict Buyability Check Failed")
+                        deal["enrich_error"] = "Buyability Failure: Missing Title/Price"
+                        logging.warning(f"Strict Buyability Check Failed (Missing Fields): {url}")
+                        log_rejection(url, {"stage": "Buyability", "detail": "missing_critical_fields"})
                         return deal
 
-                # Anchor Pricing Check (Mandatory)
+                    # Explicit Reason 2: Price Out of Bounds
+                    try:
+                        np_val = float(str(deal.get("new_price", 0)).replace(",", ""))
+                        if np_val <= 0:
+                            deal["valid"] = False
+                            deal["enrich_error"] = "Buyability Failure: Price <= 0"
+                            logging.warning(f"Strict Buyability Check Failed (Price <= 0): {url}")
+                            log_rejection(url, {"stage": "Buyability", "detail": "price_out_of_bounds"})
+                            return deal
+                    except:
+                        pass # Should be caught by missing fields or schema, but safe to ignore here
+
+                    # Explicit Reason 3: Out of Stock / Unavailable
+                    unavailable_markers = ["currently unavailable", "sold out", "out of stock", "coming soon", "pre-order", "item is unavailable", "page not found", "not deliverable", "notify me"]
+                    if any(x in text_lower for x in unavailable_markers):
+                        deal["valid"] = False
+                        deal["in_stock"] = False
+                        deal["enrich_error"] = "Buyability Failure: Item Unavailable"
+                        logging.warning(f"Strict Buyability Check Failed (Unavailable): {url}")
+                        log_rejection(url, {"stage": "Buyability", "detail": "out_of_stock"})
+                        return deal
+
+                    # Explicit Reason 4: No Buy Button
+                    buy_markers = ["add to cart", "buy now", "proceed to buy"]
+                    if not any(x in text_lower for x in buy_markers):
+                        deal["valid"] = False
+                        deal["enrich_error"] = "Buyability Failure: No Buy Button"
+                        logging.warning(f"Strict Buyability Check Failed (No Button): {url}")
+                        log_rejection(url, {"stage": "Buyability", "detail": "no_buy_button"})
+                        return deal
+
+                # LEVEL 5: Revenue / EPC Gating
                 if config.REQUIRE_ANCHOR_PRICING:
                      if not deal.get("anchor_price") or not deal.get("days_since_high"):
-                         # Try to extract or fail
-                         # For now, if missing in input, we fail.
                          deal["valid"] = False
                          deal["enrich_error"] = "Missing Anchor Pricing Data"
                          logging.warning(f"Skipping Deal - No Anchor Pricing: {url}")
-                         log_rejection(url, "Missing Anchor Pricing Data")
+                         log_rejection(url, {"stage": "Revenue", "detail": "missing_anchor_pricing"})
                          return deal
 
-                     # T-011: Anchor < Current Price Check
                      try:
                          ap = float(str(deal["anchor_price"]).replace(",", ""))
                          np = float(str(deal.get("new_price", 0)).replace(",", ""))
@@ -415,21 +461,21 @@ async def enrich_deal(session, deal: dict) -> dict:
                              deal["valid"] = False
                              deal["enrich_error"] = "Anchor Price Lower Than Current Price"
                              logging.warning(f"Skipping Deal - Anchor ({ap}) < New ({np}): {url}")
-                             log_rejection(url, "Anchor Price Lower Than Current Price")
+                             log_rejection(url, {"stage": "Revenue", "detail": "anchor_price_inversion"})
                              return deal
                              
-                         # T-014: False MRP Check (Inflated Strike-through)
-                         # If Old Price > Anchor * 1.5, reject as deceptive
+                         # False MRP Check
                          if deal.get("old_price"):
                              op = float(str(deal["old_price"]).replace(",", ""))
                              if op > (ap * 1.5):
                                  deal["valid"] = False
-                                 deal["enrich_error"] = "False MRP Detected (Inflated Strike-through)"
+                                 deal["enrich_error"] = "False MRP Detected"
                                  logging.warning(f"Skipping Deal - False MRP ({op} > {ap}*1.5): {url}")
-                                 log_rejection(url, "False MRP Detected")
+                                 log_rejection(url, {"stage": "Revenue", "detail": "false_mrp_detected"})
                                  return deal
                      except Exception as e:
                          logging.warning(f"Price validation error: {e}")
+
 
 
                 # Stock Check (Basic keyword matching)
@@ -531,7 +577,16 @@ async def enrich_deal(session, deal: dict) -> dict:
                 logging.error(f"Enrichment failed for {url} after 3 attempts: Timeout")
                 deal["valid"] = False
                 deal["enrich_error"] = "Network Timeout"
-                log_rejection(url, "Network Timeout")
+                log_rejection(url, {"stage": "Network", "detail": "timeout"})
+                return deal
+            await asyncio.sleep(2 ** attempt)
+
+        except aiohttp.TooManyRedirects as e:
+            if attempt == 2:
+                logging.error(f"Enrichment failed for {url} after 3 attempts: Too Many Redirects")
+                deal["valid"] = False
+                deal["enrich_error"] = "Network Error: Too Many Redirects"
+                log_rejection(url, {"stage": "Network", "detail": "too_many_redirects"})
                 return deal
             await asyncio.sleep(2 ** attempt)
 
@@ -540,7 +595,25 @@ async def enrich_deal(session, deal: dict) -> dict:
                 logging.error(f"Enrichment failed for {url} after 3 attempts: {e}")
                 deal["valid"] = False
                 deal["enrich_error"] = f"Network Error: {e}"
-                log_rejection(url, f"Network Error: {e}")
+                log_rejection(url, {"stage": "Network", "detail": f"client_error_{e}"})
+                return deal
+            await asyncio.sleep(2 ** attempt)
+
+        except OSError as e:
+            if attempt == 2:
+                logging.error(f"Enrichment failed for {url} after 3 attempts: {e}")
+                deal["valid"] = False
+                deal["enrich_error"] = f"Network Error: {e}"
+                log_rejection(url, {"stage": "Network", "detail": f"os_error_{e}"})
+                return deal
+            await asyncio.sleep(2 ** attempt)
+
+        except UnicodeDecodeError as e:
+            if attempt == 2:
+                logging.error(f"Enrichment failed for {url} after 3 attempts: {e}")
+                deal["valid"] = False
+                deal["enrich_error"] = f"Encoding Error: {e}"
+                log_rejection(url, {"stage": "Network", "detail": "codec_error"})
                 return deal
             await asyncio.sleep(2 ** attempt)
 
@@ -549,7 +622,7 @@ async def enrich_deal(session, deal: dict) -> dict:
                 logging.error(f"Enrichment failed for {url} after 3 attempts: {e}")
                 deal["valid"] = False
                 deal["enrich_error"] = str(e)
-                log_rejection(url, f"Unknown Error: {e}")
+                log_rejection(url, {"stage": "Unknown", "detail": str(e)})
                 return deal
             await asyncio.sleep(2 ** attempt) # Exponential backoff
 
@@ -612,8 +685,12 @@ async def process_followups(session, bot: Bot, stats: dict):
         enriched = await enrich_deal(session, deal_stub)
         
         if not enriched.get("valid"):
-            logging.warning(f"Follow-up invalid/expired: {url}")
-            continue
+            # Allow OOS updates to proceed so we can expire the post
+            if enriched.get("in_stock") is False:
+                pass
+            else:
+                logging.warning(f"Follow-up invalid/expired: {url}")
+                continue
             
         # Update State
         current_stock_count = enriched.get("stock_count", 100)
@@ -1073,41 +1150,31 @@ async def deal_engine():
                 final_batch = free_deals + paid_deals # Prioritize free to build bank
                 
                 for deal in final_batch:
-                    # Category Throttling Check
-                    cat = deal.get("category", "general") # Note: deal might not have category yet if not enriched, but usually basic cat is present or inferred
-                    # We can try to infer simple category from title if missing
+                    cat = deal.get("category", "general")
                     if "category" not in deal:
                         if "audio" in deal.get("title", "").lower(): cat = "audio"
                         elif "laptop" in deal.get("title", "").lower(): cat = "laptop"
-                        
-                    if check_category_throttle(cat):
-                        logging.info(f"Skipping deal in throttled category '{cat}': {deal.get('title')}")
-                        stats["throttled"] += 1
-                        log_rejection(deal.get("url", "unknown"), f"Category Throttled: {cat}")
-                        continue
 
-                    # Reciprocity Check
                     price_str = str(deal.get("new_price", "1")).lower()
                     is_free = "free" in deal.get("title", "").lower() or price_str == "0" or price_str == "free"
                     
                     if not is_free:
-                        # Paid Deal
                         if reciprocity_state["free"] < config.RECIPROCITY_RATIO["free"] and not TEST_MODE:
-                            # Not enough free posts yet? 
-                            # Strict Rule: "Bot MUST post 3 free resources before allowing Affiliate"
-                            # If we have no free deals in this batch, we might have to skip paid?
-                            # For MVP, we log warning and proceed if bank > 0, or skip.
-                            # Let's Skip to enforce quality.
                             logging.info(f"Skipping Paid Deal (Reciprocity Debt): {deal['title']}")
-                            log_rejection(deal.get("url", "unknown"), "Reciprocity Debt")
+                            log_rejection(deal.get("url", "unknown"), {"stage": "Trust", "detail": "reciprocity_debt"})
                             continue
                         reciprocity_state["paid"] += 1
                         if reciprocity_state["paid"] >= config.RECIPROCITY_RATIO["paid"]:
-                             # Reset free bank consumption (consume 3 free for 1 paid)
-                             reciprocity_state["free"] -= config.RECIPROCITY_RATIO["free"]
-                             reciprocity_state["paid"] = 0
+                            reciprocity_state["free"] -= config.RECIPROCITY_RATIO["free"]
+                            reciprocity_state["paid"] = 0
                     else:
                         reciprocity_state["free"] += 1
+
+                    if check_category_throttle(cat):
+                        logging.info(f"Skipping deal in throttled category '{cat}': {deal.get('title')}")
+                        stats["throttled"] += 1
+                        log_rejection(deal.get("url", "unknown"), {"stage": "Revenue", "detail": f"category_throttled_{cat}"})
+                        continue
 
                     raw_url = deal.get("url", "")
                     
@@ -1161,7 +1228,7 @@ async def deal_engine():
                     if not deal.get("in_stock", True): # Default True if check fails but page valid
                         stats["out_of_stock"] += 1
                         logging.info(f"Skipping OutOfStock: {deal['title']}")
-                        log_rejection(deal.get("url", "unknown"), "Out of Stock")
+                        log_rejection(deal.get("url", "unknown"), {"stage": "Buyability", "detail": "out_of_stock"})
                         continue
 
                     # 5. Discount Filter
@@ -1181,33 +1248,41 @@ async def deal_engine():
                     if discount_percentage < MIN_DISCOUNT_THRESHOLD:
                         stats["low_disc"] += 1
                         logging.info(f"Skipping Low Discount ({discount_percentage:.2f}%): {deal['title']}")
-                        log_rejection(deal.get("url", "unknown"), f"Low Discount ({discount_percentage:.2f}%)")
+                        log_rejection(deal.get("url", "unknown"), {"stage": "Revenue", "detail": "low_discount"})
                         continue
                     
-                    # 5.5 Wrap with Redirect Bridge (Revenue Intelligence)
-                    # We do this LAST before caption generation to ensure enrichment used the direct link
-                    # and we don't break logic that relies on raw URL analysis.
                     if hasattr(config, "REDIRECT_BRIDGE_URL") and config.REDIRECT_BRIDGE_URL:
                         try:
-                            from urllib.parse import quote
+                            from urllib.parse import quote, unquote
                             target_url = deal.get("url")
+                            if not target_url:
+                                logging.error(f"Redirect bridge missing target URL for deal: {deal.get('title')}")
                             encoded_target = quote(target_url, safe="")
-                            # Construct bridge link
-                            # User -> Bridge -> Retailer
                             bridge_link = f"{config.REDIRECT_BRIDGE_URL}?url={encoded_target}&user_id=telegram_broadcast&category={deal.get('category','general')}&platform=telegram"
+                            wrapped_part = bridge_link.split("url=", 1)[1].split("&", 1)[0] if "url=" in bridge_link else ""
+                            decoded_target = unquote(wrapped_part) if wrapped_part else ""
+                            if decoded_target and decoded_target != target_url:
+                                logging.warning(f"Redirect bridge modified target URL unexpectedly for deal: {deal.get('title')}")
+                            if not bridge_link.startswith(config.REDIRECT_BRIDGE_URL) or "?url=" not in bridge_link:
+                                logging.error(f"Redirect bridge constructed invalid URL for deal: {deal.get('title')}")
                             deal["url"] = bridge_link
                         except Exception as e:
                             logging.error(f"Failed to wrap Redirect Bridge link: {e}")
                             # Fail safe: Keep original URL
                     
-                    # 6. Generate Caption (A/B)
                     caption, variant = generate_caption(deal)
                     if variant == "A": stats["variant_a"] += 1
                     else: stats["variant_b"] += 1
 
-                    # 7. Post
                     if not TEST_MODE:
                         chat_id = CHANNELS["main"]["chat_id"]
+                        final_url = deal.get("url", "")
+                        if not final_url or not isinstance(final_url, str) or not final_url.startswith("http"):
+                            logging.error(f"Posting deal without valid URL field: {deal.get('title')}")
+                        if "http" not in caption:
+                            logging.warning(f"Caption missing URL for deal: {deal.get('title')}")
+                        if "buy" not in caption.lower():
+                            logging.warning(f"Caption missing CTA for deal: {deal.get('title')}")
                         msg = await post_to_telegram(telegram_bot, chat_id, caption)
                         await post_to_discord(session, DISCORD_WEBHOOK_URL, deal, variant)
                         
