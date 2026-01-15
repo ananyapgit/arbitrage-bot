@@ -1,10 +1,10 @@
-# Arbitrage Deal Bot (v1.1 Revenue Intelligence)
+# Arbitrage Deal Bot (v1.3 Super Bot Upgrade)
 
 A high-frequency arbitrage deal bot designed for automated affiliate marketing with revenue intelligence, audit compliance, and fail-closed safety mechanisms.
 
 ## 🚀 Features
 
-### Phase 6: Revenue Intelligence & Hardening
+### Phase 6+: Revenue Intelligence & Hardening
 - **Redirect Bridge**: All outbound links are wrapped via a local bridge (`redirect_server.py`) for click tracking and affiliate tag injection.
 - **Revenue Intelligence**: Real-time EPC (Earnings Per Click) calculation and category-level throttling.
 - **Audit Compliance**:
@@ -15,7 +15,24 @@ A high-frequency arbitrage deal bot designed for automated affiliate marketing w
     - **Fail-Closed Design**: Network or logic failures stop the specific action without crashing the bot, but prevent unsafe posting.
     - **Spam Safety Pause**: Automatically pauses Telegram posting for 24h if flood limits are hit.
     - **Kill Switch**: Global kill switch support (`kill_switch.active`).
-    - **Shadow Mode**: Redirects posts to a private channel for validation.
+- **Shadow Mode**: Redirects posts to a private channel for validation.
+
+### Super Bot Architecture (v1.3)
+- Behavior Levers (no changes to monetization or trust thresholds):
+  - Urgency: Low stock indicators append a lightweight tag and scarcity bar to increase action.
+  - Personalization: Users can register a waitlist monitor (/monitor ASIN TargetPrice); alerts are delivered via DM only when price meets target.
+  - Social Proof: Autonomous loop monitors click logs and escalates trending signals by editing live messages when interest surpasses thresholds.
+  - Omnichannel: High-EPC categories (e.g., Electronics) cross-post to Discord; failures never block Telegram posting.
+
+Operational Rules:
+- Implementation first, validation second, documentation third.
+- Missing data does not halt progress; unmet conditions are recorded as TODO/audit entries.
+- Shadow testing validates behavior without redesigning core logic.
+
+## How Revenue Emerges in This System
+- Click-through rates (CTR) drive users to retailer pages via affiliate redirects. Some clicks convert to purchases, generating affiliate revenue.
+- Urgency tags, social proof escalations, and personalized DMs increase the probability of clicking and buying, thereby improving EPC (earnings per click).
+- Shadow testing validates behavioral lift (e.g., more clicks, faster engagement) while keeping monetization logic and trust thresholds unchanged; it does not directly measure revenue during shadow runs.
 
 ## 🛠️ Installation
 
