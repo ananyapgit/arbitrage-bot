@@ -39,3 +39,28 @@ timestamp,deal_identifier,reason,source
 2026-01-16T01:33:05.363358,https://www.amazon.in/Python-Crash-Course-Eric-Matthes/dp/1718502701,Trust Failure | reciprocity_debt,scraper
 2026-01-16T01:33:05.365723,https://www.amazon.in/Apple-AirPods-Pro-2nd-Generation/dp/B0BDKD8DVD,Trust Failure | reciprocity_debt,scraper
 2026-01-16T01:33:05.367264,https://www.amazon.in/Logitech-Master-Wireless-Performance-Ultra-Fast/dp/B0B11L6X2J,Trust Failure | reciprocity_debt,scraper
+2026-01-26T13:53:01.407569,https://www.amazon.in/Python-Crash-Course-Eric-Matthes/dp/1718502701,Trust Failure | reciprocity_debt,scraper
+2026-01-26T13:53:01.408102,https://www.amazon.in/Logitech-Master-Wireless-Performance-Ultra-Fast/dp/B0B11L6X2J,Trust Failure | reciprocity_debt,scraper
+2026-01-26T13:53:01.409655,https://www.amazon.in/Apple-AirPods-Pro-2nd-Generation/dp/B0BDKD8DVD,Trust Failure | reciprocity_debt,scraper
+2026-01-26T13:53:01.409655,https://www.flipkart.com/nike-running-shoes-men/p/itm60fc0c637e237,Trust Failure | reciprocity_debt,scraper
+2026-01-26T13:54:05.554992,http://test.com/oos,Network Failure | client_error_Cannot connect to host test.com:80 ssl:default [getaddrinfo failed],scraper
+2026-01-26T14:09:15.015423,https://www.amazon.in/Logitech-Master-Wireless-Performance-Ultra-Fast/dp/B0B11L6X2J,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:09:15.016523,https://www.flipkart.com/nike-running-shoes-men/p/itm60fc0c637e237,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:09:15.017578,https://www.amazon.in/Apple-AirPods-Pro-2nd-Generation/dp/B0BDKD8DVD,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:09:15.018612,https://www.amazon.in/Python-Crash-Course-Eric-Matthes/dp/1718502701,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:10:08.781544,http://test.com/oos,Network Failure | client_error_Cannot connect to host test.com:80 ssl:default [getaddrinfo failed],scraper
+2026-01-26T14:26:12.737021,https://www.amazon.in/Apple-AirPods-Pro-2nd-Generation/dp/B0BDKD8DVD,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:26:12.738618,https://www.amazon.in/Python-Crash-Course-Eric-Matthes/dp/1718502701,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:26:12.739628,https://www.flipkart.com/nike-running-shoes-men/p/itm60fc0c637e237,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:26:12.740137,https://www.amazon.in/Logitech-Master-Wireless-Performance-Ultra-Fast/dp/B0B11L6X2J,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:27:11.612283,http://test.com/oos,Network Failure | client_error_Cannot connect to host test.com:80 ssl:default [getaddrinfo failed],scraper
+2026-01-26T14:40:39.600953,https://www.amazon.in/Python-Crash-Course-Eric-Matthes/dp/1718502701,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:40:39.600953,https://www.amazon.in/Apple-AirPods-Pro-2nd-Generation/dp/B0BDKD8DVD,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:40:39.603055,https://www.amazon.in/Logitech-Master-Wireless-Performance-Ultra-Fast/dp/B0B11L6X2J,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:40:39.603572,https://www.flipkart.com/nike-running-shoes-men/p/itm60fc0c637e237,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:41:33.366788,http://test.com/oos,Network Failure | client_error_Cannot connect to host test.com:80 ssl:default [getaddrinfo failed],scraper
+2026-01-26T14:57:23.380056,https://www.flipkart.com/nike-running-shoes-men/p/itm60fc0c637e237,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:57:23.380056,https://www.amazon.in/Logitech-Master-Wireless-Performance-Ultra-Fast/dp/B0B11L6X2J,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:57:23.381610,https://www.amazon.in/Python-Crash-Course-Eric-Matthes/dp/1718502701,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:57:23.381610,https://www.amazon.in/Apple-AirPods-Pro-2nd-Generation/dp/B0BDKD8DVD,Trust Failure | reciprocity_debt,scraper
+2026-01-26T14:58:29.975435,http://test.com/oos,Network Failure | client_error_Cannot connect to host test.com:80 ssl:default [getaddrinfo failed],scraper

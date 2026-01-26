@@ -1,4 +1,6 @@
 import os
+import sys
+
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -11,10 +13,8 @@ except ImportError:
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 if not BOT_TOKEN:
-    # Local fallback for development if .env is missing or variables not set
-    # This ensures we don't crash immediately if just checking structure, 
-    # but runtime will fail if token is needed.
-    pass 
+    print("CRITICAL ERROR: BOT_TOKEN is missing from environment variables.")
+    sys.exit(1)
 
 # Telegram Config
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -38,8 +38,8 @@ POST_INTERVAL_SECONDS = 900  # 15 minutes
 ANTI_SPAM_DELAY = 5
 MAX_DEALS_PER_BATCH = 10  # Throttle
 MIN_DISCOUNT_THRESHOLD = 5.0 
-DRY_RUN = False 
-TEST_MODE = False  # Enable real posting in shadow
+DRY_RUN = os.getenv("DRY_RUN", "false").lower() == "true"
+TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
 
 # Follow-up & Dynamic Polling
 SALE_POLL_INTERVAL_MINUTES = 10
@@ -62,7 +62,9 @@ MIN_CLICKS_FOR_SOCIAL_PROOF = 20
 REQUIRE_ANCHOR_PRICING = True
 
 # Shadow & Chaos Mode
-SHADOW_MODE = True
+SHADOW_MODE = os.getenv("SHADOW_MODE", "false").lower() == "true"
+POST_GUARD = os.getenv("POST_GUARD", "true").lower() == "true"
+
 # Fallback to main chat if shadow not set
 SHADOW_CHANNEL_ID = os.getenv("SHADOW_CHANNEL_ID")
 if SHADOW_CHANNEL_ID:

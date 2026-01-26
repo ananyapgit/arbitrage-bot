@@ -13,6 +13,9 @@ from cachetools import TTLCache
 from telegram import Bot
 from telegram.error import TelegramError
 
+from scrapers.courses import get_free_courses
+# from scrapers.amazon import get_amazon_product # Imported when needed or if we add monitoring list
+
 import config
 import config_monitor
 
@@ -1068,6 +1071,10 @@ def generate_caption(deal: dict) -> tuple[str, str]:
 
 async def post_to_telegram(bot: Bot, chat_id: int, caption: str):
     """Posts to Telegram with retry logic. Returns message object."""
+    if not chat_id:
+        logging.warning("Telegram Posting Skipped: chat_id is None")
+        return None
+
     if TEST_MODE:
         return None
         
@@ -1138,6 +1145,8 @@ async def post_to_discord(session, webhook_url: str, deal: dict, variant: str):
 async def deal_engine(single_run=False):
     commit_hash = config_monitor.get_git_commit_hash()
     logging.info(f"🚀 Crawl.io Bot Started (Phase 6+) | Ver: {commit_hash} | TEST_MODE={TEST_MODE} | Single Run: {single_run}")
+    logging.info("DATA SOURCE: LIVE WEB SCRAPERS ONLY (NO STATIC FEEDS)")
+    logging.info("INFO - Continuous scrape loop active")
     
     # Run Config Drift Check
     try:
@@ -1182,10 +1191,25 @@ async def deal_engine(single_run=False):
         update_category_throttles()
             
         try:
-            # 1. Load Deals
-            deals = load_json(DEALS_FILE, default=[])
+            # 1. LIVE SCRAPING (No Static Feeds)
+            deals = []
+            try:
+                # Scrape Free Courses
+                logging.info("Scraping live sources...")
+                courses = await get_free_courses("https://www.discudemy.com/all")
+                for c in courses:
+                     c["category"] = "education"
+                     c["marketplace"] = "udemy"
+                     c["persona"] = "Student"
+                     c["new_price"] = 0
+                     c["old_price"] = 100 # Dummy for discount calc
+                deals.extend(courses)
+                logging.info(f"Scraped {len(courses)} deals from live web.")
+            except Exception as e:
+                logging.error(f"Live Scrape Failed: {e}")
+
             if not deals:
-                logging.warning("No deals found in deals.json.")
+                logging.warning("No deals found from live scrapers. Sleeping...")
                 await asyncio.sleep(60)
                 continue
 
@@ -1467,15 +1491,3 @@ if __name__ == "__main__":
         asyncio.run(deal_engine())
     except KeyboardInterrupt:
         logging.info("Bot stopped by user.")
-        def run_forever():
-    print("Deal bot starting...")
-    while True:
-        try:
-            run_bot_cycle()   # whatever function does one scan/post cycle
-            time.sleep(30)    # keep alive + rate control
-        except Exception as e:
-            print(f"Error: {e}")
-            time.sleep(10)
-
-if __name__ == "__main__":
-    run_forever()

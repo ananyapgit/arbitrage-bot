@@ -42,3 +42,7 @@ timestamp,config_key,old_value,new_value,change_source,git_commit_hash,restart_r
 2026-01-16T00:46:30.732471,DISCORD_WEBHOOK_URL,N/A,placeholder_disabled,manual/deploy,89d2842d98459c3ac104417650f4a595254ce4b7,yes
 2026-01-16T01:20:51.907286,SHADOW_CHANNEL_ID,-1001234567890,-1003561797352,manual/deploy,89d2842d98459c3ac104417650f4a595254ce4b7,yes
 2026-01-16T01:20:51.908396,BOT_TOKEN,8529561535:AAGH88AnbX7G6xepaDh4a7tC-IWyg35YbN0,8529561535:AAE1llwViG2-QNFoaeKR8CIOjWXyB1VF1q8,manual/deploy,89d2842d98459c3ac104417650f4a595254ce4b7,yes
+2026-01-26T13:53:00.403268,SHADOW_CHANNEL_ID,-1003561797352,None,manual/deploy,a3299ce663a7aeebd1599959088bdb5ce3e165fb,yes
+2026-01-26T13:53:00.403268,CHANNELS,{'main': {'chat_id': -1003561797352, 'categories': ['audio', 'accessory', 'laptop', 'general']}},{'main': {'chat_id': None, 'categories': ['audio', 'accessory', 'laptop', 'general']}},manual/deploy,a3299ce663a7aeebd1599959088bdb5ce3e165fb,yes
+2026-01-26T13:53:00.404955,TELEGRAM_CHAT_ID,N/A,None,manual/deploy,a3299ce663a7aeebd1599959088bdb5ce3e165fb,yes
+2026-01-26T13:53:00.406265,AFFILIATE_TAGS,{'amazon.in': 'crawl0f-21', 'flipkart.com': 'affid'},{'amazon.in': None, 'flipkart.com': None},manual/deploy,a3299ce663a7aeebd1599959088bdb5ce3e165fb,yes
