@@ -1,4 +1,5 @@
-import requests
+import aiohttp
+import asyncio
 from bs4 import BeautifulSoup
 
 HEADERS = {
@@ -6,19 +7,24 @@ HEADERS = {
     "Accept-Language": "en-US,en;q=0.9"
 }
 
-def get_free_courses(url):
-    response = None
+async def get_free_courses(url):
+    html = None
+    
+    async with aiohttp.ClientSession() as session:
+        for attempt in range(3):
+            try:
+                async with session.get(url, headers=HEADERS, timeout=10) as response:
+                    response.raise_for_status()
+                    html = await response.text()
+                    break
+            except (aiohttp.ClientError, asyncio.TimeoutError):
+                if attempt == 2:
+                    return []
+    
+    if not html:
+        return []
 
-    for attempt in range(3):
-        try:
-            response = requests.get(url, headers=HEADERS, timeout=10)
-            response.raise_for_status()
-            break
-        except requests.RequestException:
-            if attempt == 2:
-                return []
-
-    soup = BeautifulSoup(response.text, "html.parser")
+    soup = BeautifulSoup(html, "html.parser")
 
     courses = []
     cards = soup.select(".course-card, .course-listing, .udlite-search-course-card")

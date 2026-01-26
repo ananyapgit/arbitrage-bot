@@ -1,8 +1,15 @@
-# Arbitrage Deal Bot (v1.3 Super Bot Upgrade)
+# Arbitrage Deal Bot (Serverless Hardened)
 
-A high-frequency arbitrage deal bot designed for automated affiliate marketing with revenue intelligence, audit compliance, and fail-closed safety mechanisms.
+![Serverless Status](https://img.shields.io/badge/Serverless-Active-brightgreen)
+
+A high-frequency arbitrage deal bot designed for automated affiliate marketing with revenue intelligence, audit compliance, and fail-closed safety mechanisms. Now running in a **Hardened Serverless Architecture**.
 
 ## 🚀 Features
+
+### Serverless & Security (New!)
+- **GitHub Actions Scraper**: The scraping engine runs every 60 minutes on GitHub's infrastructure, completely removing the need for a local server.
+- **Secret Management**: All credentials (API Keys, Affiliate Tags) are strictly managed via GitHub Secrets and Streamlit Secrets. No hardcoded tokens.
+- **Streamlit Cloud Dashboard**: The Redirect Bridge and Admin Dashboard are hosted 24/7 on Streamlit Cloud.
 
 ### Phase 6+: Revenue Intelligence & Hardening
 - **Redirect Bridge**: All outbound links are wrapped via a local bridge (`redirect_server.py`) for click tracking and affiliate tag injection.
@@ -46,29 +53,29 @@ Operational Rules:
    ```bash
    pip install -r requirements.txt
    ```
-   *(Note: Ensure `aiohttp`, `pandas`, `python-telegram-bot`, `cachetools` are installed)*
+   *(Note: Ensure `aiohttp`, `pandas`, `python-telegram-bot`, `cachetools`, `python-dotenv` are installed)*
 
 3. **Configuration**:
-   - Edit `config.py` to set `BOT_TOKEN`, `CHANNELS`, and `AFFILIATE_TAGS`.
-   - Ensure `REDIRECT_BRIDGE_URL` is set to your bridge endpoint (default: `http://localhost:8080/r`).
+   - Create a `.env` file for local testing (see `config.py` for required variables).
+   - For Production (GitHub Actions/Streamlit), use their respective Secrets management UI.
 
 ## 🏃‍♂️ Usage
 
-### Start the Redirect Bridge (Required for Tracking)
-```bash
-python redirect_server.py
-```
+### 1. Serverless Scraper (GitHub Actions)
+The bot runs automatically every hour via `.github/workflows/bot_runner.yml`.
+- **Trigger Manually**: Go to GitHub Actions -> Arbitrage Bot Runner -> Run Workflow.
+- **Output**: Logs and data files (`deals.json`, `click_logs.csv`) are automatically committed back to the repo.
 
-### Start the Bot
-```bash
-python bot.py
-```
+### 2. Streamlit Cloud (Redirect Bridge & Dashboard)
+Host `app.py` on Streamlit Cloud.
+- **Secrets Required**: `ADMIN_PASSWORD`, `BOT_TOKEN` (if needed for bot ops), `REDIRECT_BRIDGE_URL` (in config).
+- **Access**: Visit your Streamlit App URL.
 
-### Run Validation Tests
+### 3. Local Testing
 ```bash
-python run_all_tests.py
+python main.py
 ```
-*Runs Failure Taxonomy, Redirect, and Shadow/Chaos test suites.*
+This will run the bot in "Persistent Mode" (Infinite Loop) unless `GITHUB_ACTIONS=true` is set.
 
 ## 📊 Analytics & Logs
 
@@ -86,6 +93,9 @@ python run_all_tests.py
 
 ## 📜 Version History
 
+- **v1.5-serverless**: Hardened Serverless Architecture with GitHub Actions and Streamlit Secrets.
+- **v1.4-live-ready**: Hybrid Streamlit deployment, Async IO upgrade, Launch Validator.
+- **v1.3-super-bot**: Urgency tags, Social Proof, Omnichannel.
 - **v1.1-revenue-intelligence**: Added Redirect Bridge, EPC Engine, Audit Logging.
 - **v1.0-prelaunch**: Initial Deal Engine & Scraper Logic.
 

@@ -8,6 +8,10 @@
 - Posting: Telegram and Discord posting pipeline with caption generation.
 - Revenue: affiliate tagging, redirect bridge, and analytics tracking.
 - Validation: failure taxonomy tests, chaos tests, and launch validator.
+ - Behavioral Systems:
+   - Urgency: Low-stock detection appends concise tags and scarcity bars; enforced once per deal.
+   - Personalization: Waitlist monitor (/monitor ASIN TargetPrice) persists to waitlist_db and triggers DM-only alerts when price meets target.
+   - Social Proof: Analytics loop monitors click_logs and escalates trending signals via message edits; avoids repeated edits per threshold.
 
 ## Data Flow
 

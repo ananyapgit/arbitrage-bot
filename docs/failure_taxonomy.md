@@ -37,6 +37,11 @@
 - Buyability Failure | no_buy_button
 - Revenue Failure | missing_anchor_pricing
 - Redirect Failure | missing_target_url
+ 
+## Behavioral Systems
+ - Urgency: Annotates titles under low-stock or high-claimed conditions; non-blocking and appended once.
+ - Personalization: Waitlist DM alerts trigger when target price is met; never posted to channels.
+ - Social Proof: Message edits indicate trending interest; avoids repeated edits for same thresholds; failures are non-blocking.
 
 Last Auto-Update: 2026-01-14T18:21:09+00:00
 

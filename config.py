@@ -1,16 +1,37 @@
 import os
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # ================== CONFIGURATION ==================
 
 # Secrets (In production, load these from env vars)
-BOT_TOKEN = "8529561535:AAGH88AnbX7G6xepaDh4a7tC-IWyg35YbN0"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+if not BOT_TOKEN:
+    # Local fallback for development if .env is missing or variables not set
+    # This ensures we don't crash immediately if just checking structure, 
+    # but runtime will fail if token is needed.
+    pass 
+
+# Telegram Config
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+if TELEGRAM_CHAT_ID:
+    try:
+        TELEGRAM_CHAT_ID = int(TELEGRAM_CHAT_ID)
+    except ValueError:
+        pass # Handle or log error?
+
 CHANNELS = {
     "main": {
-        "chat_id": -1003561797352,
+        "chat_id": TELEGRAM_CHAT_ID, # Can be None if not set
         "categories": ["audio", "accessory", "laptop", "general"]
     }
 }
-DISCORD_WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL_HERE" 
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "placeholder_disabled")
+HIGH_EPC_CATEGORIES = ["electronics"]
 
 # Bot Behavior
 POST_INTERVAL_SECONDS = 900  # 15 minutes
@@ -18,13 +39,14 @@ ANTI_SPAM_DELAY = 5
 MAX_DEALS_PER_BATCH = 10  # Throttle
 MIN_DISCOUNT_THRESHOLD = 5.0 
 DRY_RUN = False 
-TEST_MODE = True  # TEST MODE DEFAULT for Safety
+TEST_MODE = False  # Enable real posting in shadow
 
 # Follow-up & Dynamic Polling
 SALE_POLL_INTERVAL_MINUTES = 10
 STOCK_ALERT_THRESHOLDS = [50, 20, 10, 5] # Triggers at 50%, 20%, 10% stock or 5 items left
 FOLLOW_UP_SLEEP_SECONDS = 600
 SALE_FOLLOWUP_CACHE_FILE = "sale_followup_cache.json"
+WAITLIST_DB_FILE = "waitlist_db.json"
 
 # Conversion & Trust Engine
 STRICT_BUYABILITY_CHECK = True
@@ -40,8 +62,17 @@ MIN_CLICKS_FOR_SOCIAL_PROOF = 20
 REQUIRE_ANCHOR_PRICING = True
 
 # Shadow & Chaos Mode
-SHADOW_MODE = False
-SHADOW_CHANNEL_ID = -1001234567890 # Replace with actual private channel
+SHADOW_MODE = True
+# Fallback to main chat if shadow not set
+SHADOW_CHANNEL_ID = os.getenv("SHADOW_CHANNEL_ID")
+if SHADOW_CHANNEL_ID:
+    try:
+        SHADOW_CHANNEL_ID = int(SHADOW_CHANNEL_ID)
+    except ValueError:
+        SHADOW_CHANNEL_ID = TELEGRAM_CHAT_ID
+else:
+    SHADOW_CHANNEL_ID = TELEGRAM_CHAT_ID
+
 TRUST_RATING_THRESHOLD = 4.0
 MAX_SHIPPING_PERCENT = 0.20
 PRICE_ERROR_DROP_THRESHOLD = 0.80
@@ -50,7 +81,7 @@ SCRAPE_INTERVAL_MAX = 75
 
 # Revenue Protection (Sub-IDs)
 EPC_THROTTLE_THRESHOLD = 0.10 # Pause category if EPC < $0.10
-REDIRECT_BRIDGE_URL = "http://localhost:8080/r" # Redirect Bridge
+REDIRECT_BRIDGE_URL = os.getenv("REDIRECT_BRIDGE_URL", "http://localhost:8080/r")
 SUB_IDS = {
     "electronics": "elec_001",
     "fashion": "fash_001",
@@ -60,8 +91,8 @@ SUB_IDS = {
 
 # Affiliate Tags
 AFFILIATE_TAGS = {
-    "amazon.in": "crawl0f-21",
-    "flipkart.com": "affid",
+    "amazon.in": os.getenv("AMAZON_TAG"),
+    "flipkart.com": os.getenv("FLIPKART_TAG"),
 }
 
 # File Paths

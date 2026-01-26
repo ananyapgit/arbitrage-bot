@@ -1,0 +1,70 @@
+{
+    "AFFILIATE_TAGS": {
+        "amazon.in": "crawl0f-21",
+        "flipkart.com": "affid"
+    },
+    "ANALYTICS_FILE": "analytics.json",
+    "ANTI_SPAM_DELAY": 5,
+    "BOT_TOKEN": "8529561535:AAE1llwViG2-QNFoaeKR8CIOjWXyB1VF1q8",
+    "CACHE_FILE": "cache.json",
+    "CHANNELS": {
+        "main": {
+            "chat_id": -1003561797352,
+            "categories": [
+                "audio",
+                "accessory",
+                "laptop",
+                "general"
+            ]
+        }
+    },
+    "DEALS_FILE": "deals.json",
+    "DISCORD_WEBHOOK_URL": "placeholder_disabled",
+    "DRY_RUN": false,
+    "EPC_THROTTLE_THRESHOLD": 0.1,
+    "FOLLOW_UP_COOLDOWN_HOURS": 3,
+    "FOLLOW_UP_SLEEP_SECONDS": 600,
+    "HIGH_EPC_CATEGORIES": [
+        "electronics"
+    ],
+    "LANDING_PAGE_FILE": "site/deals.json",
+    "MAX_DEALS_PER_BATCH": 10,
+    "MAX_DEALS_PER_PERSONA_PER_BATCH": 1,
+    "MAX_FOLLOW_UPS_PER_DEAL": 3,
+    "MAX_SHIPPING_PERCENT": 0.2,
+    "MENTAL_ACCOUNTING_THRESHOLD": 199,
+    "MIN_CLICKS_FOR_SOCIAL_PROOF": 20,
+    "MIN_DISCOUNT_THRESHOLD": 5.0,
+    "POST_INTERVAL_SECONDS": 900,
+    "PRICE_ERROR_DROP_THRESHOLD": 0.8,
+    "RECIPROCITY_RATIO": {
+        "free": 3,
+        "paid": 1
+    },
+    "REDDIT_DRAFT_FILE": "reddit_drafts.json",
+    "REDIRECT_BRIDGE_URL": "http://localhost:8080/r",
+    "REQUIRE_ANCHOR_PRICING": true,
+    "RETARGETING_WINDOW_MINUTES": 90,
+    "SALE_FOLLOWUP_CACHE_FILE": "sale_followup_cache.json",
+    "SALE_POLL_INTERVAL_MINUTES": 10,
+    "SCRAPE_INTERVAL_MAX": 75,
+    "SCRAPE_INTERVAL_MIN": 45,
+    "SHADOW_CHANNEL_ID": -1003561797352,
+    "SHADOW_MODE": true,
+    "STOCK_ALERT_THRESHOLDS": [
+        50,
+        20,
+        10,
+        5
+    ],
+    "STRICT_BUYABILITY_CHECK": true,
+    "SUB_IDS": {
+        "electronics": "elec_001",
+        "fashion": "fash_001",
+        "home": "home_001",
+        "general": "gen_001"
+    },
+    "TEST_MODE": false,
+    "TRUST_RATING_THRESHOLD": 4.0,
+    "WAITLIST_DB_FILE": "waitlist_db.json"
+}

@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.3-superbot-upgrade
+- Added stock & urgency engine: extracts low stock/percent claimed and appends concise urgency tag once.
+- Implemented waitlist monitor system with /monitor command handler stub and DM-only alerts.
+- Introduced social proof loop: edits live Telegram messages when click interest spikes; prevents repeated escalations.
+- Activated omnichannel deployment to Discord for high-EPC categories; Discord errors do not block Telegram.
+- Expanded daily_business_summary.csv with personalization, urgency, social-proof counters.
+- Enhanced rejection_audit.log with actual seller rating value for TRUST_RATING_THRESHOLD rejections.
+- Documentation updated: README Super Bot section; Behavioral Systems explained.
+
 All notable changes to the Arbitrage Deal Bot project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),

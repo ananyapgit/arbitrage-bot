@@ -39,6 +39,7 @@ logging.basicConfig(
 BOT_TOKEN = config.BOT_TOKEN
 CHANNELS = config.CHANNELS
 DISCORD_WEBHOOK_URL = config.DISCORD_WEBHOOK_URL
+HIGH_EPC_CATEGORIES = getattr(config, "HIGH_EPC_CATEGORIES", ["electronics"])
 POST_INTERVAL_SECONDS = config.POST_INTERVAL_SECONDS
 ANTI_SPAM_DELAY = config.ANTI_SPAM_DELAY
 MAX_DEALS_PER_BATCH = config.MAX_DEALS_PER_BATCH
@@ -51,6 +52,7 @@ ANALYTICS_FILE = config.ANALYTICS_FILE
 SALE_POLL_INTERVAL_MINUTES = config.SALE_POLL_INTERVAL_MINUTES
 STOCK_ALERT_THRESHOLDS = config.STOCK_ALERT_THRESHOLDS
 SALE_FOLLOWUP_CACHE_FILE = config.SALE_FOLLOWUP_CACHE_FILE
+WAITLIST_DB_FILE = getattr(config, "WAITLIST_DB_FILE", "waitlist_db.json")
 KILL_SWITCH_FILE = "kill_switch.active"
 SPAM_PAUSE_FILE = "spam_pause.json"
 
@@ -256,6 +258,94 @@ def save_json(filepath, data):
     except IOError as e:
         logging.error(f"Error saving {filepath}: {e}")
 
+def load_waitlist():
+    return load_json(WAITLIST_DB_FILE, default=[])
+
+def save_waitlist(data):
+    save_json(WAITLIST_DB_FILE, data)
+
+def register_monitor_command(user_id: int, asin: str, target_price: float):
+    try:
+        data = load_waitlist()
+        entry = {
+            "user_id": int(user_id),
+            "asin": str(asin),
+            "target_price": float(target_price),
+            "alerted": False,
+            "timestamp": datetime.now().isoformat()
+        }
+        data.append(entry)
+        save_waitlist(data)
+        logging.info(f"Registered waitlist monitor: user={user_id}, asin={asin}, target={target_price}")
+    except Exception as e:
+        logging.error(f"Failed to register monitor command: {e}")
+        try:
+            with open("audit_todo.log", "a", encoding="utf-8") as f:
+                f.write(f"{datetime.now().isoformat()},monitor_register_failed,{user_id},{asin},{target_price},{e}\n")
+        except:
+            pass
+
+async def send_dm(bot: Bot, user_id: int, text: str):
+    if TEST_MODE:
+        return None
+    try:
+        return await bot.send_message(chat_id=user_id, text=text, parse_mode="Markdown")
+    except Exception as e:
+        logging.error(f"DM send failed to {user_id}: {e}")
+        return None
+
+async def check_waitlist_alerts(telegram_bot: Bot, asin: str, current_price):
+    try:
+        data = load_waitlist()
+        if not data or not asin:
+            return
+        try:
+            price_val = float(str(current_price).replace(",", ""))
+        except Exception:
+            return
+        updated = False
+        for entry in data:
+            if entry.get("asin") == asin and not entry.get("alerted", False):
+                target = float(entry.get("target_price", 0))
+                if price_val <= target:
+                    text = f"👀 Price Alert for {asin}\nCurrent: ₹{price_val} ≤ Target: ₹{target}\nWe’ll keep monitoring for you."
+                    await send_dm(telegram_bot, int(entry.get("user_id")), text)
+                    entry["alerted"] = True
+                    entry["alerted_at"] = datetime.now().isoformat()
+                    updated = True
+        if updated:
+            save_waitlist(data)
+    except Exception as e:
+        logging.error(f"Waitlist alert check failed: {e}")
+
+def handle_telegram_command(user_id: int, text: str):
+    """
+    Parses simple Telegram command messages.
+    Supported:
+    /monitor [ASIN] [TargetPrice]
+    """
+    try:
+        if not isinstance(text, str):
+            return False
+        parts = text.strip().split()
+        if len(parts) >= 3 and parts[0].lower() == "/monitor":
+            asin = parts[1]
+            target = float(parts[2])
+            register_monitor_command(user_id, asin, target)
+            return True
+        else:
+            with open("audit_todo.log", "a", encoding="utf-8") as f:
+                f.write(f"{datetime.now().isoformat()},unknown_command,{user_id},{text}\n")
+            return False
+    except Exception as e:
+        logging.error(f"Command parsing failed: {e}")
+        try:
+            with open("audit_todo.log", "a", encoding="utf-8") as f:
+                f.write(f"{datetime.now().isoformat()},command_parse_failed,{user_id},{text},{e}\n")
+        except:
+            pass
+        return False
+
 async def add_affiliate_tag(session, url: str, marketplace: str, category: str = "general") -> str:
     """
     Appends affiliate tag to the URL based on marketplace.
@@ -385,7 +475,7 @@ async def enrich_deal(session, deal: dict) -> dict:
                         deal["valid"] = False
                         deal["enrich_error"] = f"Trust Violation: Seller Rating {rating} < {config.TRUST_RATING_THRESHOLD}"
                         logging.warning(f"Rejecting {url}: {deal['enrich_error']}")
-                        log_rejection(url, {"stage": "Trust", "detail": "rating_below_threshold"})
+                        log_rejection(url, {"stage": "Trust", "detail": f"rating_below_threshold|value={rating}"})
                         return deal
                 
                 # Shipping Cost
@@ -497,6 +587,19 @@ async def enrich_deal(session, deal: dict) -> dict:
                     deal["stock_count"] = 5 # Default low number if parsing fails
                 else:
                     deal["stock_count"] = 100 # Assume plenty
+                
+                # Append urgency tag once (title)
+                try:
+                    title = str(deal.get("title", ""))
+                    tag = None
+                    if deal.get("low_stock") and deal.get("stock_count", 100) < 10:
+                        tag = f"[🔥 LOW STOCK – {deal.get('stock_count')} LEFT]"
+                    elif deal.get("percent_claimed") and deal.get("percent_claimed") <= 20:
+                        tag = "[🔥 LOW STOCK – <20% LEFT]"
+                    if tag and tag not in title:
+                        deal["title"] = f"{title} {tag}"
+                except Exception:
+                    pass
 
                 # Gamified Scarcity: Percent Claimed
                 claimed_match = re.search(r"(\d+)%\s+claimed", text_lower)
@@ -1020,20 +1123,21 @@ async def post_to_discord(session, webhook_url: str, deal: dict, variant: str):
     
     for attempt in range(3):
         try:
-            async with session.post(webhook_url, json=payload) as response:
-                if response.status in [200, 204]:
-                    return
-                else:
-                    logging.warning(f"Discord error {response.status}")
+            response = await session.post(webhook_url, json=payload)
+            status = getattr(response, "status", None)
+            if status in [200, 204]:
+                return
+            else:
+                logging.warning(f"Discord error {status}")
         except Exception as e:
             logging.error(f"Discord post failed: {e}")
         await asyncio.sleep(2)
 
 # ================== MAIN ENGINE ==================
 
-async def deal_engine():
+async def deal_engine(single_run=False):
     commit_hash = config_monitor.get_git_commit_hash()
-    logging.info(f"🚀 Crawl.io Bot Started (Phase 6+) | Ver: {commit_hash} | TEST_MODE={TEST_MODE}")
+    logging.info(f"🚀 Crawl.io Bot Started (Phase 6+) | Ver: {commit_hash} | TEST_MODE={TEST_MODE} | Single Run: {single_run}")
     
     # Run Config Drift Check
     try:
@@ -1284,7 +1388,12 @@ async def deal_engine():
                         if "buy" not in caption.lower():
                             logging.warning(f"Caption missing CTA for deal: {deal.get('title')}")
                         msg = await post_to_telegram(telegram_bot, chat_id, caption)
-                        await post_to_discord(session, DISCORD_WEBHOOK_URL, deal, variant)
+                        try:
+                            post_cat = deal.get("category", "general")
+                            if post_cat in HIGH_EPC_CATEGORIES:
+                                await post_to_discord(session, DISCORD_WEBHOOK_URL, deal, variant)
+                        except Exception as e:
+                            logging.warning(f"Discord cross-post skipped due to error: {e}")
                         
                         if msg:
                              log_post(deal.get("url", "unknown"), deal.get("category", "general"))
@@ -1312,6 +1421,13 @@ async def deal_engine():
                             
                         followup_cache[raw_url] = followup_data
                         
+                        # Waitlist Alerts (DM-only)
+                        try:
+                            if asin:
+                                await check_waitlist_alerts(telegram_bot, asin, deal.get("new_price"))
+                        except Exception as e:
+                            logging.error(f"Waitlist alert processing failed: {e}")
+                        
                     processed_count += 1
                     stats["sent"] += 1
                     await asyncio.sleep(ANTI_SPAM_DELAY)
@@ -1332,10 +1448,18 @@ async def deal_engine():
             # Randomized Sleep
             sleep_time = POST_INTERVAL_SECONDS * random.uniform(0.85, 1.15)
             logging.info(f"Sleeping for {int(sleep_time)}s...")
+            
+            if single_run:
+                logging.info("Single run completed. Exiting loop.")
+                break
+                
             await asyncio.sleep(sleep_time)
 
         except Exception as e:
             logging.error(f"Critical Loop Error: {e}")
+            if single_run:
+                logging.error("Single run failed. Exiting.")
+                break
             await asyncio.sleep(60)
 
 if __name__ == "__main__":

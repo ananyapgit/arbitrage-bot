@@ -10,6 +10,8 @@
 - resilience_shadow_chaos_testing_log.csv: shadow and chaos test results.
 - config_change_log.csv: configuration drift and mutation history.
 - launch_validation_report.json: aggregated launch validation results.
+ - social_proof_state.json: thresholds applied per URL to prevent repeated edits.
+ - waitlist_db.json: user-specific monitors with ASIN and target price; alerts are DM-only.
 
 ## Rejection Audit Schema
 
@@ -25,6 +27,8 @@
 - resilience_shadow_chaos_testing_log.csv: after running shadow chaos tests.
 - config_change_log.csv: whenever configuration values are mutated or drift.
 - launch_validation_report.json: after running the launch validator.
+ - social_proof_state.json: when social proof escalations are applied.
+ - waitlist_db.json: when /monitor commands are registered or alerts are sent.
 
 ## Fatal vs Non-Fatal Absence
 

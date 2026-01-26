@@ -1,0 +1,40 @@
+name: Arbitrage Bot Runner
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Run every hour
+  workflow_dispatch:      # Allow manual trigger
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Arbitrage Bot (Single Cycle)
+      env:
+        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        AMAZON_TAG: ${{ secrets.AMAZON_TAG }}
+        FLIPKART_TAG: ${{ secrets.FLIPKART_TAG }}
+        REDIRECT_BRIDGE_URL: ${{ secrets.REDIRECT_BRIDGE_URL }}
+        # Add other secrets as needed
+      run: python main.py
+
+    - name: Commit and Push Data Artifacts
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "🤖 Auto-Update: Bot Logs & Data [skip ci]"
+        file_pattern: "click_logs.csv deals.json rejection_audit.log analytics.json cache.json sale_followup_cache.json"
