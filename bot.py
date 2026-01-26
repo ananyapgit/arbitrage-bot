@@ -1467,3 +1467,15 @@ if __name__ == "__main__":
         asyncio.run(deal_engine())
     except KeyboardInterrupt:
         logging.info("Bot stopped by user.")
+        def run_forever():
+    print("Deal bot starting...")
+    while True:
+        try:
+            run_bot_cycle()   # whatever function does one scan/post cycle
+            time.sleep(30)    # keep alive + rate control
+        except Exception as e:
+            print(f"Error: {e}")
+            time.sleep(10)
+
+if __name__ == "__main__":
+    run_forever()
