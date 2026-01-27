@@ -1,5 +1,8 @@
 import os
 import sys
+from dotenv import load_dotenv
+load_dotenv("secrets.env")
+
 
 try:
     from dotenv import load_dotenv
@@ -33,13 +36,33 @@ CHANNELS = {
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "placeholder_disabled")
 HIGH_EPC_CATEGORIES = ["electronics"]
 
+def env_int(key, default):
+    try:
+        return int(os.getenv(key, str(default)))
+    except Exception:
+        return default
+
+def env_float(key, default):
+    try:
+        return float(os.getenv(key, str(default)))
+    except Exception:
+        return default
+
 # Bot Behavior
-POST_INTERVAL_SECONDS = 900  # 15 minutes
-ANTI_SPAM_DELAY = 5
-MAX_DEALS_PER_BATCH = 10  # Throttle
-MIN_DISCOUNT_THRESHOLD = 5.0 
-DRY_RUN = os.getenv("DRY_RUN", "false").lower() == "true"
-TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
+POST_INTERVAL_SECONDS = env_int("POST_INTERVAL_SECONDS", 900)
+ANTI_SPAM_DELAY = env_int("ANTI_SPAM_DELAY", 5)
+MAX_DEALS_PER_BATCH = env_int("MAX_DEALS_PER_BATCH", 10)
+MIN_DISCOUNT_THRESHOLD = env_float("MIN_DISCOUNT_THRESHOLD", 5.0)
+
+def env_bool(key, default):
+    return os.getenv(key, str(default)).lower() == "true"
+
+TEST_MODE = env_bool("TEST_MODE", False)
+DRY_RUN = env_bool("DRY_RUN", False)
+SINGLE_RUN = env_bool("SINGLE_RUN", True)
+
+SCRAPE_INTERVAL_SECONDS = 5
+
 
 # Follow-up & Dynamic Polling
 SALE_POLL_INTERVAL_MINUTES = 10
@@ -83,7 +106,10 @@ SCRAPE_INTERVAL_MAX = 75
 
 # Revenue Protection (Sub-IDs)
 EPC_THROTTLE_THRESHOLD = 0.10 # Pause category if EPC < $0.10
-REDIRECT_BRIDGE_URL = os.getenv("REDIRECT_BRIDGE_URL", "http://localhost:8080/r")
+
+REDIRECT_PUBLIC_URL = os.getenv("REDIRECT_PUBLIC_URL", "https://redirect-service-kyf0.onrender.com/r")
+REDIRECT_BRIDGE_URL = REDIRECT_PUBLIC_URL
+
 SUB_IDS = {
     "electronics": "elec_001",
     "fashion": "fash_001",

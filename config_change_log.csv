@@ -46,3 +46,49 @@ timestamp,config_key,old_value,new_value,change_source,git_commit_hash,restart_r
 2026-01-26T13:53:00.403268,CHANNELS,{'main': {'chat_id': -1003561797352, 'categories': ['audio', 'accessory', 'laptop', 'general']}},{'main': {'chat_id': None, 'categories': ['audio', 'accessory', 'laptop', 'general']}},manual/deploy,a3299ce663a7aeebd1599959088bdb5ce3e165fb,yes
 2026-01-26T13:53:00.404955,TELEGRAM_CHAT_ID,N/A,None,manual/deploy,a3299ce663a7aeebd1599959088bdb5ce3e165fb,yes
 2026-01-26T13:53:00.406265,AFFILIATE_TAGS,{'amazon.in': 'crawl0f-21', 'flipkart.com': 'affid'},{'amazon.in': None, 'flipkart.com': None},manual/deploy,a3299ce663a7aeebd1599959088bdb5ce3e165fb,yes
+2026-01-26T15:35:28.667376,SHADOW_MODE,True,False,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T15:35:28.671513,POST_GUARD,N/A,True,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T15:57:31.427789,CHANNELS,{'main': {'chat_id': None, 'categories': ['audio', 'accessory', 'laptop', 'general']}},{'main': {'chat_id': -1003561797352, 'categories': ['audio', 'accessory', 'laptop', 'general']}},manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T15:57:31.433357,SHADOW_CHANNEL_ID,None,-1003561797352,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T15:57:31.436693,DRY_RUN,False,True,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T15:57:31.441240,TELEGRAM_CHAT_ID,None,-1003561797352,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T16:49:12.391389,TELEGRAM_CHAT_ID,-1003561797352,None,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T16:49:12.395468,SHADOW_CHANNEL_ID,-1003561797352,None,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T16:49:12.399510,CHANNELS,{'main': {'chat_id': -1003561797352, 'categories': ['audio', 'accessory', 'laptop', 'general']}},{'main': {'chat_id': None, 'categories': ['audio', 'accessory', 'laptop', 'general']}},manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T16:49:12.402559,DRY_RUN,True,False,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T17:12:27.450815,CHANNELS,{'main': {'chat_id': None, 'categories': ['audio', 'accessory', 'laptop', 'general']}},{'main': {'chat_id': -1003561797352, 'categories': ['audio', 'accessory', 'laptop', 'general']}},manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T17:12:27.458504,DRY_RUN,False,True,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T17:12:27.464622,SHADOW_CHANNEL_ID,None,-1003561797352,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T17:12:27.467666,TELEGRAM_CHAT_ID,None,-1003561797352,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T18:18:16.421154,DRY_RUN,True,False,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T18:19:36.901394,MIN_DISCOUNT_THRESHOLD,5.0,-999,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T18:53:40.346782,REDIRECT_BRIDGE_URL,http://localhost:8080/r,https://mock-bridge.com/r,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T19:09:10.808614,CHANNELS,{'main': {'chat_id': -1003561797352, 'categories': ['audio', 'accessory', 'laptop', 'general']}},{'main': {'chat_id': None, 'categories': ['audio', 'accessory', 'laptop', 'general']}},manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T19:09:10.809122,SHADOW_CHANNEL_ID,-1003561797352,-1002468349964,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T19:09:10.809122,TELEGRAM_CHAT_ID,-1003561797352,None,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T19:09:10.810644,MIN_DISCOUNT_THRESHOLD,-999,5.0,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T19:09:10.810644,REDIRECT_BRIDGE_URL,https://mock-bridge.com/r,https://arbitrage-test.serveo.net/r,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T19:52:15.164485,MIN_DISCOUNT_THRESHOLD,5.0,-100.0,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T19:53:50.338236,SHADOW_MODE,False,True,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T20:02:46.311365,REDIRECT_BRIDGE_URL,https://arbitrage-test.serveo.net/r,N/A,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T20:02:46.312921,REDIRECT_PUBLIC_URL,N/A,https://d031e5c6f87320.lhr.life/r,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T20:16:34.767113,SHADOW_MODE,True,False,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T20:19:00.919880,TELEGRAM_CHAT_ID,None,-1003787019016,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T20:19:00.920384,CHANNELS,{'main': {'chat_id': None, 'categories': ['audio', 'accessory', 'laptop', 'general']}},{'main': {'chat_id': -1003787019016, 'categories': ['audio', 'accessory', 'laptop', 'general']}},manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T20:43:34.971978,TELEGRAM_CHAT_ID,-1003787019016,-1003561797352,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-26T20:43:34.973050,CHANNELS,{'main': {'chat_id': -1003787019016, 'categories': ['audio', 'accessory', 'laptop', 'general']}},{'main': {'chat_id': -1003561797352, 'categories': ['audio', 'accessory', 'laptop', 'general']}},manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-27T08:35:32.160145,CHANNELS,{'main': {'chat_id': -1003561797352, 'categories': ['audio', 'accessory', 'laptop', 'general']}},{'main': {'chat_id': -1003787019016, 'categories': ['audio', 'accessory', 'laptop', 'general']}},manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-27T08:35:32.161689,TELEGRAM_CHAT_ID,-1003561797352,-1003787019016,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-27T10:33:05.404870,MIN_DISCOUNT_THRESHOLD,-100.0,5.0,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-27T10:33:05.406424,CHANNELS,{'main': {'chat_id': -1003787019016, 'categories': ['audio', 'accessory', 'laptop', 'general']}},{'main': {'chat_id': None, 'categories': ['audio', 'accessory', 'laptop', 'general']}},manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-27T10:33:05.407946,REDIRECT_PUBLIC_URL,https://d031e5c6f87320.lhr.life/r,N/A,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-27T10:33:05.408474,REDIRECT_BRIDGE_URL,N/A,https://redirect-service-kyf0.onrender.com/r,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-27T10:33:05.410721,SHADOW_CHANNEL_ID,-1002468349964,None,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-27T10:33:05.411039,TELEGRAM_CHAT_ID,-1003787019016,None,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-27T10:53:59.446936,SCRAPE_INTERVAL_SECONDS,N/A,5,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-27T10:53:59.448477,TEST_MODE,False,True,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-27T10:53:59.448477,SINGLE_RUN,N/A,False,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-27T10:53:59.448477,DRY_RUN,False,True,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-27T11:01:29.141445,SINGLE_RUN,False,True,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-27T19:14:59.419000,DRY_RUN,True,False,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes
+2026-01-27T19:14:59.420586,TEST_MODE,True,False,manual/deploy,5565a7fcbc01ce51093a6422090ae9236ecd2d08,yes

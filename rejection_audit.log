@@ -64,3 +64,19 @@ timestamp,deal_identifier,reason,source
 2026-01-26T14:57:23.381610,https://www.amazon.in/Python-Crash-Course-Eric-Matthes/dp/1718502701,Trust Failure | reciprocity_debt,scraper
 2026-01-26T14:57:23.381610,https://www.amazon.in/Apple-AirPods-Pro-2nd-Generation/dp/B0BDKD8DVD,Trust Failure | reciprocity_debt,scraper
 2026-01-26T14:58:29.975435,http://test.com/oos,Network Failure | client_error_Cannot connect to host test.com:80 ssl:default [getaddrinfo failed],scraper
+2026-01-26T16:13:15.922445,https://www.couponami.com/business/bootstrapping-business-without-money-investments-getting,Buyability Failure | missing_critical_fields,scraper
+2026-01-26T16:13:18.983054,http://test.com/oos,Network Failure | client_error_Cannot connect to host test.com:80 ssl:default [getaddrinfo failed],scraper
+2026-01-26T16:14:21.776729,https://www.couponami.com/business/bootstrapping-business-without-money-investments-getting,Buyability Failure | no_buy_button,scraper
+2026-01-26T16:14:24.812695,http://test.com/oos,Network Failure | client_error_Cannot connect to host test.com:80 ssl:default [getaddrinfo failed],scraper
+2026-01-26T16:49:15.979688,https://www.couponami.com/development-tools/azure-infrastructure-azure-resources-using-arm-templates,Buyability Failure | no_buy_button,scraper
+2026-01-26T16:49:19.117702,http://test.com/oos,Network Failure | client_error_Cannot connect to host test.com:80 ssl:default [getaddrinfo failed],scraper
+2026-01-26T17:12:34.021747,https://www.couponami.com/video-design/capcut-video-edit-with-ai-chatgpt-and-motion-cinematography,Buyability Failure | no_buy_button,scraper
+2026-01-26T17:12:37.130116,http://test.com/oos,Network Failure | client_error_Cannot connect to host test.com:80 ssl:default [getaddrinfo failed],scraper
+2026-01-26T17:13:56.085291,https://www.couponami.com/video-design/capcut-video-edit-with-ai-chatgpt-and-motion-cinematography,Buyability Failure | no_buy_button,scraper
+2026-01-26T17:13:59.132142,http://test.com/oos,Network Failure | client_error_Cannot connect to host test.com:80 ssl:default [getaddrinfo failed],scraper
+2026-01-26T18:17:25.386607,http://test.com/oos,Network Failure | client_error_Cannot connect to host test.com:80 ssl:default [getaddrinfo failed],scraper
+2026-01-26T18:18:20.279775,http://test.com/oos,Network Failure | client_error_Cannot connect to host test.com:80 ssl:default [getaddrinfo failed],scraper
+2026-01-26T18:18:48.751474,https://www.amazon.in/Alchemist-Paulo-Coelho/dp/8172234988,Revenue Failure | low_discount,scraper
+2026-01-26T18:19:17.937258,https://www.amazon.in/Alchemist-Paulo-Coelho/dp/8172234988,Revenue Failure | low_discount,scraper
+2026-01-26T18:19:41.075421,https://www.amazon.in/Alchemist-Paulo-Coelho/dp/8172234988,Revenue Failure | low_discount,scraper
+2026-01-26T19:51:27.644097,https://www.amazon.in/Alchemist-Paulo-Coelho/dp/8172234988,Revenue Failure | low_discount,scraper

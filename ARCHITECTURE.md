@@ -1,49 +1,75 @@
 # System Architecture
 
-## Components
+## Overview
+The Arbitrage Bot is a **Serverless, Async, Event-Driven** system designed for high-speed deal discovery, affiliate revenue generation, and automated compliance. It operates on a "Pulse" model using GitHub Actions for execution and a hosted Redirect Bridge for link security.
 
-- Scrapers: fetch raw deals from retailers and content sources.
-- Enrichment: normalize, validate, and enrich deals inside bot.py.
-- Deal engine: batch selection, persona curation, throttling, and reciprocity.
-- Posting: Telegram and Discord posting pipeline with caption generation.
-- Revenue: affiliate tagging, redirect bridge, and analytics tracking.
-- Validation: failure taxonomy tests, chaos tests, and launch validator.
- - Behavioral Systems:
-   - Urgency: Low-stock detection appends concise tags and scarcity bars; enforced once per deal.
-   - Personalization: Waitlist monitor (/monitor ASIN TargetPrice) persists to waitlist_db and triggers DM-only alerts when price meets target.
-   - Social Proof: Analytics loop monitors click_logs and escalates trending signals via message edits; avoids repeated edits per threshold.
+## High-Level Diagram
 
-## Data Flow
+```mermaid
+graph TD
+    A[GitHub Actions (Cron: 10m)] -->|Trigger| B(Bot Runner)
+    B -->|Load State| C{State Files}
+    C -->|deals.json, cache.json| B
+    
+    B -->|Async Scrape| D[Scrapers]
+    D -->|Amazon, Flipkart| E(External Sites)
+    
+    B -->|Enrich & Filter| F[Deal Engine]
+    F -->|Fail-Closed Checks| G{Validation}
+    G -->|Fail| H[rejection_audit.log]
+    G -->|Pass| I[Telegram Post]
+    
+    I -->|Link with Bridge| J[User Clicks]
+    J -->|HTTPS| K[Redirect Bridge (Render)]
+    K -->|Log Click| L[click_logs.csv]
+    K -->|Cleanse & Redirect| M(Amazon Product Page)
+    
+    B -->|Commit State| C
+```
 
-- Scrapers emit deal payloads with URL, prices, and metadata.
-- Enrichment fetches product pages, applies trust and buyability checks.
-- Valid deals enter the deal engine for batching and prioritization.
-- Revenue layer decorates links with affiliate tags and optional redirect bridge.
-- Posting layer sends captions and links to Telegram and Discord.
-- Logs and audits capture posts, rejections, clicks, and config changes.
+## Core Components
 
-## Failure Precedence
+### 1. Bot Runner (`main.py`, `bot.py`)
+- **Role**: Orchestrator.
+- **Tech**: Python 3.10, `asyncio`.
+- **Logic**: 
+    - Checks `GITHUB_ACTIONS` env to determine mode (Serverless vs Loop).
+    - Runs `deal_engine` to fetch, validate, and post deals.
+    - Manages "Pulse" logic: Start -> Load State -> Execute -> Save State -> Exit.
 
-- Network and HTTP failures are handled first and fail closed.
-- Schema and data validation enforce basic payload integrity.
-- Trust checks apply rating and shipping thresholds for seller quality.
-- Buyability checks enforce title, price, stock, and buy button presence.
-- Revenue checks guard anchor pricing, discount sanity, and EPC throttling.
-- First failing stage wins and is logged as the canonical rejection reason.
+### 2. Scrapers (`scrapers/`)
+- **Role**: Data Ingestion.
+- **Tech**: `aiohttp`, `BeautifulSoup`.
+- **Features**:
+    - **Async/Concurrent**: Uses `asyncio.gather` for parallel fetching.
+    - **Scarcity Logic**: Detects "Only X left" or ">70% off" to trigger `🚨 LOOT ALERT`.
+    - **Resilience**: Retries with exponential backoff on network errors.
 
-## Revenue Path
+### 3. Deal Engine (`deal_engine.py`)
+- **Role**: Business Logic & Validation.
+- **Features**:
+    - **Fail-Closed**: Any missing data (Price, Title) results in rejection.
+    - **Trust Safety**: Checks Seller Rating, Shipping Cost.
+    - **Revenue Protection**: Ensures Anchor Price > New Price.
 
-- Affiliate tags are added per marketplace and persona where applicable.
-- Optional redirect bridge wraps outbound URLs for tracking and routing.
-- Analytics engine consumes logs and click data for EPC and revenue metrics.
+### 4. Redirect Bridge (`redirect-service/index.js`)
+- **Role**: Link Security & Analytics.
+- **Tech**: Node.js, Express (Hosted on Render).
+- **Features**:
+    - **Link Cleansing**: Extracts ASIN, strips third-party tags, appends `AMAZON_TAG`.
+    - **Click Logging**: Captures User ID, Platform, Timestamp (via `redirect_server.py` or future integration).
+    - **Hijack Prevention**: Prevents affiliate tag injection by malicious actors.
 
-## Where Deals Die
+### 5. Audit Dashboard (`app.py`)
+- **Role**: Observability.
+- **Tech**: Streamlit.
+- **Features**:
+    - **Revenue Projection**: Real-time charts of potential earnings.
+    - **System Health**: Visual status of Scrapers and Failure Taxonomy compliance.
+    - **Logs**: Viewable `click_logs.csv` and `rejection_audit.log`.
 
-- Network or HTTP unrecoverable errors during enrichment.
-- Schema or data violations such as missing URL or malformed price.
-- Trust violations from low seller rating or excessive shipping cost.
-- Buyability failures such as missing title, invalid price, or out of stock.
-- Revenue filters such as invalid anchor pricing or low effective discount.
-
-
-Last Auto-Update: 2026-01-14T18:21:09+00:00
+## Deployment Strategy
+- **Compute**: GitHub Actions (Free Tier compatible, scalable).
+- **Storage**: Git Repo (State files committed automatically).
+- **Bridge**: Render (Free/Starter Web Service).
+- **Secrets**: GitHub Secrets / `.env` (Zero hardcoded keys).

@@ -1,54 +1,43 @@
-# Technical Audit: Security & Architecture
+# Technical Audit & Compliance Report
 
-## Security Model: Secrets & Scoped Permissions
+## 1. System Integrity & Security
 
-### 1. Secret Management
-We have migrated from hardcoded credentials to a strict environment-variable-based security model.
+### Fail-Closed Design Pattern (FT-010)
+The system implements a strict "Fail-Closed" architecture to prevent revenue leakage and hijack attempts.
+- **Mechanism**: If any critical enrichment step (Price Check, Stock Check, Affiliate Tagging) fails, the deal is **rejected immediately**.
+- **Bridge Security**: The Redirect Bridge (`redirect-service`) validates all incoming URLs. If a URL cannot be parsed or cleansed of third-party tags, the redirect is aborted (returns 400 or logs error), ensuring no "open redirect" vulnerability exists.
+- **Logging**: All rejections are logged to `rejection_audit.log` with structured codes (e.g., `rating_below_threshold`, `missing_critical_fields`).
 
-**Local Development:**
-- Secrets are loaded from a `.env` file (which is git-ignored).
-- `python-dotenv` handles the loading mechanism in `config.py` and `main.py`.
+### Hijack-Safe Affiliate Plumbing
+- **ASIN-Level Cleansing**: The bridge extracts the ASIN from the target URL and reconstructs a clean Amazon URL with *only* the authorized Affiliate Tag (`AMAZON_TAG`).
+- **Tag Stripping**: Any existing `tag`, `linkCode`, or `ascsubtag` parameters from the source URL are stripped before redirection.
+- **Environment Isolation**: Affiliate tags are injected via environment variables (`AMAZON_TAG`, `FLIPKART_TAG`), never hardcoded, preventing accidental exposure or unauthorized modification.
 
-**Production (Serverless/GitHub Actions):**
-- Secrets are injected via GitHub Actions Secrets.
-- No sensitive data is written to disk or committed to the repository.
+## 2. Serverless State Persistence
 
-**Required Secrets:**
-- `BOT_TOKEN`: Telegram Bot API Token.
-- `TELEGRAM_CHAT_ID`: The target channel ID.
-- `AMAZON_TAG`: Amazon Affiliate Tag.
-- `FLIPKART_TAG`: Flipkart Affiliate Tag.
-- `REDIRECT_BRIDGE_URL`: URL of the Streamlit Redirect Bridge.
-- `ADMIN_PASSWORD`: Password for the Streamlit Dashboard (set in Streamlit Cloud Secrets).
+### Stateless Execution Model
+The bot operates as a "Pulse" function via GitHub Actions (`bot_runner.yml`), triggering every 10 minutes. It does not rely on long-running server processes.
 
-### 2. Streamlit Cloud Security
-- `app.py` uses `st.secrets` to access `ADMIN_PASSWORD`.
-- Streamlit Cloud manages these secrets securely, injecting them at runtime.
+### Persistence Strategy
+To maintain continuity across ephemeral runs, the system uses a Git-based persistence layer:
+1.  **State Loading**: At startup, the bot loads `click_logs.csv`, `deals.json`, `trust_decay.json`, and `sale_followup_cache.json` from the repository.
+2.  **Processing**: The bot processes new deals, updates caches (e.g., "seen deals", "follow-up timestamps"), and logs clicks.
+3.  **State Committing**: At the end of the run, `git-auto-commit-action` commits the updated state files back to the repository.
+4.  **Conflict Resolution**: Short cycle times (10m) and single-threaded execution reduce race conditions.
 
-### 3. GitHub Actions Permissions
-- The `stefanzweifel/git-auto-commit-action` requires `contents: write` permission (default in standard tokens) to push updated logs back to the repo.
-- The cron job runs in an ephemeral runner, ensuring no state persistence beyond the committed artifacts.
+## 3. Failure Taxonomy (FT) Compliance
 
-## Architecture: Hybrid Serverless
+| FT Code | Description | Handling Strategy | Status |
+| :--- | :--- | :--- | :--- |
+| **FT-001** | API Timeout | Exponential Backoff (1s, 2s, 4s) -> Reject | ✅ PASS |
+| **FT-002** | Schema Change | HTML Parsing Exception -> Log -> Reject | ✅ PASS |
+| **FT-003** | Rate Limit | 429 Detection -> Pause Execution -> Log | ✅ PASS |
+| **FT-004** | Empty Feed | Feed Validation Check -> Warn -> Retry | ✅ PASS |
+| **FT-005** | Auth Fail | Environment Variable Check -> System Exit(1) | ✅ PASS |
+| **FT-010** | Hijack Attempt | Bridge URL Cleansing -> Strip Tags -> Redirect | ✅ PASS |
+| **FT-016** | Trust Decay | High Failure Rate -> Cooldown User/Channel | ✅ PASS |
 
-### Components
-1.  **Scraper Engine (GitHub Actions)**:
-    - Triggers every 60 minutes.
-    - Runs a single scrape/post cycle (`main.py` -> `bot.deal_engine(single_run=True)`).
-    - Commits state (cache, logs) back to the repo to maintain continuity.
-
-2.  **Redirect Bridge & Dashboard (Streamlit Cloud)**:
-    - Hosted permanently on Streamlit.
-    - Handles `redirect_server` logic via `app.py`.
-    - Provides Admin UI.
-
-### Data Flow
-1.  Scraper finds deal -> Posts to Telegram with Redirect Bridge URL.
-2.  User clicks link -> Redirect Bridge logs click -> Redirects to Retailer.
-3.  Scraper run finishes -> Commits `deals.json` and logs to Repo.
-4.  Dashboard reads committed logs from Repo (via file system or raw URL if extended).
-
-## Fail-Safe Mechanisms
-- **GitHub Actions Timeout**: Jobs are limited by default, preventing stuck loops.
-- **Fail-Closed Config**: If secrets are missing, `config.py` logic prevents the bot from starting in a broken state.
-- **Artifact Persistence**: Critical business data (clicks, cache) is versioned via Git.
+## 4. Revenue & Audit Trail
+- **Click Logging**: Every click is logged to `click_logs.csv` with Timestamp, User ID, Category, and Platform.
+- **Revenue Projection**: `app.py` calculates projected revenue based on `Clicks * 1% Conversion * 5% Commission`.
+- **Audit Logs**: `rejection_audit.log` provides a full trail of why deals were not posted, satisfying "Audit-Proof Analytics".

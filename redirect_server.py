@@ -71,7 +71,23 @@ async def redirect_handler(request):
         logging.error(f"Click Logging Error: {e}")
     
     # 3. Issue Redirect
-    return web.HTTPFound(target_url)
+    # Hijack-Safe Link Cleansing
+    final_url = target_url
+    try:
+        parsed = urlparse(target_url)
+        if "amazon" in parsed.netloc or "amzn" in parsed.netloc:
+            # Extract ASIN using regex to be robust
+            import re
+            asin_match = re.search(r"(?:dp|gp/product|exec/obidos/asin)/([A-Z0-9]{10})", target_url)
+            if asin_match:
+                asin = asin_match.group(1)
+                # Rebuild: Keep scheme/netloc, reset path/query
+                tag = os.getenv("AMAZON_TAG", "anany-21")
+                final_url = f"https://{parsed.netloc}/dp/{asin}?tag={tag}"
+    except Exception as e:
+        logging.error(f"Link Cleansing Failed: {e}")
+
+    return web.HTTPFound(final_url)
 
 async def health_check(request):
     return web.Response(text="OK")

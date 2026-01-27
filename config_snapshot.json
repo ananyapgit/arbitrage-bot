@@ -35,6 +35,7 @@
     "MENTAL_ACCOUNTING_THRESHOLD": 199,
     "MIN_CLICKS_FOR_SOCIAL_PROOF": 20,
     "MIN_DISCOUNT_THRESHOLD": 5.0,
+    "POST_GUARD": true,
     "POST_INTERVAL_SECONDS": 900,
     "PRICE_ERROR_DROP_THRESHOLD": 0.8,
     "RECIPROCITY_RATIO": {
@@ -42,15 +43,17 @@
         "paid": 1
     },
     "REDDIT_DRAFT_FILE": "reddit_drafts.json",
-    "REDIRECT_BRIDGE_URL": "http://localhost:8080/r",
+    "REDIRECT_BRIDGE_URL": "https://redirect-service-kyf0.onrender.com/r",
     "REQUIRE_ANCHOR_PRICING": true,
     "RETARGETING_WINDOW_MINUTES": 90,
     "SALE_FOLLOWUP_CACHE_FILE": "sale_followup_cache.json",
     "SALE_POLL_INTERVAL_MINUTES": 10,
     "SCRAPE_INTERVAL_MAX": 75,
     "SCRAPE_INTERVAL_MIN": 45,
+    "SCRAPE_INTERVAL_SECONDS": 5,
     "SHADOW_CHANNEL_ID": null,
-    "SHADOW_MODE": true,
+    "SHADOW_MODE": false,
+    "SINGLE_RUN": true,
     "STOCK_ALERT_THRESHOLDS": [
         50,
         20,

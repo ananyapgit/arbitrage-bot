@@ -1,0 +1,543 @@
+{
+  "batches": [
+    {
+      "timestamp": "2026-01-26T13:54:05.557698",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 0,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T14:10:08.785823",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 0,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T14:27:11.615086",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 0,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T14:41:33.371031",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 0,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T14:58:29.979662",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 0,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T16:13:18.985852",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 1,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T16:14:24.816395",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 1,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T16:49:19.122744",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 1,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T17:12:37.131669",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 1,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T17:13:59.136386",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 1,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T18:17:25.391107",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 1,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T18:18:20.283230",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 1,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 0,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T18:19:17.941039",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 1,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T18:19:41.080045",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 1,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T18:20:37.605308",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 1,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T18:53:50.498188",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 1,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T19:39:55.733640",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 1,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 0,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T19:51:27.647229",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 1,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T19:52:24.752428",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 1,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T19:53:20.437685",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 1,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T19:54:06.370108",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 1,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T20:02:47.091094",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 1,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 0,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T20:05:39.295912",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 1,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T20:16:35.479725",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 1,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 0,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T20:17:11.153361",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 1,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T20:19:17.133174",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 1,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T20:20:46.653288",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 1,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T20:43:35.943646",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 1,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 0,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T20:44:44.387258",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 1,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-27T08:35:39.125216",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 1,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    },
+    {
+      "timestamp": "2026-01-27T08:40:12.303325",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 1,
+        "tagged": 1,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
+    }
+  ],
+  "daily_stats": {
+    "2026-01-26": {
+      "sent": 11,
+      "clicks": 0,
+      "revenue": 0.0
+    },
+    "2026-01-27": {
+      "sent": 0,
+      "clicks": 0,
+      "revenue": 0.0
+    }
+  }
+}

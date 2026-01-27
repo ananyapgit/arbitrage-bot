@@ -27,18 +27,30 @@ async def get_free_courses(url):
     soup = BeautifulSoup(html, "html.parser")
 
     courses = []
-    cards = soup.select(".course-card, .course-listing, .udlite-search-course-card")
+    # Updated selectors for Discudemy/Couponami
+    cards = soup.select(".card, .course-card, .course-listing, .udlite-search-course-card")
 
     for card in cards:
-        title = card.select_one("h3, .course-title")
-        link = card.select_one("a")
+        # Title/Link selector
+        title_elem = card.select_one(".card-header, h3, .course-title")
+        link_elem = card.select_one(".card-header, a")
 
-        if not title or not link:
+        if not title_elem or not link_elem:
             continue
 
+        title = title_elem.get_text(strip=True)
+        link = link_elem.get("href")
+        
+        if not link:
+            continue
+            
+        # Fix relative links if any (though source seems absolute)
+        if link.startswith("/"):
+            link = "https://www.discudemy.com" + link
+
         courses.append({
-            "title": title.get_text(strip=True),
-            "url": link.get("href")
+            "title": title,
+            "url": link
         })
 
     return courses

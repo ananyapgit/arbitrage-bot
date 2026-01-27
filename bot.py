@@ -6,15 +6,16 @@ import random
 import time
 import re
 from datetime import datetime, timedelta
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
 
 import aiohttp
 from cachetools import TTLCache
 from telegram import Bot
 from telegram.error import TelegramError
 
-from scrapers.courses import get_free_courses
-# from scrapers.amazon import get_amazon_product # Imported when needed or if we add monitoring list
+from scrapers.manual_feed import get_manual_deal
+# from scrapers.courses import get_free_courses
+from scrapers.amazon import get_amazon_product # Imported when needed or if we add monitoring list
 
 import config
 import config_monitor
@@ -48,7 +49,12 @@ ANTI_SPAM_DELAY = config.ANTI_SPAM_DELAY
 MAX_DEALS_PER_BATCH = config.MAX_DEALS_PER_BATCH
 MIN_DISCOUNT_THRESHOLD = config.MIN_DISCOUNT_THRESHOLD
 TEST_MODE = config.TEST_MODE
+DRY_RUN = config.DRY_RUN
+SINGLE_RUN = config.SINGLE_RUN
 AFFILIATE_TAGS = config.AFFILIATE_TAGS
+
+logging.info(f"Startup Flags: TEST_MODE={TEST_MODE} | DRY_RUN={DRY_RUN} | SINGLE_RUN={SINGLE_RUN}")
+
 DEALS_FILE = config.DEALS_FILE
 CACHE_FILE = config.CACHE_FILE
 ANALYTICS_FILE = config.ANALYTICS_FILE
@@ -433,6 +439,29 @@ async def enrich_deal(session, deal: dict) -> dict:
          if "audio" in title_lower or "headphone" in title_lower: deal["category"] = "audio"
          elif "laptop" in title_lower: deal["category"] = "laptop"
          else: deal["category"] = "general"
+
+    # SPECIALIZED SCRAPERS
+    if "amazon" in url or "amzn" in url:
+        logging.info(f"Invoking Amazon Scraper for: {url}")
+        try:
+            amz_data = await get_amazon_product(url)
+            if amz_data:
+                deal.update(amz_data)
+                # Ensure price fields match schema
+                if "price" in amz_data:
+                     deal["new_price"] = amz_data["price"]
+                deal["valid"] = True
+                return deal
+            else:
+                logging.warning(f"Amazon Scraper returned None for {url}")
+                deal["valid"] = False
+                deal["enrich_error"] = "Amazon Scraper Failed"
+                return deal
+        except Exception as e:
+            logging.error(f"Amazon Scraper Exception: {e}")
+            deal["valid"] = False
+            deal["enrich_error"] = f"Amazon Scraper Error: {e}"
+            return deal
 
     # Anti-Ban: User-Agent Rotation
     headers = {
@@ -909,8 +938,8 @@ async def process_followups(session, bot: Bot, stats: dict):
             enriched["old_price"] = data.get("old_price")
             
             # Add alert to caption
-            caption, variant = generate_caption(enriched)
-            caption = f"🚨 *UPDATE: {alert_reason}*\n\n" + caption
+            caption, variant = format_telegram_message(enriched)
+            caption = f"🚨 <b>UPDATE: {alert_reason}</b>\n\n" + caption
             
             if not TEST_MODE:
                 chat_id = CHANNELS["main"]["chat_id"]
@@ -957,125 +986,109 @@ def update_analytics(stats: dict):
 
 # ================== CONTENT GENERATION ==================
 
-def generate_caption(deal: dict) -> tuple[str, str]:
+def format_telegram_message(deal: dict) -> tuple[str, str]:
     """
-    Generates A/B caption variants with Scarcity, Softeners, and Comparison.
-    Returns: (caption_text, variant_id)
+    Formats the Telegram message with HTML, Emojis, and CTA.
+    Returns: (formatted_message, variant_id)
     """
     title = deal.get("title", "Great Deal")
     price = deal.get("new_price", "N/A")
-    old_price = deal.get("old_price", "N/A")
-    discount_val = 0
     
+    # Currency formatting
+    def format_currency(val):
+        s = str(val)
+        if s.replace('.','',1).isdigit():
+            return f"₹{s}"
+        return s
+
+    price_str = format_currency(price)
+    
+    url = deal.get("url", "")
+    
+    # 1. Canonicalize Amazon URL to /dp/ASIN
+    if "amazon.in" in url:
+        try:
+            asin_match = re.search(r"/dp/([A-Z0-9]{10})", url)
+            if asin_match:
+                asin = asin_match.group(1)
+                url = f"https://www.amazon.in/dp/{asin}"
+            else:
+                parsed = urlparse(url)
+                url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        except Exception as e:
+            logging.error(f"URL cleanup failed: {e}")
+
+    # 2. Create Redirect URL (if configured)
+    final_url = url
+    if hasattr(config, "REDIRECT_PUBLIC_URL") and config.REDIRECT_PUBLIC_URL:
+        try:
+            encoded_url = quote(url, safe='')
+            category = deal.get("category", "general")
+            # Construct the redirect URL
+            final_url = f"{config.REDIRECT_PUBLIC_URL}?url={encoded_url}&userid=telegrambroadcast&category={category}&platform=telegram"
+        except Exception as e:
+            logging.error(f"Redirect generation failed: {e}")
+            final_url = url
+
+    # CTA
+    # User requested specific format: 🔗 Buy now: `https://...`
+    # The user example shows the URL *in code blocks* or just plain text?
+    # "🔗 Buy now: `https://www.amazon.in/dp/XXXXXXXX`"
+    # The example text in the prompt has backticks around the URL.
+    # But later says "Clean markdown-safe plain text only".
+    # I will use the format: 🔗 Buy now: {url}
+    
+    # Construct Message
+    # 📘 The Alchemist – Paulo Coelho 
+    # 💰 Price: ₹260 (was ₹399) 
+    # 🔻 You save: ₹139 (35% OFF) 
+    # ⏳ Deal type: Limited Time Deal 
+    # 🔗 Buy now: `https://www.amazon.in/dp/XXXXXXXX`
+    
+    orig_price = deal.get("original_price", "N/A")
+    save_amt = deal.get("save_amount", "N/A")
+    save_pct = deal.get("save_percent", "0")
+    deal_type = deal.get("deal_type", "Deal")
+    
+    # Scarcity Logic: LOOT ALERT if stock < 10 or discount > 70%
+    loot_alert = False
     try:
-        if price != "N/A" and old_price != "N/A":
-            p = float(str(price).replace(",", ""))
-            op = float(str(old_price).replace(",", ""))
-            if op > 0:
-                discount_val = round(((op - p) / op) * 100)
+        op = float(str(deal.get("old_price", 0)).replace(",", ""))
+        np = float(str(deal.get("new_price", 0)).replace(",", ""))
+        if op > 0:
+            disc_pct = ((op - np) / op) * 100
+            if disc_pct >= 70:
+                loot_alert = True
     except:
         pass
-        
-    discount = f"{discount_val}% OFF" if discount_val > 0 else "Deal"
-    link = deal.get("url")
+    try:
+        if int(deal.get("stock_count", 100)) < 10:
+            loot_alert = True
+    except:
+        pass
+
+    prefix = "🚨 LOOT ALERT\n" if loot_alert else ""
+    msg = f"{prefix}📘 {title}\n"
+    msg += f"💰 Price: {price_str} (was {orig_price})\n"
+    msg += f"🔻 You save: {save_amt} ({save_pct}% OFF)\n"
+    msg += f"⏳ Deal type: {deal_type}\n"
+    msg += f"🔗 Buy now: `{final_url}`"
     
-    # Flags
-    flags = []
-    if deal.get("condition") == "Refurbished":
-        flags.append("♻️ Refurbished")
-    if deal.get("has_coupon"):
-        flags.append("🎟️ Coupon Available")
-    if deal.get("low_stock"):
-        flags.append("⚠️ Low Stock")
-        
-    flag_str = " | ".join(flags)
-    if flag_str:
-        flag_str = f"\n{flag_str}"
-
-    # --- ENHANCED ELEMENTS ---
-    
-    # 1. Gamified Scarcity Bar
-    scarcity_bar = ""
-    if deal.get("percent_claimed"):
-        pc = deal["percent_claimed"]
-        filled = int(pc / 10)
-        if pc > 0 and filled == 0: filled = 1
-        bar = "🟩" * filled + "⬜️" * (10 - filled)
-        scarcity_bar = f"\n⚡ *FLASH DEAL* {bar}\n{pc}% claimed | Limited Stock\n"
-    elif deal.get("low_stock"):
-        scarcity_bar = f"\n⚠️ *Limited Stock:* Only {deal['stock_count']} left!\n"
-
-    # 2. Pain of Payment Softener
-    softener_msg = ""
-    if deal.get("payment_softener"):
-        ps = deal["payment_softener"]
-        softener_msg = f"\n💸 *Smart Buy:* ₹{ps['per_day_cost']}/day (less than a {ps['comparison']})\n"
-
-    # 3. Comparison Table / Decoy
-    comparison_msg = ""
-    if deal.get("comparison_data"):
-        cd = deal["comparison_data"]
-        # Only show if not variant B (Minimalist) - wait, we decide variant later.
-        # Let's construct it, but maybe only use in Variant A.
-        comparison_msg = (
-            f"\n🆚 *Quick Comparison*\n"
-            f"✅ *Best Pick (₹{price})*\n"
-            f"• {cd['pros'][0]}\n"
-            f"• {cd['pros'][1]}\n"
-            f"❌ *Alternative (₹{cd['decoy_price']})*\n"
-            f"• {cd['cons'][0]}\n"
-        )
-
-    # Variant A: Conversion Optimized (Emoji + Psychology)
-    anchor_msg = ""
-    if deal.get("anchor_price") and deal.get("days_since_high"):
-        ap = deal.get("anchor_price")
-        days = deal.get("days_since_high")
-        anchor_msg = f"🔥 *Price Drop!* Was ₹{ap} just {days} days ago.\n"
-    
-    social_msg = ""
-    if deal.get("clicks_last_60_min") and deal.get("clicks_last_60_min") >= config.MIN_CLICKS_FOR_SOCIAL_PROOF:
-        clicks = deal.get("clicks_last_60_min")
-        social_msg = f"🔥 *Trending:* {clicks} people viewed in last hour.\n"
-
-    caption_a = (
-        f"{scarcity_bar}"
-        f"{anchor_msg}"
-        f"{social_msg}"
-        f"🔥 *{title}*\n\n"
-        f"💰 *Price:* ₹{price} (~~₹{old_price}~~)\n"
-        f"📉 *Discount:* {discount}\n"
-        f"{softener_msg}"
-        f"{flag_str}\n"
-        f"{comparison_msg}\n"
-        f"👉 [Buy Now]({link})"
-    )
-
-    # Variant B: Minimalist (Clean)
-    caption_b = (
-        f"{anchor_msg}"
-        f"**{title}**\n"
-        f"Price: ₹{price}\n"
-        f"Save: {discount}\n"
-        f"{flag_str}\n"
-        f"Link: {link}"
-    )
-    
-    # Random selection
-    if random.choice([True, False]):
-        return caption_a, "A"
-    else:
-        return caption_b, "B"
+    return msg, "A"
 
 # ================== POSTING LOGIC ==================
 
 async def post_to_telegram(bot: Bot, chat_id: int, caption: str):
     """Posts to Telegram with retry logic. Returns message object."""
-    if not chat_id:
-        logging.warning("Telegram Posting Skipped: chat_id is None")
-        return None
+    # Log caption for verification
+    logging.info(f"Preparing to post to Telegram: {caption}")
 
     if TEST_MODE:
+        return None
+        
+    # Guardrail: Block localhost redirects
+    if "localhost" in caption:
+        logging.error("Blocking post: localhost redirect detected in caption")
         return None
         
     # Shadow Mode Redirect
@@ -1087,9 +1100,13 @@ async def post_to_telegram(bot: Bot, chat_id: int, caption: str):
             logging.warning("Shadow Channel ID not set. Skipping post.")
             return None
 
+    if not chat_id:
+        logging.warning("Telegram Posting Skipped: chat_id is None")
+        return None
+
     for attempt in range(3):
         try:
-            msg = await bot.send_message(chat_id=chat_id, text=caption, parse_mode="Markdown")
+            msg = await bot.send_message(chat_id=chat_id, text=caption, parse_mode="HTML")
             return msg
         except TelegramError as e:
             err_str = str(e).lower()
@@ -1196,13 +1213,13 @@ async def deal_engine(single_run=False):
             try:
                 # Scrape Free Courses
                 logging.info("Scraping live sources...")
-                courses = await get_free_courses("https://www.discudemy.com/all")
-                for c in courses:
-                     c["category"] = "education"
-                     c["marketplace"] = "udemy"
-                     c["persona"] = "Student"
-                     c["new_price"] = 0
-                     c["old_price"] = 100 # Dummy for discount calc
+                courses = [] # await get_manual_deal()
+                # for c in courses:
+                #      if "category" not in c: c["category"] = "education"
+                #      if "marketplace" not in c: c["marketplace"] = "udemy"
+                #      if "persona" not in c: c["persona"] = "Student"
+                #      c["new_price"] = 0
+                #      # c["old_price"] = 100 # Dummy for discount calc
                 deals.extend(courses)
                 logging.info(f"Scraped {len(courses)} deals from live web.")
             except Exception as e:
@@ -1398,7 +1415,7 @@ async def deal_engine(single_run=False):
                             logging.error(f"Failed to wrap Redirect Bridge link: {e}")
                             # Fail safe: Keep original URL
                     
-                    caption, variant = generate_caption(deal)
+                    caption, variant = format_telegram_message(deal)
                     if variant == "A": stats["variant_a"] += 1
                     else: stats["variant_b"] += 1
 
@@ -1409,7 +1426,7 @@ async def deal_engine(single_run=False):
                             logging.error(f"Posting deal without valid URL field: {deal.get('title')}")
                         if "http" not in caption:
                             logging.warning(f"Caption missing URL for deal: {deal.get('title')}")
-                        if "buy" not in caption.lower():
+                        if "buy" not in caption.lower() and "grab" not in caption.lower():
                             logging.warning(f"Caption missing CTA for deal: {deal.get('title')}")
                         msg = await post_to_telegram(telegram_bot, chat_id, caption)
                         try:

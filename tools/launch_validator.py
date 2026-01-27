@@ -41,13 +41,17 @@ async def check_connectivity():
 def check_affiliate_tags():
     tags = getattr(config, "AFFILIATE_TAGS", {})
     required = ["amazon.in", "flipkart.com"]
-    missing = [t for t in required if t not in tags]
+    missing = []
+    
+    for t in required:
+        if t not in tags or not tags[t]:
+            missing.append(t)
     
     if not missing:
         print("PASS: Affiliate tags defined for Amazon and Flipkart.")
         return True
     else:
-        print(f"FAIL: Missing affiliate tags for: {missing}")
+        print(f"FAIL: Missing affiliate tags (values are empty) for: {missing}")
         return False
 
 def check_paths():

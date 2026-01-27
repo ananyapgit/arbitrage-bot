@@ -16,5 +16,17 @@
     "user_id": "system",
     "event_type": "SPAM_FLOOD_DETECTED",
     "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-01-26T19:54:01.352126",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: Chat not found",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-01-26T20:05:34.288237",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: Chat not found",
+    "decay_score_increment": 1
   }
 ]

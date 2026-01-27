@@ -2,7 +2,7 @@ name: Arbitrage Bot Runner
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Run every hour
+    - cron: '*/10 * * * *'  # Run every 10 minutes (Serverless Pulse)
   workflow_dispatch:      # Allow manual trigger
 
 jobs:
@@ -12,6 +12,8 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }} # Needed for pushing changes
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -30,6 +32,7 @@ jobs:
         AMAZON_TAG: ${{ secrets.AMAZON_TAG }}
         FLIPKART_TAG: ${{ secrets.FLIPKART_TAG }}
         REDIRECT_BRIDGE_URL: ${{ secrets.REDIRECT_BRIDGE_URL }}
+        GITHUB_ACTIONS: "true"
         # Add other secrets as needed
       run: python main.py
 
@@ -37,4 +40,4 @@ jobs:
       uses: stefanzweifel/git-auto-commit-action@v5
       with:
         commit_message: "🤖 Auto-Update: Bot Logs & Data [skip ci]"
-        file_pattern: "click_logs.csv deals.json rejection_audit.log analytics.json cache.json sale_followup_cache.json"
+        file_pattern: "click_logs.csv deals.json trust_decay.json rejection_audit.log analytics.json cache.json sale_followup_cache.json"
