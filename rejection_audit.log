@@ -81,3 +81,4 @@ timestamp,deal_identifier,reason,source
 2026-01-26T18:19:41.075421,https://www.amazon.in/Alchemist-Paulo-Coelho/dp/8172234988,Revenue Failure | low_discount,scraper
 2026-01-26T19:51:27.644097,https://www.amazon.in/Alchemist-Paulo-Coelho/dp/8172234988,Revenue Failure | low_discount,scraper
 2026-01-27T16:30:15.820441,https://www.couponami.com/business/professional-diploma-customer-centricity-and-design-thinking,Trust Failure | reciprocity_debt,scraper
+2026-01-27T17:00:04.773273,https://www.couponami.com/business/professional-diploma-customer-centricity-and-design-thinking,Trust Failure | reciprocity_debt,scraper
