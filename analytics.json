@@ -560,6 +560,23 @@
         "follow_up_alerts_sent": 0,
         "stock_change_detected": 0
       }
+    },
+    {
+      "timestamp": "2026-01-27T17:28:01.553900",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 0,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0
+      }
     }
   ],
   "daily_stats": {
