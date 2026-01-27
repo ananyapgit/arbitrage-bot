@@ -249,6 +249,14 @@ def load_json(filepath, default=None):
         
     if not os.path.exists(filepath):
         return default
+
+    # Fail-Safe: Empty file check
+    try:
+        if os.stat(filepath).st_size == 0:
+            return default
+    except OSError:
+        return default
+
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -1248,246 +1256,251 @@ async def deal_engine(single_run=False):
                 "follow_up_alerts_sent": 0, "stock_change_detected": 0
             }
 
-            async with aiohttp.ClientSession() as session:
-                processed_count = 0
-                
-                # --- PHASE 1: PROCESS NEW DEALS ---
-                # Rate Limiting & Persona Sorting
-                # Group by Persona
-                deals_by_persona = {}
-                for d in deals:
-                    p = d.get("persona", "General")
-                    if p not in deals_by_persona:
-                        deals_by_persona[p] = []
-                    deals_by_persona[p].append(d)
-                
-                deals_to_process = []
-                
-                # Curation: Strict Persona Limits
-                deals_to_process = []
-                
-                for p, p_deals in deals_by_persona.items():
-                    # Take top N deals for this persona
-                    count_to_take = min(len(p_deals), config.MAX_DEALS_PER_PERSONA_PER_BATCH)
-                    deals_to_process.extend(p_deals[:count_to_take])
-                
-                # Shuffle to avoid predictable persona order
-                random.shuffle(deals_to_process)
-                
-                # Enforce absolute batch max
-                deals_to_process = deals_to_process[:MAX_DEALS_PER_BATCH]
-                
-                if len(deals) > MAX_DEALS_PER_BATCH:
-                    logging.info(f"Throttling enabled: Processing {len(deals_to_process)} deals (Strict Persona Limit).")
-
-                # Reciprocity Engine: Enforce 3 Free : 1 Paid Ratio
-                # Sort deals to prioritize Free if ratio not met
-                # Heuristic: Deals with price <= 0 or "Free" in title are "free"
-                free_deals = []
-                paid_deals = []
-                
-                for d in deals_to_process:
-                    price_str = str(d.get("new_price", "1")).lower()
-                    is_free = False
-                    if "free" in d.get("title", "").lower() or price_str == "0" or price_str == "free":
-                        is_free = True
+            try:
+                # 5. ASYNC TIMEOUT PROTECTION
+                async with asyncio.timeout(300):
+                    async with aiohttp.ClientSession() as session:
+                        processed_count = 0
                     
-                    if is_free:
-                        free_deals.append(d)
-                    else:
-                        paid_deals.append(d)
-                
-                final_batch = []
-                
-                # If we owe free posts, try to fill with free deals first
-                # (Simple greedy approach for now: Mix them to respect ratio over time)
-                # Just append all, but loop will update counters
-                final_batch = free_deals + paid_deals # Prioritize free to build bank
-                
-                for deal in final_batch:
-                    cat = deal.get("category", "general")
-                    if "category" not in deal:
-                        if "audio" in deal.get("title", "").lower(): cat = "audio"
-                        elif "laptop" in deal.get("title", "").lower(): cat = "laptop"
-
-                    price_str = str(deal.get("new_price", "1")).lower()
-                    is_free = "free" in deal.get("title", "").lower() or price_str == "0" or price_str == "free"
+                        # --- PHASE 1: PROCESS NEW DEALS ---
+                        # Rate Limiting & Persona Sorting
+                        # Group by Persona
+                        deals_by_persona = {}
+                        for d in deals:
+                            p = d.get("persona", "General")
+                            if p not in deals_by_persona:
+                                deals_by_persona[p] = []
+                            deals_by_persona[p].append(d)
                     
-                    if not is_free:
-                        if reciprocity_state["free"] < config.RECIPROCITY_RATIO["free"] and not TEST_MODE:
-                            logging.info(f"Skipping Paid Deal (Reciprocity Debt): {deal['title']}")
-                            log_rejection(deal.get("url", "unknown"), {"stage": "Trust", "detail": "reciprocity_debt"})
-                            continue
-                        reciprocity_state["paid"] += 1
-                        if reciprocity_state["paid"] >= config.RECIPROCITY_RATIO["paid"]:
-                            reciprocity_state["free"] -= config.RECIPROCITY_RATIO["free"]
-                            reciprocity_state["paid"] = 0
-                    else:
-                        reciprocity_state["free"] += 1
-
-                    if check_category_throttle(cat):
-                        logging.info(f"Skipping deal in throttled category '{cat}': {deal.get('title')}")
-                        stats["throttled"] += 1
-                        log_rejection(deal.get("url", "unknown"), {"stage": "Revenue", "detail": f"category_throttled_{cat}"})
-                        continue
-
-                    raw_url = deal.get("url", "")
+                        deals_to_process = []
                     
-                    # ASIN Extraction & Dedup
-                    asin = None
-                    try:
-                        asin_match = re.search(r"/dp/([A-Z0-9]{10})", raw_url)
-                        if asin_match:
-                            asin = asin_match.group(1)
-                    except:
-                        pass
-
-                    # 2. Check Cache (Main Post)
-                    already_posted = raw_url in processed_cache or (asin and asin in processed_cache)
+                        # Curation: Strict Persona Limits
+                        deals_to_process = []
                     
-                    # Even if already posted, we ensure it's in followup_cache for tracking
-                    if already_posted:
-                        stats["skipped_cache"] += 1
-                        # Add to watchlist if not present
-                        if raw_url not in followup_cache:
-                             followup_cache[raw_url] = {
-                                "title": deal.get("title"),
-                                "marketplace": deal.get("marketplace"),
-                                "url": raw_url,
-                                "old_price": deal.get("old_price"),
-                                "new_price": deal.get("new_price"),
-                                "last_checked": datetime.now().isoformat(),
-                                "alerts_sent": []
-                             }
-                        continue
-
-                    # 3. Affiliate Tagging
-                    # Pass category for Sub-ID
-                    category = deal.get("category", "general")
-                    if deal.get("persona") in ["Gamer", "Tech"]: category = "electronics" # Simple mapping
+                        for p, p_deals in deals_by_persona.items():
+                            # Take top N deals for this persona
+                            count_to_take = min(len(p_deals), config.MAX_DEALS_PER_PERSONA_PER_BATCH)
+                            deals_to_process.extend(p_deals[:count_to_take])
                     
-                    tagged_url = await add_affiliate_tag(session, raw_url, deal.get("marketplace", ""), category)
-                    deal["url"] = tagged_url
-                    stats["tagged"] += 1
-
-                    # 4. Enrichment & Validation
-                    deal = await enrich_deal(session, deal)
+                        # Shuffle to avoid predictable persona order
+                        random.shuffle(deals_to_process)
                     
-                    if not deal.get("valid", False):
-                        if "enrich_error" in deal:
-                            stats["enrich_fail"] += 1
-                        else:
-                            stats["invalid"] += 1
-                        continue
+                        # Enforce absolute batch max
+                        deals_to_process = deals_to_process[:MAX_DEALS_PER_BATCH]
+                    
+                        if len(deals) > MAX_DEALS_PER_BATCH:
+                            logging.info(f"Throttling enabled: Processing {len(deals_to_process)} deals (Strict Persona Limit).")
+    
+                        # Reciprocity Engine: Enforce 3 Free : 1 Paid Ratio
+                        # Sort deals to prioritize Free if ratio not met
+                        # Heuristic: Deals with price <= 0 or "Free" in title are "free"
+                        free_deals = []
+                        paid_deals = []
+                    
+                        for d in deals_to_process:
+                            price_str = str(d.get("new_price", "1")).lower()
+                            is_free = False
+                            if "free" in d.get("title", "").lower() or price_str == "0" or price_str == "free":
+                                is_free = True
                         
-                    if not deal.get("in_stock", True): # Default True if check fails but page valid
-                        stats["out_of_stock"] += 1
-                        logging.info(f"Skipping OutOfStock: {deal['title']}")
-                        log_rejection(deal.get("url", "unknown"), {"stage": "Buyability", "detail": "out_of_stock"})
-                        continue
-
-                    # 5. Discount Filter
-                    old_price = deal.get("old_price", 0)
-                    new_price = deal.get("new_price", 0)
-                    discount_percentage = 0
+                            if is_free:
+                                free_deals.append(d)
+                            else:
+                                paid_deals.append(d)
                     
-                    try:
-                        if old_price and new_price is not None:
-                            op = float(str(old_price).replace(",", ""))
-                            np = float(str(new_price).replace(",", ""))
-                            if op > 0:
-                                discount_percentage = ((op - np) / op) * 100
-                    except Exception as e:
-                        logging.warning(f"Error calculating discount for {deal.get('title')}: {e}")
-
-                    if discount_percentage < MIN_DISCOUNT_THRESHOLD:
-                        stats["low_disc"] += 1
-                        logging.info(f"Skipping Low Discount ({discount_percentage:.2f}%): {deal['title']}")
-                        log_rejection(deal.get("url", "unknown"), {"stage": "Revenue", "detail": "low_discount"})
-                        continue
+                        final_batch = []
                     
-                    if hasattr(config, "REDIRECT_BRIDGE_URL") and config.REDIRECT_BRIDGE_URL:
-                        try:
-                            from urllib.parse import quote, unquote
-                            target_url = deal.get("url")
-                            if not target_url:
-                                logging.error(f"Redirect bridge missing target URL for deal: {deal.get('title')}")
-                            encoded_target = quote(target_url, safe="")
-                            bridge_link = f"{config.REDIRECT_BRIDGE_URL}?url={encoded_target}&user_id=telegram_broadcast&category={deal.get('category','general')}&platform=telegram"
-                            wrapped_part = bridge_link.split("url=", 1)[1].split("&", 1)[0] if "url=" in bridge_link else ""
-                            decoded_target = unquote(wrapped_part) if wrapped_part else ""
-                            if decoded_target and decoded_target != target_url:
-                                logging.warning(f"Redirect bridge modified target URL unexpectedly for deal: {deal.get('title')}")
-                            if not bridge_link.startswith(config.REDIRECT_BRIDGE_URL) or "?url=" not in bridge_link:
-                                logging.error(f"Redirect bridge constructed invalid URL for deal: {deal.get('title')}")
-                            deal["url"] = bridge_link
-                        except Exception as e:
-                            logging.error(f"Failed to wrap Redirect Bridge link: {e}")
-                            # Fail safe: Keep original URL
+                        # If we owe free posts, try to fill with free deals first
+                        # (Simple greedy approach for now: Mix them to respect ratio over time)
+                        # Just append all, but loop will update counters
+                        final_batch = free_deals + paid_deals # Prioritize free to build bank
                     
-                    caption, variant = format_telegram_message(deal)
-                    if variant == "A": stats["variant_a"] += 1
-                    else: stats["variant_b"] += 1
-
-                    if not TEST_MODE:
-                        chat_id = CHANNELS["main"]["chat_id"]
-                        final_url = deal.get("url", "")
-                        if not final_url or not isinstance(final_url, str) or not final_url.startswith("http"):
-                            logging.error(f"Posting deal without valid URL field: {deal.get('title')}")
-                        if "http" not in caption:
-                            logging.warning(f"Caption missing URL for deal: {deal.get('title')}")
-                        if "buy" not in caption.lower() and "grab" not in caption.lower():
-                            logging.warning(f"Caption missing CTA for deal: {deal.get('title')}")
-                        msg = await post_to_telegram(telegram_bot, chat_id, caption)
-                        try:
-                            post_cat = deal.get("category", "general")
-                            if post_cat in HIGH_EPC_CATEGORIES:
-                                await post_to_discord(session, DISCORD_WEBHOOK_URL, deal, variant)
-                        except Exception as e:
-                            logging.warning(f"Discord cross-post skipped due to error: {e}")
+                        for deal in final_batch:
+                            cat = deal.get("category", "general")
+                            if "category" not in deal:
+                                if "audio" in deal.get("title", "").lower(): cat = "audio"
+                                elif "laptop" in deal.get("title", "").lower(): cat = "laptop"
+    
+                            price_str = str(deal.get("new_price", "1")).lower()
+                            is_free = "free" in deal.get("title", "").lower() or price_str == "0" or price_str == "free"
                         
-                        if msg:
-                             log_post(deal.get("url", "unknown"), deal.get("category", "general"))
-
-                        # Update Cache
-                        processed_cache[raw_url] = True
-                        if asin:
-                            processed_cache[asin] = True
+                            if not is_free:
+                                if reciprocity_state["free"] < config.RECIPROCITY_RATIO["free"] and not TEST_MODE:
+                                    logging.info(f"Skipping Paid Deal (Reciprocity Debt): {deal['title']}")
+                                    log_rejection(deal.get("url", "unknown"), {"stage": "Trust", "detail": "reciprocity_debt"})
+                                    continue
+                                reciprocity_state["paid"] += 1
+                                if reciprocity_state["paid"] >= config.RECIPROCITY_RATIO["paid"]:
+                                    reciprocity_state["free"] -= config.RECIPROCITY_RATIO["free"]
+                                    reciprocity_state["paid"] = 0
+                            else:
+                                reciprocity_state["free"] += 1
+    
+                            if check_category_throttle(cat):
+                                logging.info(f"Skipping deal in throttled category '{cat}': {deal.get('title')}")
+                                stats["throttled"] += 1
+                                log_rejection(deal.get("url", "unknown"), {"stage": "Revenue", "detail": f"category_throttled_{cat}"})
+                                continue
+    
+                            raw_url = deal.get("url", "")
                         
-                        # Add to Follow-up Cache
-                        followup_data = {
-                            "title": deal.get("title"),
-                            "marketplace": deal.get("marketplace"),
-                            "url": deal.get("url"), # Use tagged URL
-                            "old_price": old_price,
-                            "new_price": new_price,
-                            "last_checked": datetime.now().isoformat(),
-                            "alerts_sent": []
-                        }
+                            # ASIN Extraction & Dedup
+                            asin = None
+                            try:
+                                asin_match = re.search(r"/dp/([A-Z0-9]{10})", raw_url)
+                                if asin_match:
+                                    asin = asin_match.group(1)
+                            except:
+                                pass
+    
+                            # 2. Check Cache (Main Post)
+                            already_posted = raw_url in processed_cache or (asin and asin in processed_cache)
                         
-                        # T-050: Store message ID for future editing
-                        if msg:
-                            followup_data["message_id"] = msg.message_id
-                            followup_data["chat_id"] = chat_id
+                            # Even if already posted, we ensure it's in followup_cache for tracking
+                            if already_posted:
+                                stats["skipped_cache"] += 1
+                                # Add to watchlist if not present
+                                if raw_url not in followup_cache:
+                                     followup_cache[raw_url] = {
+                                        "title": deal.get("title"),
+                                        "marketplace": deal.get("marketplace"),
+                                        "url": raw_url,
+                                        "old_price": deal.get("old_price"),
+                                        "new_price": deal.get("new_price"),
+                                        "last_checked": datetime.now().isoformat(),
+                                        "alerts_sent": []
+                                     }
+                                continue
+    
+                            # 3. Affiliate Tagging
+                            # Pass category for Sub-ID
+                            category = deal.get("category", "general")
+                            if deal.get("persona") in ["Gamer", "Tech"]: category = "electronics" # Simple mapping
+                        
+                            tagged_url = await add_affiliate_tag(session, raw_url, deal.get("marketplace", ""), category)
+                            deal["url"] = tagged_url
+                            stats["tagged"] += 1
+    
+                            # 4. Enrichment & Validation
+                            deal = await enrich_deal(session, deal)
+                        
+                            if not deal.get("valid", False):
+                                if "enrich_error" in deal:
+                                    stats["enrich_fail"] += 1
+                                else:
+                                    stats["invalid"] += 1
+                                continue
                             
-                        followup_cache[raw_url] = followup_data
+                            if not deal.get("in_stock", True): # Default True if check fails but page valid
+                                stats["out_of_stock"] += 1
+                                logging.info(f"Skipping OutOfStock: {deal['title']}")
+                                log_rejection(deal.get("url", "unknown"), {"stage": "Buyability", "detail": "out_of_stock"})
+                                continue
+    
+                            # 5. Discount Filter
+                            old_price = deal.get("old_price", 0)
+                            new_price = deal.get("new_price", 0)
+                            discount_percentage = 0
                         
-                        # Waitlist Alerts (DM-only)
-                        try:
-                            if asin:
-                                await check_waitlist_alerts(telegram_bot, asin, deal.get("new_price"))
-                        except Exception as e:
-                            logging.error(f"Waitlist alert processing failed: {e}")
+                            try:
+                                if old_price and new_price is not None:
+                                    op = float(str(old_price).replace(",", ""))
+                                    np = float(str(new_price).replace(",", ""))
+                                    if op > 0:
+                                        discount_percentage = ((op - np) / op) * 100
+                            except Exception as e:
+                                logging.warning(f"Error calculating discount for {deal.get('title')}: {e}")
+    
+                            if discount_percentage < MIN_DISCOUNT_THRESHOLD:
+                                stats["low_disc"] += 1
+                                logging.info(f"Skipping Low Discount ({discount_percentage:.2f}%): {deal['title']}")
+                                log_rejection(deal.get("url", "unknown"), {"stage": "Revenue", "detail": "low_discount"})
+                                continue
                         
-                    processed_count += 1
-                    stats["sent"] += 1
-                    await asyncio.sleep(ANTI_SPAM_DELAY)
-                
-                # --- PHASE 2: PROCESS FOLLOW-UPS ---
-                # Run follow-up checks (does not consume main batch limit in this implementation, 
-                # or we can pass remaining limit. Current impl has its own limit check inside)
-                await process_followups(session, telegram_bot, stats)
-
+                            if hasattr(config, "REDIRECT_BRIDGE_URL") and config.REDIRECT_BRIDGE_URL:
+                                try:
+                                    from urllib.parse import quote, unquote
+                                    target_url = deal.get("url")
+                                    if not target_url:
+                                        logging.error(f"Redirect bridge missing target URL for deal: {deal.get('title')}")
+                                    encoded_target = quote(target_url, safe="")
+                                    bridge_link = f"{config.REDIRECT_BRIDGE_URL}?url={encoded_target}&user_id=telegram_broadcast&category={deal.get('category','general')}&platform=telegram"
+                                    wrapped_part = bridge_link.split("url=", 1)[1].split("&", 1)[0] if "url=" in bridge_link else ""
+                                    decoded_target = unquote(wrapped_part) if wrapped_part else ""
+                                    if decoded_target and decoded_target != target_url:
+                                        logging.warning(f"Redirect bridge modified target URL unexpectedly for deal: {deal.get('title')}")
+                                    if not bridge_link.startswith(config.REDIRECT_BRIDGE_URL) or "?url=" not in bridge_link:
+                                        logging.error(f"Redirect bridge constructed invalid URL for deal: {deal.get('title')}")
+                                    deal["url"] = bridge_link
+                                except Exception as e:
+                                    logging.error(f"Failed to wrap Redirect Bridge link: {e}")
+                                    # Fail safe: Keep original URL
+                        
+                            caption, variant = format_telegram_message(deal)
+                            if variant == "A": stats["variant_a"] += 1
+                            else: stats["variant_b"] += 1
+    
+                            if not TEST_MODE:
+                                chat_id = CHANNELS["main"]["chat_id"]
+                                final_url = deal.get("url", "")
+                                if not final_url or not isinstance(final_url, str) or not final_url.startswith("http"):
+                                    logging.error(f"Posting deal without valid URL field: {deal.get('title')}")
+                                if "http" not in caption:
+                                    logging.warning(f"Caption missing URL for deal: {deal.get('title')}")
+                                if "buy" not in caption.lower() and "grab" not in caption.lower():
+                                    logging.warning(f"Caption missing CTA for deal: {deal.get('title')}")
+                                msg = await post_to_telegram(telegram_bot, chat_id, caption)
+                                try:
+                                    post_cat = deal.get("category", "general")
+                                    if post_cat in HIGH_EPC_CATEGORIES:
+                                        await post_to_discord(session, DISCORD_WEBHOOK_URL, deal, variant)
+                                except Exception as e:
+                                    logging.warning(f"Discord cross-post skipped due to error: {e}")
+                            
+                                if msg:
+                                     log_post(deal.get("url", "unknown"), deal.get("category", "general"))
+    
+                                # Update Cache
+                                processed_cache[raw_url] = True
+                                if asin:
+                                    processed_cache[asin] = True
+                            
+                                # Add to Follow-up Cache
+                                followup_data = {
+                                    "title": deal.get("title"),
+                                    "marketplace": deal.get("marketplace"),
+                                    "url": deal.get("url"), # Use tagged URL
+                                    "old_price": old_price,
+                                    "new_price": new_price,
+                                    "last_checked": datetime.now().isoformat(),
+                                    "alerts_sent": []
+                                }
+                            
+                                # T-050: Store message ID for future editing
+                                if msg:
+                                    followup_data["message_id"] = msg.message_id
+                                    followup_data["chat_id"] = chat_id
+                                
+                                followup_cache[raw_url] = followup_data
+                            
+                                # Waitlist Alerts (DM-only)
+                                try:
+                                    if asin:
+                                        await check_waitlist_alerts(telegram_bot, asin, deal.get("new_price"))
+                                except Exception as e:
+                                    logging.error(f"Waitlist alert processing failed: {e}")
+                            
+                            processed_count += 1
+                            stats["sent"] += 1
+                            await asyncio.sleep(ANTI_SPAM_DELAY)
+                    
+                        # --- PHASE 2: PROCESS FOLLOW-UPS ---
+                        # Run follow-up checks (does not consume main batch limit in this implementation, 
+                        # or we can pass remaining limit. Current impl has its own limit check inside)
+                        await process_followups(session, telegram_bot, stats)
+    
+            except asyncio.TimeoutError:
+                logging.error('CRITICAL: Batch processing timed out (300s). Saving progress.')
             # 8. Logging & Cleanup
             if not TEST_MODE:
                 save_json(CACHE_FILE, list(processed_cache))
@@ -1495,6 +1508,9 @@ async def deal_engine(single_run=False):
                 update_analytics(stats)
                 
             logging.info(f"Batch Complete: {stats}")
+            
+            # T-048: Heartbeat at end of run for audit
+            update_heartbeat()
             
             # Randomized Sleep
             sleep_time = POST_INTERVAL_SECONDS * random.uniform(0.85, 1.15)

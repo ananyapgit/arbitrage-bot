@@ -11,6 +11,12 @@ except ImportError:
     pass
 
 if __name__ == "__main__":
+    # 4. PRE-FLIGHT CHECK (Hijack Safe)
+    print("Checking Environment...")
+    if not os.getenv('BOT_TOKEN'):
+        import sys
+        sys.exit('CRITICAL: BOT_TOKEN MISSING - Check .env or Secrets')
+
     is_github_action = os.getenv("GITHUB_ACTIONS") == "true"
     
     if is_github_action:

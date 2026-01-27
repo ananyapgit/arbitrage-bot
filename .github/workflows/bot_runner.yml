@@ -28,6 +28,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Pre-Run Safety (Smart Initialization)
+      run: |
+        [ -f deals.json ] || echo "[]" > deals.json
+        [ -f click_logs.csv ] || echo "timestamp,url,user_id,category" > click_logs.csv
+        [ -f analytics.json ] || echo "{}" > analytics.json
+        touch rejection_audit.log heartbeat.timestamp trust_decay.json cache.json sale_followup_cache.json
+
     - name: Run Arbitrage Bot (Single Cycle)
       env:
         BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
@@ -39,8 +46,17 @@ jobs:
         # Add other secrets as needed
       run: python main.py
 
+
+
+    - name: Git Identity Configuration
+      run: |
+        git config --global user.name 'ArbiDeals-Bot-Automation'
+        git config --global user.email 'bot@noreply.github.com'
+
     - name: Commit and Push Data Artifacts
       uses: stefanzweifel/git-auto-commit-action@v5
       with:
         commit_message: "🤖 Auto-Update: Bot Logs & Data [skip ci]"
-        file_pattern: "click_logs.csv deals.json trust_decay.json rejection_audit.log analytics.json cache.json sale_followup_cache.json"
+        file_pattern: "click_logs.csv deals.json trust_decay.json rejection_audit.log analytics.json cache.json sale_followup_cache.json heartbeat.timestamp"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
