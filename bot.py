@@ -1211,22 +1211,32 @@ async def deal_engine(single_run=False):
             # 1. LIVE SCRAPING (No Static Feeds)
             deals = []
             try:
-                # Scrape Free Courses
                 logging.info("Scraping live sources...")
-                courses = [] # await get_manual_deal()
-                # for c in courses:
-                #      if "category" not in c: c["category"] = "education"
-                #      if "marketplace" not in c: c["marketplace"] = "udemy"
-                #      if "persona" not in c: c["persona"] = "Student"
-                #      c["new_price"] = 0
-                #      # c["old_price"] = 100 # Dummy for discount calc
-                deals.extend(courses)
-                logging.info(f"Scraped {len(courses)} deals from live web.")
+                tasks = []
+                try:
+                    tasks.append(get_manual_deal())
+                except Exception:
+                    pass
+                try:
+                    from scrapers.courses import get_free_courses
+                    tasks.append(get_free_courses("https://www.discudemy.com/all"))
+                except Exception:
+                    pass
+                scraped = await asyncio.gather(*tasks, return_exceptions=True) if tasks else []
+                total = 0
+                for res in scraped:
+                    if isinstance(res, list):
+                        deals.extend(res)
+                        total += len(res)
+                logging.info(f"Scraped {total} deals from live web.")
             except Exception as e:
                 logging.error(f"Live Scrape Failed: {e}")
 
             if not deals:
-                logging.warning("No deals found from live scrapers. Sleeping...")
+                logging.warning("No deals found from live scrapers.")
+                if single_run:
+                    logging.info("Single run active: Exiting due to no deals.")
+                    break
                 await asyncio.sleep(60)
                 continue
 

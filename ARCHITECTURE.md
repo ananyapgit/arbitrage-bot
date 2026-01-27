@@ -7,7 +7,7 @@ The Arbitrage Bot is a **Serverless, Async, Event-Driven** system designed for h
 
 ```mermaid
 graph TD
-    A[GitHub Actions (Cron: 10m)] -->|Trigger| B(Bot Runner)
+    A[GitHub Actions (Cron: 5m)] -->|Trigger| B(Bot Runner)
     B -->|Load State| C{State Files}
     C -->|deals.json, cache.json| B
     
@@ -71,5 +71,5 @@ graph TD
 ## Deployment Strategy
 - **Compute**: GitHub Actions (Free Tier compatible, scalable).
 - **Storage**: Git Repo (State files committed automatically).
-- **Bridge**: Render (Free/Starter Web Service).
+- **Bridge**: Render (Live URL: https://redirect-service-kyf0.onrender.com/r).
 - **Secrets**: GitHub Secrets / `.env` (Zero hardcoded keys).

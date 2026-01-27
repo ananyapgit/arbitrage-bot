@@ -16,7 +16,7 @@ The system implements a strict "Fail-Closed" architecture to prevent revenue lea
 ## 2. Serverless State Persistence
 
 ### Stateless Execution Model
-The bot operates as a "Pulse" function via GitHub Actions (`bot_runner.yml`), triggering every 10 minutes. It does not rely on long-running server processes.
+The bot operates as a "Pulse" function via GitHub Actions (`bot_runner.yml`), triggering every 5 minutes. It does not rely on long-running server processes.
 
 ### Persistence Strategy
 To maintain continuity across ephemeral runs, the system uses a Git-based persistence layer:
@@ -24,6 +24,9 @@ To maintain continuity across ephemeral runs, the system uses a Git-based persis
 2.  **Processing**: The bot processes new deals, updates caches (e.g., "seen deals", "follow-up timestamps"), and logs clicks.
 3.  **State Committing**: At the end of the run, `git-auto-commit-action` commits the updated state files back to the repository.
 4.  **Conflict Resolution**: Short cycle times (10m) and single-threaded execution reduce race conditions.
+
+### Environment-Only Configuration
+All configuration values (tokens, thresholds, delays, redirect URL, affiliate tags) are sourced from environment variables. No secrets or keys are hardcoded.
 
 ## 3. Failure Taxonomy (FT) Compliance
 
