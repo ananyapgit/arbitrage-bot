@@ -21,16 +21,35 @@ if not BOT_TOKEN:
 
 # Telegram Config
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+EDUCATION_CHANNEL_ID = os.getenv("EDUCATION_CHANNEL_ID")
+DEALS_CHANNEL_ID = os.getenv("DEALS_CHANNEL_ID")
+
+# Fallbacks
+if not DEALS_CHANNEL_ID:
+    DEALS_CHANNEL_ID = TELEGRAM_CHAT_ID
+
+if not EDUCATION_CHANNEL_ID:
+    EDUCATION_CHANNEL_ID = TELEGRAM_CHAT_ID
+
+# Sanitization
 if TELEGRAM_CHAT_ID:
-    try:
-        TELEGRAM_CHAT_ID = int(TELEGRAM_CHAT_ID)
-    except ValueError:
-        pass # Handle or log error?
+    TELEGRAM_CHAT_ID = str(TELEGRAM_CHAT_ID)
+if DEALS_CHANNEL_ID:
+    DEALS_CHANNEL_ID = str(DEALS_CHANNEL_ID)
+if EDUCATION_CHANNEL_ID:
+    EDUCATION_CHANNEL_ID = str(EDUCATION_CHANNEL_ID)
+
+if TELEGRAM_CHAT_ID:
+    print(f"DEBUG: Posting to Channel ID {TELEGRAM_CHAT_ID}")
 
 CHANNELS = {
     "main": {
-        "chat_id": TELEGRAM_CHAT_ID, # Can be None if not set
+        "chat_id": DEALS_CHANNEL_ID,
         "categories": ["audio", "accessory", "laptop", "general"]
+    },
+    "education": {
+        "chat_id": EDUCATION_CHANNEL_ID,
+        "categories": ["course", "education", "book"]
     }
 }
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "placeholder_disabled")

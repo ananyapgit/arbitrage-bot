@@ -14,6 +14,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }} # Needed for pushing changes
+        submodules: false # Explicitly disable submodules to prevent crash
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -58,5 +59,6 @@ jobs:
       with:
         commit_message: "🤖 Auto-Update: Bot Logs & Data [skip ci]"
         file_pattern: "click_logs.csv deals.json trust_decay.json rejection_audit.log analytics.json cache.json sale_followup_cache.json heartbeat.timestamp"
+        push_options: '--force'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

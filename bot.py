@@ -14,8 +14,9 @@ from telegram import Bot
 from telegram.error import TelegramError
 
 from scrapers.manual_feed import get_manual_deal
-# from scrapers.courses import get_free_courses
-from scrapers.amazon import get_amazon_product # Imported when needed or if we add monitoring list
+from scrapers.courses import get_free_courses
+from scrapers.amazon import get_amazon_product
+from scrapers.flipkart import get_flipkart_product
 
 import config
 import config_monitor
@@ -1226,8 +1227,13 @@ async def deal_engine(single_run=False):
                 except Exception:
                     pass
                 try:
-                    from scrapers.courses import get_free_courses
+                    # Education Scraper
                     tasks.append(get_free_courses("https://www.discudemy.com/all"))
+                except Exception:
+                    pass
+                try:
+                    # Flipkart Scraper
+                    tasks.append(get_flipkart_product("https://www.flipkart.com/search?q=laptops"))
                 except Exception:
                     pass
                 scraped = await asyncio.gather(*tasks, return_exceptions=True) if tasks else []
@@ -1441,7 +1447,13 @@ async def deal_engine(single_run=False):
                             else: stats["variant_b"] += 1
     
                             if not TEST_MODE:
-                                chat_id = CHANNELS["main"]["chat_id"]
+                                # Channel Routing
+                                post_cat = deal.get("category", "general")
+                                chat_id = config.CHANNELS["main"]["chat_id"] # Default
+                                
+                                if post_cat in ["course", "education", "book"]:
+                                     chat_id = config.CHANNELS["education"]["chat_id"]
+                                
                                 final_url = deal.get("url", "")
                                 if not final_url or not isinstance(final_url, str) or not final_url.startswith("http"):
                                     logging.error(f"Posting deal without valid URL field: {deal.get('title')}")
