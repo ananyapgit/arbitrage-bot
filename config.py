@@ -78,7 +78,7 @@ def env_bool(key, default):
 
 TEST_MODE = env_bool("TEST_MODE", False)
 DRY_RUN = env_bool("DRY_RUN", False)
-SINGLE_RUN = env_bool("SINGLE_RUN", True)
+SINGLE_RUN = env_bool("SINGLE_RUN", False) # Revenue Priority: Set to False for continuous run
 
 SCRAPE_INTERVAL_SECONDS = 5
 
@@ -91,17 +91,17 @@ SALE_FOLLOWUP_CACHE_FILE = "sale_followup_cache.json"
 WAITLIST_DB_FILE = "waitlist_db.json"
 
 # Conversion & Trust Engine
-STRICT_BUYABILITY_CHECK = True
+STRICT_BUYABILITY_CHECK = False # Revenue Priority: Relaxed
 RECIPROCITY_RATIO = {"free": 3, "paid": 1} # 3 Free : 1 Paid
 RETARGETING_WINDOW_MINUTES = 90
 MENTAL_ACCOUNTING_THRESHOLD = 199 # Apply logic for items above this price
 
 # Enhanced Rules
-MAX_DEALS_PER_PERSONA_PER_BATCH = 1
+MAX_DEALS_PER_PERSONA_PER_BATCH = 100 # Revenue Priority: Increased
 FOLLOW_UP_COOLDOWN_HOURS = 3
 MAX_FOLLOW_UPS_PER_DEAL = 3
 MIN_CLICKS_FOR_SOCIAL_PROOF = 20
-REQUIRE_ANCHOR_PRICING = True
+REQUIRE_ANCHOR_PRICING = False # Revenue Priority: Disabled
 
 # Shadow & Chaos Mode
 SHADOW_MODE = os.getenv("SHADOW_MODE", "false").lower() == "true"

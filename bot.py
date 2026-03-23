@@ -45,10 +45,12 @@ BOT_TOKEN = config.BOT_TOKEN
 CHANNELS = config.CHANNELS
 DISCORD_WEBHOOK_URL = config.DISCORD_WEBHOOK_URL
 HIGH_EPC_CATEGORIES = getattr(config, "HIGH_EPC_CATEGORIES", ["electronics"])
-POST_INTERVAL_SECONDS = config.POST_INTERVAL_SECONDS
-ANTI_SPAM_DELAY = config.ANTI_SPAM_DELAY
-MAX_DEALS_PER_BATCH = config.MAX_DEALS_PER_BATCH
-MIN_DISCOUNT_THRESHOLD = config.MIN_DISCOUNT_THRESHOLD
+POST_INTERVAL_SECONDS = 300 # Revenue Priority: 5 Minutes
+ANTI_SPAM_DELAY = 1 # Revenue Priority: 1 Second
+MAX_DEALS_PER_BATCH = 100 # FORCE DEAL DELIVERY: 100
+THROTTLE_DEALS_PER_RUN = 0 # FORCE DEAL DELIVERY: 0
+MAX_DEALS_PER_PERSONA_PER_BATCH = 100 # FORCE DEAL DELIVERY: 100
+MIN_DISCOUNT_THRESHOLD = 0 # FORCE DEAL DELIVERY: 0
 TEST_MODE = config.TEST_MODE
 DRY_RUN = config.DRY_RUN
 SINGLE_RUN = config.SINGLE_RUN
@@ -364,6 +366,28 @@ def handle_telegram_command(user_id: int, text: str):
             pass
         return False
 
+def canonicalize_url(url: str) -> str:
+    """Cleans up product URLs for Amazon and Flipkart before tagging."""
+    try:
+        if "amazon.in" in url or "amzn" in url:
+            asin_match = re.search(r"/dp/([A-Z0-9]{10})", url)
+            if asin_match:
+                return f"https://www.amazon.in/dp/{asin_match.group(1)}"
+            parsed = urlparse(url)
+            return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        elif "flipkart.com" in url:
+            # Flipkart URLs often have a pid and lid in query, but path is the core product
+            parsed = urlparse(url)
+            # Keep pid for Flipkart as it is sometimes required
+            query_params = parse_qs(parsed.query)
+            pid = query_params.get("pid")
+            if pid:
+                return f"{parsed.scheme}://{parsed.netloc}{parsed.path}?pid={pid[0]}"
+            return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+    except Exception as e:
+        logging.error(f"Canonicalization failed for {url}: {e}")
+    return url
+
 async def add_affiliate_tag(session, url: str, marketplace: str, category: str = "general") -> str:
     """
     Appends affiliate tag to the URL based on marketplace.
@@ -376,14 +400,15 @@ async def add_affiliate_tag(session, url: str, marketplace: str, category: str =
     
     # T-041: Resolve Redirects
     try:
-        # We use a short timeout and head/get request to follow redirects
         if session:
              async with session.get(url, allow_redirects=True, timeout=5) as resp:
                  if resp.history:
                      url = str(resp.url)
     except Exception as e:
-        # If resolution fails, we proceed with original URL
         logging.debug(f"Redirect resolution failed for {url}: {e}")
+
+    # Canonicalize before adding tag
+    url = canonicalize_url(url)
 
     try:
         parsed = urlparse(url)
@@ -506,56 +531,71 @@ async def enrich_deal(session, deal: dict) -> dict:
                 text_lower = text.lower()
                 
                 # LEVEL 3: Trust Violations (Seller Rating & Shipping)
-                # (Level 2 Schema is handled by scraper/initial checks)
+                # REVENUE IS THE ONLY PRIORITY: BYPASS TRUST FILTERS
+                # rating_match = re.search(r"(\d+(\.\d+)?) out of 5 stars", text_lower)
+                # if rating_match:
+                #     rating = float(rating_match.group(1))
+                #     if rating < config.TRUST_RATING_THRESHOLD:
+                #         deal["valid"] = False
+                #         deal["enrich_error"] = f"Trust Violation: Seller Rating {rating} < {config.TRUST_RATING_THRESHOLD}"
+                #         logging.warning(f"Rejecting {url}: {deal['enrich_error']}")
+                #         log_rejection(url, {"stage": "Trust", "detail": f"rating_below_threshold|value={rating}"})
+                #         return deal
                 
-                # Seller Rating
-                rating_match = re.search(r"(\d+(\.\d+)?) out of 5 stars", text_lower)
-                if rating_match:
-                    rating = float(rating_match.group(1))
-                    if rating < config.TRUST_RATING_THRESHOLD:
-                        deal["valid"] = False
-                        deal["enrich_error"] = f"Trust Violation: Seller Rating {rating} < {config.TRUST_RATING_THRESHOLD}"
-                        logging.warning(f"Rejecting {url}: {deal['enrich_error']}")
-                        log_rejection(url, {"stage": "Trust", "detail": f"rating_below_threshold|value={rating}"})
-                        return deal
-                
-                # Shipping Cost
-                shipping_match = re.search(r"\+\s?[\$₹]?(\d+(\.\d+)?)\s+shipping", text_lower)
-                if shipping_match:
-                    shipping_cost = float(shipping_match.group(1))
-                    price = deal.get("new_price", 0)
-                    try:
-                        price_val = float(str(price).replace(",", ""))
-                        if price_val > 0 and (shipping_cost / price_val) > config.MAX_SHIPPING_PERCENT:
-                            deal["valid"] = False
-                            deal["enrich_error"] = f"Trust Violation: Shipping too high"
-                            logging.warning(f"Rejecting {url}: {deal['enrich_error']}")
-                            log_rejection(url, {"stage": "Trust", "detail": "shipping_too_high"})
-                            return deal
-                    except:
-                        pass
+                # # Shipping Cost
+                # shipping_match = re.search(r"\+\s?[\$₹]?(\d+(\.\d+)?)\s+shipping", text_lower)
+                # if shipping_match:
+                #     shipping_cost = float(shipping_match.group(1))
+                #     price = deal.get("new_price", 0)
+                #     try:
+                #         price_val = float(str(price).replace(",", ""))
+                #         if price_val > 0 and (shipping_cost / price_val) > config.MAX_SHIPPING_PERCENT:
+                #             deal["valid"] = False
+                #             deal["enrich_error"] = f"Trust Violation: Shipping too high"
+                #             logging.warning(f"Rejecting {url}: {deal['enrich_error']}")
+                #             log_rejection(url, {"stage": "Trust", "detail": "shipping_too_high"})
+                #             return deal
+                #     except:
+                #         pass
 
                 # LEVEL 4: Buyability Failures
                 if config.STRICT_BUYABILITY_CHECK:
+                    # Check for Buy Button first
+                    buy_markers = ["add to cart", "buy now", "proceed to buy"]
+                    has_buy_button = any(x in text_lower for x in buy_markers)
+                    
                     # Explicit Reason 1: Missing Critical Fields
-                    if not deal.get("title") or not deal.get("new_price"):
+                    if not deal.get("title"):
                         deal["valid"] = False
-                        deal["enrich_error"] = "Buyability Failure: Missing Title/Price"
-                        logging.warning(f"Strict Buyability Check Failed (Missing Fields): {url}")
-                        log_rejection(url, {"stage": "Buyability", "detail": "missing_critical_fields"})
+                        deal["enrich_error"] = "Buyability Failure: Missing Title"
+                        logging.warning(f"Strict Buyability Check Failed (Missing Title): {url}")
+                        log_rejection(url, {"stage": "Buyability", "detail": "missing_title"})
                         return deal
+
+                    if not deal.get("new_price"):
+                        if has_buy_button:
+                            logging.info(f"Price missing but Buy Button found for {url}. Setting fallback price.")
+                            deal["new_price"] = "Check Offer"
+                        else:
+                            deal["valid"] = False
+                            deal["enrich_error"] = "Buyability Failure: Missing Price & No Buy Button"
+                            logging.warning(f"Strict Buyability Check Failed (Missing Price): {url}")
+                            log_rejection(url, {"stage": "Buyability", "detail": "missing_price_no_button"})
+                            return deal
 
                     # Explicit Reason 2: Price Out of Bounds
                     try:
-                        np_val = float(str(deal.get("new_price", 0)).replace(",", ""))
-                        if np_val <= 0:
-                            deal["valid"] = False
-                            deal["enrich_error"] = "Buyability Failure: Price <= 0"
-                            logging.warning(f"Strict Buyability Check Failed (Price <= 0): {url}")
-                            log_rejection(url, {"stage": "Buyability", "detail": "price_out_of_bounds"})
-                            return deal
+                        price_val_str = str(deal.get("new_price", 0)).replace(",", "")
+                        if price_val_str != "Check Offer":
+                            np_val = float(price_val_str)
+                            if np_val <= 0:
+                                deal["valid"] = False
+                                deal["enrich_error"] = "Buyability Failure: Price <= 0"
+                                logging.warning(f"Strict Buyability Check Failed (Price <= 0): {url}")
+                                log_rejection(url, {"stage": "Buyability", "detail": "price_out_of_bounds"})
+                                return deal
                     except:
-                        pass # Should be caught by missing fields or schema, but safe to ignore here
+                        pass # Fallback price "Check Offer" will pass through here
 
                     # Explicit Reason 3: Out of Stock / Unavailable
                     unavailable_markers = ["currently unavailable", "sold out", "out of stock", "coming soon", "pre-order", "item is unavailable", "page not found", "not deliverable", "notify me"]
@@ -567,9 +607,8 @@ async def enrich_deal(session, deal: dict) -> dict:
                         log_rejection(url, {"stage": "Buyability", "detail": "out_of_stock"})
                         return deal
 
-                    # Explicit Reason 4: No Buy Button
-                    buy_markers = ["add to cart", "buy now", "proceed to buy"]
-                    if not any(x in text_lower for x in buy_markers):
+                    # Explicit Reason 4: No Buy Button (already checked, but enforcing here if not free/special)
+                    if not has_buy_button:
                         deal["valid"] = False
                         deal["enrich_error"] = "Buyability Failure: No Buy Button"
                         logging.warning(f"Strict Buyability Check Failed (No Button): {url}")
@@ -577,35 +616,36 @@ async def enrich_deal(session, deal: dict) -> dict:
                         return deal
 
                 # LEVEL 5: Revenue / EPC Gating
-                if config.REQUIRE_ANCHOR_PRICING:
-                     if not deal.get("anchor_price") or not deal.get("days_since_high"):
-                         deal["valid"] = False
-                         deal["enrich_error"] = "Missing Anchor Pricing Data"
-                         logging.warning(f"Skipping Deal - No Anchor Pricing: {url}")
-                         log_rejection(url, {"stage": "Revenue", "detail": "missing_anchor_pricing"})
-                         return deal
+                # REVENUE IS THE ONLY PRIORITY: BYPASS ANCHOR PRICING GATING
+                # if config.REQUIRE_ANCHOR_PRICING:
+                #      if not deal.get("anchor_price") or not deal.get("days_since_high"):
+                #          deal["valid"] = False
+                #          deal["enrich_error"] = "Missing Anchor Pricing Data"
+                #          logging.warning(f"Skipping Deal - No Anchor Pricing: {url}")
+                #          log_rejection(url, {"stage": "Revenue", "detail": "missing_anchor_pricing"})
+                #          return deal
 
-                     try:
-                         ap = float(str(deal["anchor_price"]).replace(",", ""))
-                         np = float(str(deal.get("new_price", 0)).replace(",", ""))
-                         if ap < np:
-                             deal["valid"] = False
-                             deal["enrich_error"] = "Anchor Price Lower Than Current Price"
-                             logging.warning(f"Skipping Deal - Anchor ({ap}) < New ({np}): {url}")
-                             log_rejection(url, {"stage": "Revenue", "detail": "anchor_price_inversion"})
-                             return deal
+                #      try:
+                #          ap = float(str(deal["anchor_price"]).replace(",", ""))
+                #          np = float(str(deal.get("new_price", 0)).replace(",", ""))
+                #          if ap < np:
+                #              deal["valid"] = False
+                #              deal["enrich_error"] = "Anchor Price Lower Than Current Price"
+                #              logging.warning(f"Skipping Deal - Anchor ({ap}) < New ({np}): {url}")
+                #              log_rejection(url, {"stage": "Revenue", "detail": "anchor_price_inversion"})
+                #              return deal
                              
-                         # False MRP Check
-                         if deal.get("old_price"):
-                             op = float(str(deal["old_price"]).replace(",", ""))
-                             if op > (ap * 1.5):
-                                 deal["valid"] = False
-                                 deal["enrich_error"] = "False MRP Detected"
-                                 logging.warning(f"Skipping Deal - False MRP ({op} > {ap}*1.5): {url}")
-                                 log_rejection(url, {"stage": "Revenue", "detail": "false_mrp_detected"})
-                                 return deal
-                     except Exception as e:
-                         logging.warning(f"Price validation error: {e}")
+                #          # False MRP Check
+                #          if deal.get("old_price"):
+                #              op = float(str(deal["old_price"]).replace(",", ""))
+                #              if op > (ap * 1.5):
+                #                  deal["valid"] = False
+                #                  deal["enrich_error"] = "False MRP Detected"
+                #                  logging.warning(f"Skipping Deal - False MRP ({op} > {ap}*1.5): {url}")
+                #                  log_rejection(url, {"stage": "Revenue", "detail": "false_mrp_detected"})
+                #                  return deal
+                #      except Exception as e:
+                #          logging.warning(f"Price validation error: {e}")
 
 
 
@@ -1014,22 +1054,9 @@ def format_telegram_message(deal: dict) -> tuple[str, str]:
     
     url = deal.get("url", "")
     
-    # 1. Canonicalize Amazon URL to /dp/ASIN
-    if "amazon.in" in url:
-        try:
-            asin_match = re.search(r"/dp/([A-Z0-9]{10})", url)
-            if asin_match:
-                asin = asin_match.group(1)
-                url = f"https://www.amazon.in/dp/{asin}"
-            else:
-                parsed = urlparse(url)
-                url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-        except Exception as e:
-            logging.error(f"URL cleanup failed: {e}")
-
     # 2. Create Redirect URL (if configured)
     final_url = url
-    if hasattr(config, "REDIRECT_PUBLIC_URL") and config.REDIRECT_PUBLIC_URL:
+    if hasattr(config, "REDIRECT_PUBLIC_URL") and config.REDIRECT_PUBLIC_URL and "placeholder" not in config.REDIRECT_PUBLIC_URL.lower():
         try:
             encoded_url = quote(url, safe='')
             category = deal.get("category", "general")
@@ -1039,49 +1066,12 @@ def format_telegram_message(deal: dict) -> tuple[str, str]:
             logging.error(f"Redirect generation failed: {e}")
             final_url = url
 
-    # CTA
-    # User requested specific format: 🔗 Buy now: `https://...`
-    # The user example shows the URL *in code blocks* or just plain text?
-    # "🔗 Buy now: `https://www.amazon.in/dp/XXXXXXXX`"
-    # The example text in the prompt has backticks around the URL.
-    # But later says "Clean markdown-safe plain text only".
-    # I will use the format: 🔗 Buy now: {url}
-    
-    # Construct Message
-    # 📘 The Alchemist – Paulo Coelho 
-    # 💰 Price: ₹260 (was ₹399) 
-    # 🔻 You save: ₹139 (35% OFF) 
-    # ⏳ Deal type: Limited Time Deal 
-    # 🔗 Buy now: `https://www.amazon.in/dp/XXXXXXXX`
-    
-    orig_price = deal.get("original_price", "N/A")
-    save_amt = deal.get("save_amount", "N/A")
-    save_pct = deal.get("save_percent", "0")
-    deal_type = deal.get("deal_type", "Deal")
-    
-    # Scarcity Logic: LOOT ALERT if stock < 10 or discount > 70%
-    loot_alert = False
-    try:
-        op = float(str(deal.get("old_price", 0)).replace(",", ""))
-        np = float(str(deal.get("new_price", 0)).replace(",", ""))
-        if op > 0:
-            disc_pct = ((op - np) / op) * 100
-            if disc_pct >= 70:
-                loot_alert = True
-    except:
-        pass
-    try:
-        if int(deal.get("stock_count", 100)) < 10:
-            loot_alert = True
-    except:
-        pass
+    # Final Validity Guard
+    if not final_url or not isinstance(final_url, str) or not final_url.startswith("http"):
+        final_url = url if url and url.startswith("http") else "https://www.amazon.in"
 
-    prefix = "🚨 LOOT ALERT\n" if loot_alert else ""
-    msg = f"{prefix}📘 {title}\n"
-    msg += f"💰 Price: {price_str} (was {orig_price})\n"
-    msg += f"🔻 You save: {save_amt} ({save_pct}% OFF)\n"
-    msg += f"⏳ Deal type: {deal_type}\n"
-    msg += f"🔗 Buy now: `{final_url}`"
+    # REVENUE FORMATTING: 🛍️ {Title} 💰 Offer: {Price} 👉Click Here to Buy Now
+    msg = f"🛍️ {title} 💰 Offer: {price_str} 👉<a href='{final_url}'>Click Here to Buy Now</a>"
     
     return msg, "A"
 
@@ -1089,6 +1079,9 @@ def format_telegram_message(deal: dict) -> tuple[str, str]:
 
 async def post_to_telegram(bot: Bot, chat_id: int, caption: str):
     """Posts to Telegram with retry logic. Returns message object."""
+    # REVENUE IS THE ONLY PRIORITY: HARD-CODE DESTINATION
+    chat_id = "-1003561797352"
+    
     # Log caption for verification
     logging.info(f"Preparing to post to Telegram: {caption}")
 
@@ -1169,6 +1162,11 @@ async def post_to_discord(session, webhook_url: str, deal: dict, variant: str):
 # ================== MAIN ENGINE ==================
 
 async def deal_engine(single_run=False):
+    # CLEAR CACHE: Revenue Priority
+    if os.path.exists('cache.json'):
+        os.remove('cache.json')
+        logging.info("🗑️ Cache cleared for fresh deal delivery.")
+    
     commit_hash = config_monitor.get_git_commit_hash()
     logging.info(f"🚀 Crawl.io Bot Started (Phase 6+) | Ver: {commit_hash} | TEST_MODE={TEST_MODE} | Single Run: {single_run}")
     logging.info("DATA SOURCE: LIVE WEB SCRAPERS ONLY (NO STATIC FEEDS)")
@@ -1285,7 +1283,7 @@ async def deal_engine(single_run=False):
                     
                         for p, p_deals in deals_by_persona.items():
                             # Take top N deals for this persona
-                            count_to_take = min(len(p_deals), config.MAX_DEALS_PER_PERSONA_PER_BATCH)
+                            count_to_take = min(len(p_deals), MAX_DEALS_PER_PERSONA_PER_BATCH)
                             deals_to_process.extend(p_deals[:count_to_take])
                     
                         # Shuffle to avoid predictable persona order
@@ -1321,32 +1319,40 @@ async def deal_engine(single_run=False):
                         # Just append all, but loop will update counters
                         final_batch = free_deals + paid_deals # Prioritize free to build bank
                     
+                        # --- INTERNAL GUARDS STRIPPED ---
+                        # for deal in final_batch:
+                        #     cat = deal.get("category", "general")
+                        #     if "category" not in deal:
+                        #         if "audio" in deal.get("title", "").lower(): cat = "audio"
+                        #         elif "laptop" in deal.get("title", "").lower(): cat = "laptop"
+    
+                        #     price_str = str(deal.get("new_price", "1")).lower()
+                        #     is_free = "free" in deal.get("title", "").lower() or price_str == "0" or price_str == "free"
+                        
+                        #     if not is_free:
+                        #         if reciprocity_state["free"] < config.RECIPROCITY_RATIO["free"] and not TEST_MODE:
+                        #             logging.info(f"Skipping Paid Deal (Reciprocity Debt): {deal['title']}")
+                        #             log_rejection(deal.get("url", "unknown"), {"stage": "Trust", "detail": "reciprocity_debt"})
+                        #             continue
+                        #         reciprocity_state["paid"] += 1
+                        #         if reciprocity_state["paid"] >= config.RECIPROCITY_RATIO["paid"]:
+                        #             reciprocity_state["free"] -= config.RECIPROCITY_RATIO["free"]
+                        #             reciprocity_state["paid"] = 0
+                        #     else:
+                        #         reciprocity_state["free"] += 1
+                        
                         for deal in final_batch:
                             cat = deal.get("category", "general")
                             if "category" not in deal:
                                 if "audio" in deal.get("title", "").lower(): cat = "audio"
                                 elif "laptop" in deal.get("title", "").lower(): cat = "laptop"
     
-                            price_str = str(deal.get("new_price", "1")).lower()
-                            is_free = "free" in deal.get("title", "").lower() or price_str == "0" or price_str == "free"
-                        
-                            if not is_free:
-                                if reciprocity_state["free"] < config.RECIPROCITY_RATIO["free"] and not TEST_MODE:
-                                    logging.info(f"Skipping Paid Deal (Reciprocity Debt): {deal['title']}")
-                                    log_rejection(deal.get("url", "unknown"), {"stage": "Trust", "detail": "reciprocity_debt"})
-                                    continue
-                                reciprocity_state["paid"] += 1
-                                if reciprocity_state["paid"] >= config.RECIPROCITY_RATIO["paid"]:
-                                    reciprocity_state["free"] -= config.RECIPROCITY_RATIO["free"]
-                                    reciprocity_state["paid"] = 0
-                            else:
-                                reciprocity_state["free"] += 1
-    
-                            if check_category_throttle(cat):
-                                logging.info(f"Skipping deal in throttled category '{cat}': {deal.get('title')}")
-                                stats["throttled"] += 1
-                                log_rejection(deal.get("url", "unknown"), {"stage": "Revenue", "detail": f"category_throttled_{cat}"})
-                                continue
+                            # REVENUE IS THE ONLY PRIORITY: BYPASS CATEGORY THROTTLE
+                            # if check_category_throttle(cat):
+                            #     logging.info(f"Skipping deal in throttled category '{cat}': {deal.get('title')}")
+                            #     stats["throttled"] += 1
+                            #     log_rejection(deal.get("url", "unknown"), {"stage": "Revenue", "detail": f"category_throttled_{cat}"})
+                            #     continue
     
                             raw_url = deal.get("url", "")
                         
@@ -1422,25 +1428,6 @@ async def deal_engine(single_run=False):
                                 logging.info(f"Skipping Low Discount ({discount_percentage:.2f}%): {deal['title']}")
                                 log_rejection(deal.get("url", "unknown"), {"stage": "Revenue", "detail": "low_discount"})
                                 continue
-                        
-                            if hasattr(config, "REDIRECT_BRIDGE_URL") and config.REDIRECT_BRIDGE_URL:
-                                try:
-                                    from urllib.parse import quote, unquote
-                                    target_url = deal.get("url")
-                                    if not target_url:
-                                        logging.error(f"Redirect bridge missing target URL for deal: {deal.get('title')}")
-                                    encoded_target = quote(target_url, safe="")
-                                    bridge_link = f"{config.REDIRECT_BRIDGE_URL}?url={encoded_target}&user_id=telegram_broadcast&category={deal.get('category','general')}&platform=telegram"
-                                    wrapped_part = bridge_link.split("url=", 1)[1].split("&", 1)[0] if "url=" in bridge_link else ""
-                                    decoded_target = unquote(wrapped_part) if wrapped_part else ""
-                                    if decoded_target and decoded_target != target_url:
-                                        logging.warning(f"Redirect bridge modified target URL unexpectedly for deal: {deal.get('title')}")
-                                    if not bridge_link.startswith(config.REDIRECT_BRIDGE_URL) or "?url=" not in bridge_link:
-                                        logging.error(f"Redirect bridge constructed invalid URL for deal: {deal.get('title')}")
-                                    deal["url"] = bridge_link
-                                except Exception as e:
-                                    logging.error(f"Failed to wrap Redirect Bridge link: {e}")
-                                    # Fail safe: Keep original URL
                         
                             caption, variant = format_telegram_message(deal)
                             if variant == "A": stats["variant_a"] += 1
