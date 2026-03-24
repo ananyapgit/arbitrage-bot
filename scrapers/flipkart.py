@@ -6,6 +6,7 @@ import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
 import random
+import config
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -24,7 +25,8 @@ async def get_flipkart_product(url):
     async with aiohttp.ClientSession() as session:
         for attempt in range(5):
             try:
-                async with session.get(url, headers=headers, timeout=10) as response:
+                # Use optimized timeout from config
+                async with session.get(url, headers=headers, timeout=config.REQUEST_TIMEOUT) as response:
                     if response.status != 200:
                         continue # Try again on non-200 status
                     html = await response.text()
@@ -50,8 +52,13 @@ async def get_flipkart_product(url):
     if not title:
         return None
     
+    # REVENUE TAG LOCK: Hard-code affid=anany at the scraper level
+    sep = "&" if "?" in url else "?"
+    tagged_url = f"{url}{sep}affid=anany"
+    
     return {
         "title": title.get_text(strip=True),
         "price": price.get_text(strip=True) if price else "N/A",
+        "url": tagged_url,
         "marketplace": "Flipkart"
     }

@@ -79,6 +79,8 @@ MAX_DEALS_PER_BATCH = 15
 THROTTLE_DEALS_PER_RUN = 0
 MIN_DISCOUNT_THRESHOLD = env_float("MIN_DISCOUNT_THRESHOLD", 0.0)
 POST_WITH_IMAGE = False
+REQUEST_TIMEOUT = 5
+ENABLED_SOURCES = ['amazon', 'flipkart', 'couponami']
 
 TEST_MODE = env_bool("TEST_MODE", False)
 DRY_RUN = env_bool("DRY_RUN", False)

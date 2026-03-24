@@ -6,6 +6,7 @@ import random
 import time
 import re
 import traceback
+import sqlite3
 from datetime import datetime, timedelta
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
 
@@ -54,7 +55,6 @@ MIN_DISCOUNT_THRESHOLD = 0 # FORCE DEAL DELIVERY: 0
 TEST_MODE = config.TEST_MODE
 DRY_RUN = config.DRY_RUN
 SINGLE_RUN = config.SINGLE_RUN
-AFFILIATE_TAGS = config.AFFILIATE_TAGS
 
 logging.info(f"Startup Flags: TEST_MODE={TEST_MODE} | DRY_RUN={DRY_RUN} | SINGLE_RUN={SINGLE_RUN}")
 
@@ -69,8 +69,36 @@ KILL_SWITCH_FILE = "kill_switch.active"
 SPAM_PAUSE_FILE = "spam_pause.json"
 
 # Global State
-# T-046: Memory Leak Prevention via TTLCache
-processed_cache = TTLCache(maxsize=1000, ttl=86400)
+# T-046: Memory Leak Prevention via SQLite Deduplication
+def init_db():
+    conn = sqlite3.connect("sent_deals.db")
+    c = conn.cursor()
+    c.execute("""CREATE TABLE IF NOT EXISTS sent_deals
+                 (product_id TEXT PRIMARY KEY, timestamp DATETIME)""")
+    conn.commit()
+    conn.close()
+
+def is_deal_sent(product_id):
+    conn = sqlite3.connect("sent_deals.db")
+    c = conn.cursor()
+    # Check if deal was sent in the last 24 hours
+    limit = (datetime.now() - timedelta(hours=24)).isoformat()
+    c.execute("SELECT 1 FROM sent_deals WHERE product_id=? AND timestamp > ?", (product_id, limit))
+    res = c.fetchone()
+    conn.close()
+    return res is not None
+
+def mark_deal_sent(product_id):
+    conn = sqlite3.connect("sent_deals.db")
+    c = conn.cursor()
+    c.execute("INSERT OR REPLACE INTO sent_deals (product_id, timestamp) VALUES (?, ?)",
+              (product_id, datetime.now().isoformat()))
+    conn.commit()
+    conn.close()
+
+init_db()
+
+# processed_cache is now replaced by SQLite, but we keep the variable for compatibility if needed elsewhere
 followup_cache = {}
 reciprocity_state = {"free": 0, "paid": 0}
 category_throttle_state = {} # {"category": timestamp_until_resume}
@@ -400,60 +428,6 @@ def canonicalize_url(url: str) -> str:
     except Exception as e:
         logging.error(f"Canonicalization failed for {url}: {e}")
     return url
-
-async def add_affiliate_tag(session, url: str, marketplace: str, category: str = "general") -> str:
-    """
-    ANTI-HIJACK LOCK: Appends anany-21 tag to the base_url early in the pipeline.
-    Ensures revenue persistence even if the redirect bridge fails.
-    """
-    # Simulate async CPU bound task
-    await asyncio.sleep(0) 
-    
-    # T-041: Resolve Redirects
-    try:
-        if session:
-             async with session.get(url, allow_redirects=True, timeout=5) as resp:
-                 if resp.history:
-                     url = str(resp.url)
-    except Exception as e:
-        logging.debug(f"Redirect resolution failed for {url}: {e}")
-
-    # Canonicalize before adding tag
-    url = canonicalize_url(url)
-
-    try:
-        parsed = urlparse(url)
-        domain = parsed.netloc.replace("www.", "")
-        
-        # Hard-code the tag for all domains to ensure no revenue loss
-        tag = "anany-21"
-        tag_key = "tag" # Default Amazon
-        
-        if "flipkart.com" in domain:
-            tag_key = "affid"
-            # If we have a specific flipkart tag, use it, else use anany-21
-            tag = AFFILIATE_TAGS.get("flipkart.com", "anany-21")
-            
-        query_params = parse_qs(parsed.query)
-        # FORCE the tag to be our tag
-        query_params[tag_key] = [tag]
-            
-        # Revenue Protection: Sub-ID
-        sub_id = config.SUB_IDS.get(category, config.SUB_IDS.get("general"))
-        if sub_id:
-            query_params["ascsubtag"] = [sub_id]
-
-        new_query = urlencode(query_params, doseq=True)
-        new_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment))
-        return new_url
-            
-    except Exception as e:
-        logging.warning(f"Error adding affiliate tag to {url}: {e}")
-        # Last resort fallback: append manually
-        if "?" in url:
-            return f"{url}&tag=anany-21"
-        else:
-            return f"{url}?tag=anany-21"
 
 async def enrich_deal(session, deal: dict) -> dict:
     """
@@ -1065,26 +1039,26 @@ def format_telegram_message(deal: dict) -> tuple[str, str]:
 
     price_str = format_currency(price)
     
-    # REVENUE-FIRST TAGGING: Every link must be wrapped for tracking.
-    # deal["url"] should already have anany-21 from add_affiliate_tag
-    url = deal.get("url", "")
+    # REVENUE-FIRST TAGGING: Every link must be tagged.
+    # deal["url"] should already have anany-21 from scrapers or add_affiliate_tag
+    final_url = deal.get("url", "https://www.amazon.in")
     
-    # 1. Primary Revenue URL Construction
-    try:
-        # Ensure the original URL is properly encoded for the query string
-        encoded_url = quote(url, safe='')
-        # Wrapping the ALREADY TAGGED URL with the redirect service
-        render_url = f"https://redirect-service-kyf0.onrender.com/r?url={encoded_url}&tag=anany-21"
-        final_url = render_url
-    except Exception as e:
-        logging.error(f"Primary revenue URL construction failed: {e}")
-        # If Render URL construction fails, fallback immediately to the tagged URL
-        final_url = url if "tag=anany-21" in url else f'{url}?tag=anany-21'
-
-    # Final check to ensure we have a valid URL.
-    if not final_url or not isinstance(final_url, str) or not final_url.startswith("http"):
-        logging.warning(f"URL validation failed for: {url}. Reverting to tagged URL.")
-        final_url = url if "tag=anany-21" in url else f'{url}?tag=anany-21'
+    # Instant Link Speed: No Render Redirect Lag.
+    # We ensure the tag is present here as a hard-coded lock.
+    if "amazon.in" in final_url:
+        if "tag=" not in final_url:
+            sep = "&" if "?" in final_url else "?"
+            final_url = f"{final_url}{sep}tag=anany-21"
+        else:
+            # Force our tag even if another exists
+            final_url = re.sub(r"tag=[^&]+", "tag=anany-21", final_url)
+    elif "flipkart.com" in final_url:
+        if "affid=" not in final_url:
+            sep = "&" if "?" in final_url else "?"
+            final_url = f"{final_url}{sep}affid=anany"
+        else:
+            # Force our affid even if another exists
+            final_url = re.sub(r"affid=[^&]+", "affid=anany", final_url)
 
     # REVENUE FORMATTING: 🛍️ {Title} 💰 Offer: {Price} 👉Click Here to Buy Now
     msg = f"🛍️ {title} 💰 Offer: {price_str} 👉<a href='{final_url}'>Click Here to Buy Now</a>"
@@ -1178,14 +1152,6 @@ async def post_to_discord(session, webhook_url: str, deal: dict, variant: str):
 # ================== MAIN ENGINE ==================
 
 async def deal_engine(single_run=False):
-    # REVENUE PRIORITY: WIPE CACHE on startup
-    if os.path.exists('cache.json'):
-        try:
-            os.remove('cache.json')
-            logging.info("🗑️ Cache.json wiped for fresh deal delivery.")
-        except OSError as e:
-            logging.error(f"Error removing cache.json: {e}")
-    
     logging.info(f"🚀 Crawl.io Bot Started (Phase 6+) | TEST_MODE={TEST_MODE} | Single Run: {single_run}")
     logging.info("DATA SOURCE: LIVE WEB SCRAPERS ONLY (NO STATIC FEEDS)")
     logging.info("INFO - Continuous scrape loop active")
@@ -1204,9 +1170,6 @@ async def deal_engine(single_run=False):
     logging.info(f"Loaded {len(processed_cache)} items from cache.")
 
     while True:
-        # REVENUE PRIORITY: BYPASS CACHE (Clear it every cycle)
-        processed_cache.clear()
-        
         # T-047: Heartbeat
         update_heartbeat()
         
@@ -1234,26 +1197,39 @@ async def deal_engine(single_run=False):
             try:
                 logging.info("Scraping live sources...")
                 tasks = []
-                try:
-                    tasks.append(get_manual_deal())
-                except Exception:
-                    pass
-                try:
-                    # Education Scraper
-                    tasks.append(get_free_courses("https://www.discudemy.com/all"))
-                except Exception:
-                    pass
-                try:
-                    # Flipkart Scraper
-                    tasks.append(get_flipkart_product("https://www.flipkart.com/search?q=laptops"))
-                except Exception:
-                    pass
+                
+                enabled = getattr(config, "ENABLED_SOURCES", ['amazon', 'flipkart', 'couponami'])
+                
+                if 'couponami' in enabled:
+                    try:
+                        tasks.append(get_manual_deal())
+                    except Exception:
+                        pass
+                
+                if 'amazon' in enabled:
+                    try:
+                        # Scrape Amazon Laptops & Electronics for high EPC
+                        tasks.append(get_amazon_product("https://www.amazon.in/s?k=laptops"))
+                        tasks.append(get_amazon_product("https://www.amazon.in/s?k=smartphones"))
+                    except Exception:
+                        pass
+
+                if 'flipkart' in enabled:
+                    try:
+                        # Flipkart Scraper
+                        tasks.append(get_flipkart_product("https://www.flipkart.com/search?q=laptops"))
+                    except Exception:
+                        pass
+                
                 scraped = await asyncio.gather(*tasks, return_exceptions=True) if tasks else []
                 total = 0
                 for res in scraped:
                     if isinstance(res, list):
                         deals.extend(res)
                         total += len(res)
+                    elif isinstance(res, dict) and res.get("url"):
+                        deals.append(res)
+                        total += 1
                 logging.info(f"Scraped {total} deals from live web.")
             except Exception as e:
                 logging.error(f"Live Scrape Failed: {e}")
@@ -1280,29 +1256,28 @@ async def deal_engine(single_run=False):
                     async with aiohttp.ClientSession() as session:
                         processed_count = 0
                     
-                        # --- PHASE 1: PROCESS NEW DEALS ---
-                        # Rate Limiting & Persona Sorting
-                        # Group by Persona
-                        deals_by_persona = {}
-                        for d in deals:
-                            p = d.get("persona", "General")
-                            if p not in deals_by_persona:
-                                deals_by_persona[p] = []
-                            deals_by_persona[p].append(d)
-                    
+                # --- PHASE 1: PROCESS NEW DEALS ---
+                        # Diversity Gatekeeper: Limit deals from a single source to 3 per run
+                        source_counts = {}
                         deals_to_process = []
-                    
-                        # Curation: Strict Persona Limits
-                        deals_to_process = []
-                    
-                        for p, p_deals in deals_by_persona.items():
-                            # Take top N deals for this persona
-                            count_to_take = min(len(p_deals), MAX_DEALS_PER_PERSONA_PER_BATCH)
-                            deals_to_process.extend(p_deals[:count_to_take])
-                    
-                        # Shuffle to avoid predictable persona order
+                        
+                        # Sort deals to prioritize Amazon/Flipkart
+                        sorted_deals = sorted(deals, key=lambda x: 0 if "amazon" in x.get("url", "").lower() or "flipkart" in x.get("url", "").lower() else 1)
+                        
+                        for d in sorted_deals:
+                            url = d.get("url", "").lower()
+                            source = "unknown"
+                            if "amazon" in url: source = "amazon"
+                            elif "flipkart" in url: source = "flipkart"
+                            elif "couponami" in url or d.get("persona") == "Couponami": source = "couponami"
+                            
+                            if source_counts.get(source, 0) < 3:
+                                deals_to_process.append(d)
+                                source_counts[source] = source_counts.get(source, 0) + 1
+                        
+                        # Shuffle slightly to mix sources within the limit
                         random.shuffle(deals_to_process)
-                    
+                        
                         # Enforce absolute batch max
                         deals_to_process = deals_to_process[:MAX_DEALS_PER_BATCH]
                     
@@ -1379,18 +1354,11 @@ async def deal_engine(single_run=False):
                             except:
                                 pass
     
-                            # REVENUE PRIORITY: Bypass cache check
-                            # already_posted = raw_url in processed_cache or (asin and asin in processed_cache)
-                        
-                            # # Even if already posted, we ensure it's in followup_cache for tracking
-                            # if already_posted:
-                            #     stats["skipped_cache"] += 1
-                            #     # Add to watchlist if not present
-                            #     if raw_url not in followup_cache:
-                            #          followup_cache[raw_url] = {
-                            #             "title": deal.get("title"),
-                            #             "marketplace": deal.get("marketplace"),
-                            #             "url": raw_url,
+                            # SQLite Deduplication: Skip if sent in the last 24 hours
+                            deal_id = asin if asin else raw_url
+                            if is_deal_sent(deal_id):
+                                stats["skipped_cache"] += 1
+                                continue
                             #             "old_price": deal.get("old_price"),
                             #             "new_price": deal.get("new_price"),
                             #             "last_checked": datetime.now().isoformat(),
@@ -1398,13 +1366,9 @@ async def deal_engine(single_run=False):
                             #          }
                             #     continue
     
-                            # 3. Affiliate Tagging
-                            # Pass category for Sub-ID
-                            category = deal.get("category", "general")
-                            if deal.get("persona") in ["Gamer", "Tech"]: category = "electronics" # Simple mapping
-                        
-                            tagged_url = await add_affiliate_tag(session, raw_url, deal.get("marketplace", ""), category)
-                            deal["url"] = tagged_url
+                            # 3. Affiliate Tagging - NOW HANDLED AT SCRAPER LEVEL
+                            # tagged_url = await add_affiliate_tag(session, raw_url, deal.get("marketplace", ""), category)
+                            # deal["url"] = tagged_url
                             stats["tagged"] += 1
     
                             # 4. Enrichment & Validation
@@ -1470,13 +1434,10 @@ async def deal_engine(single_run=False):
                                 except Exception as e:
                                     logging.warning(f"Discord cross-post skipped due to error: {e}")
                             
+                                # SQLite Persistent Deduplication
                                 if msg:
+                                     mark_deal_sent(deal_id)
                                      log_post(deal.get("url", "unknown"), deal.get("category", "general"))
-    
-                                # Update Cache
-                                processed_cache[raw_url] = True
-                                if asin:
-                                    processed_cache[asin] = True
                             
                                 # Add to Follow-up Cache
                                 followup_data = {

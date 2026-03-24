@@ -8,6 +8,8 @@ from bs4 import BeautifulSoup
 import re
 import random
 import json
+import config
+from datetime import datetime
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
@@ -33,15 +35,28 @@ async def get_amazon_product(url):
 
     headers = {
         "User-Agent": random.choice(USER_AGENTS),
-        "Accept-Language": "en-US,en;q=0.9"
+        "Accept-Language": "en-US,en;q=0.9",
+        "sec-ch-ua": '"Not A(Brand";v="99", "Google Chrome";v="140", "Chromium";v="140"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "Upgrade-Insecure-Requests": "1",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-User": "?1",
+        "Sec-Fetch-Dest": "document"
     }
 
     # Retry up to 5 times on network errors to scrape harder
     async with aiohttp.ClientSession() as session:
         for attempt in range(5):
             try:
-                # Use 10 second timeout for requests
-                async with session.get(url, headers=headers, timeout=10) as response:
+                # Use optimized timeout from config
+                async with session.get(url, headers=headers, timeout=config.REQUEST_TIMEOUT) as response:
+                    if response.status == 403:
+                        with open("health_check.log", "a") as f:
+                            f.write(f"{datetime.now()}: 403 Forbidden for {url}\n")
+                        return None
                     response.raise_for_status()
                     html = await response.text()
                     break  # Success, exit retry loop
