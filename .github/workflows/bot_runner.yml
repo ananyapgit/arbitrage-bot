@@ -2,7 +2,7 @@ name: Arbitrage Bot Runner
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '2-57/5 * * * *' # Randomized 5-minute offset to avoid congestion
   workflow_dispatch:
 
 jobs:

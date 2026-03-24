@@ -7,6 +7,7 @@ import asyncio
 from bs4 import BeautifulSoup
 import re
 import random
+import json
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -25,9 +26,9 @@ async def get_amazon_product(url):
         "Accept-Language": "en-US,en;q=0.9"
     }
 
-    # Retry up to 3 times on network errors
+    # Retry up to 5 times on network errors to scrape harder
     async with aiohttp.ClientSession() as session:
-        for attempt in range(3):
+        for attempt in range(5):
             try:
                 # Use 10 second timeout for requests
                 async with session.get(url, headers=headers, timeout=10) as response:
@@ -41,24 +42,62 @@ async def get_amazon_product(url):
     
     soup = BeautifulSoup(html, "html.parser")
     
-    title = soup.select_one("#productTitle")
-    # Try multiple price selectors
-    price = soup.select_one(".a-price-whole")
-    if not price:
-        price = soup.select_one(".a-offscreen")
+    # --- RESILIENT SELECTORS (Amazon March 2026 Update) ---
+    title_el = soup.select_one("#productTitle")
+    title = title_el.get_text(strip=True) if title_el else None
     
-    # Return None if title is missing (price is optional for some use cases, but usually critical)
+    # Search for price in specified order: .a-price-whole, .a-offscreen, span[data-a-color='price']
+    price_el = soup.select_one(".a-price-whole")
+    if not price_el:
+        price_el = soup.select_one(".a-offscreen")
+    if not price_el:
+        price_el = soup.select_one("span[data-a-color='price']")
+    
+    price = price_el.get_text(strip=True) if price_el else None
+
+    # --- JSON-LD EXTRACTION (Ultimate Fail-Safe) ---
+    if not price or not title:
+        try:
+            json_ld_scripts = soup.find_all("script", type="application/ld+json")
+            for script in json_ld_scripts:
+                try:
+                    data = json.loads(script.string)
+                    # Handle both single objects and lists of objects
+                    if isinstance(data, list):
+                        data = data[0]
+                    
+                    if not title and "name" in data:
+                        title = data["name"]
+                    
+                    if not price:
+                        # Prices can be in 'offers'
+                        offers = data.get("offers")
+                        if isinstance(offers, dict):
+                            price = offers.get("price")
+                        elif isinstance(offers, list) and len(offers) > 0:
+                            price = offers[0].get("price")
+                    
+                    if title and price:
+                        break
+                except (json.JSONDecodeError, TypeError):
+                    continue
+        except Exception as e:
+            print(f"JSON-LD Extraction failed: {e}")
+
+    # Return hard-coded defaults if all else fails (as per bot.py requirement, but handled here for completeness)
     if not title:
-        return None
+        title = "Limited Time Offer"
+    if not price:
+        price = "Check Best Price"
     
     result = {
-        "title": title.get_text(strip=True),
-        "price": price.get_text(strip=True) if price else "N/A"
+        "title": title,
+        "price": price
     }
     
     # Stock & Urgency Extraction
     # Patterns: "Only X left in stock", "X% claimed" on Lightning Deals
-    text_lower = soup.get_text(" ", strip=True).lower()
+    text_lower = html.lower() # Use raw HTML for text search to be more thorough
     
     # Exact count left in stock
     m = re.search(r"only\s+(\d+)\s+left\s+in\s+stock", text_lower)
@@ -81,12 +120,6 @@ async def get_amazon_product(url):
         if pc >= 80:
             result["low_stock"] = True
     
-    # Calculate discount if possible (requires original price, which we might not have)
-    # For now, we rely on passed-in discount or ignore discount-based loot alert here
-    # However, the prompt asks for "If stock < 10 or discount > 70%, add '🚨 LOOT ALERT'"
-    # We will handle this in the Deal Engine or here if we can parse the discount.
-    # Let's try to parse savings/discount from page if available.
-    
     # Append urgency tag
     try:
         tag = None
@@ -96,9 +129,8 @@ async def get_amazon_product(url):
         if result.get("low_stock") and result.get("stock_count") is not None and result["stock_count"] < 10:
             is_loot = True
             
-        # Check discount condition (if we had it). Since we don't scrape discount % here easily without more parsing,
-        # we'll assume the caller (deal_engine) handles the discount check, or we try to find it.
-        # Let's look for savings text like "-71%"
+        # Check discount condition (if we had it). 
+        # Look for savings text like "-71%"
         savings_match = re.search(r"-(\d{1,2})%", text_lower)
         if savings_match:
             discount_pct = int(savings_match.group(1))

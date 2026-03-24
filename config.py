@@ -1,5 +1,10 @@
 import os
 import sys
+
+def env_bool(env_name, default):
+    val = os.getenv(env_name, str(default)).lower()
+    return val in ('true', '1', 't', 'y', 'yes')
+
 from dotenv import load_dotenv
 load_dotenv("secrets.env")
 
@@ -20,7 +25,7 @@ if not BOT_TOKEN:
     sys.exit(1)
 
 # Telegram Config
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+TELEGRAM_CHAT_ID = "-1003561797352"
 EDUCATION_CHANNEL_ID = os.getenv("EDUCATION_CHANNEL_ID")
 DEALS_CHANNEL_ID = os.getenv("DEALS_CHANNEL_ID")
 
@@ -70,13 +75,10 @@ def env_float(key, default):
 # Bot Behavior
 POST_INTERVAL_SECONDS = env_int("POST_INTERVAL_SECONDS", 900)
 ANTI_SPAM_DELAY = env_int("ANTI_SPAM_DELAY", 5)
-MAX_DEALS_PER_BATCH = env_int("MAX_DEALS_PER_BATCH", 15)
-THROTTLE_DEALS_PER_RUN = env_int("THROTTLE_DEALS_PER_RUN", 0)
+MAX_DEALS_PER_BATCH = 15
+THROTTLE_DEALS_PER_RUN = 0
 MIN_DISCOUNT_THRESHOLD = env_float("MIN_DISCOUNT_THRESHOLD", 0.0)
-POST_WITH_IMAGE = env_bool("POST_WITH_IMAGE", False)
-
-def env_bool(key, default):
-    return os.getenv(key, str(default)).lower() == "true"
+POST_WITH_IMAGE = False
 
 TEST_MODE = env_bool("TEST_MODE", False)
 DRY_RUN = env_bool("DRY_RUN", False)

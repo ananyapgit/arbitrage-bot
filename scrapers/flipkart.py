@@ -22,12 +22,18 @@ async def get_flipkart_product(url):
     }
 
     async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(url, headers=headers, timeout=10) as response:
-                if response.status != 200:
-                    return None
-                html = await response.text()
-        except Exception:
+        for attempt in range(5):
+            try:
+                async with session.get(url, headers=headers, timeout=10) as response:
+                    if response.status != 200:
+                        continue # Try again on non-200 status
+                    html = await response.text()
+                    break # Success
+            except (aiohttp.ClientError, asyncio.TimeoutError):
+                if attempt == 4:
+                    return None # All retries failed
+                await asyncio.sleep(random.uniform(1, 3))
+        else: # Loop finished without break (all retries failed)
             return None
     
     soup = BeautifulSoup(html, "html.parser")
