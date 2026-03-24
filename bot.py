@@ -994,11 +994,11 @@ async def process_followups(session, bot: Bot, stats: dict):
 
 def update_stats_csv(deal_data: dict):
     """
-    Appends successful deal data to data/stats.csv for the high-fidelity dashboard.
+    Appends successful deal data to data/master_log.csv for the high-fidelity dashboard.
     Fields: Timestamp, Source, Title, Price, Discount%, Tag, ScraperStatus
     """
     stats_dir = "data"
-    stats_file = os.path.join(stats_dir, "stats.csv")
+    stats_file = os.path.join(stats_dir, "master_log.csv")
     
     if not os.path.exists(stats_dir):
         os.makedirs(stats_dir)
@@ -1035,7 +1035,7 @@ def update_stats_csv(deal_data: dict):
                 writer.writerow(["Timestamp", "Source", "Title", "Price", "Discount%", "Tag", "ScraperStatus"])
             writer.writerow(row)
     except Exception as e:
-        logging.error(f"Failed to update stats.csv: {e}")
+        logging.error(f"Failed to update master_log.csv: {e}")
 
 def update_heartbeat():
     """Updates heartbeat.json to show system uptime."""
@@ -1211,6 +1211,10 @@ async def post_to_discord(session, webhook_url: str, deal: dict, variant: str):
 # ================== MAIN ENGINE ==================
 
 async def deal_engine(single_run=False):
+    # CRITICAL STABILIZATION: Fix NameError by initializing processed_cache
+    global processed_cache
+    processed_cache = {} 
+    
     logging.info(f"🚀 Crawl.io Bot Started (Phase 6+) | TEST_MODE={TEST_MODE} | Single Run: {single_run}")
     logging.info("DATA SOURCE: LIVE WEB SCRAPERS ONLY (NO STATIC FEEDS)")
     logging.info("INFO - Continuous scrape loop active")
@@ -1497,7 +1501,7 @@ async def deal_engine(single_run=False):
                                 if msg:
                                      mark_deal_sent(deal_id)
                                      log_post(deal.get("url", "unknown"), deal.get("category", "general"))
-                                     # Update stats.csv for dashboard
+                                     # Update master_log.csv for dashboard
                                      update_stats_csv(deal)
                             
                                 # Add to Follow-up Cache
