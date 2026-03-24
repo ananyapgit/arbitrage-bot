@@ -7,6 +7,7 @@ import time
 import re
 import traceback
 import sqlite3
+import csv
 from datetime import datetime, timedelta
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
 
@@ -991,6 +992,64 @@ async def process_followups(session, bot: Bot, stats: dict):
 
 # ================== TRACKING & ANALYTICS ==================
 
+def update_stats_csv(deal_data: dict):
+    """
+    Appends successful deal data to data/stats.csv for the high-fidelity dashboard.
+    Fields: Timestamp, Source, Title, Price, Discount%, Tag, ScraperStatus
+    """
+    stats_dir = "data"
+    stats_file = os.path.join(stats_dir, "stats.csv")
+    
+    if not os.path.exists(stats_dir):
+        os.makedirs(stats_dir)
+        
+    file_exists = os.path.isfile(stats_file)
+    
+    # Extract metrics
+    timestamp = datetime.now().isoformat()
+    source = deal_data.get("marketplace", "Unknown")
+    title = deal_data.get("title", "N/A")
+    price = deal_data.get("new_price", "N/A")
+    tag = "anany-21" # Revenue Lock Tag
+    
+    # Calculate discount
+    discount_pct = 0
+    try:
+        op = float(str(deal_data.get("old_price", 0)).replace(",", "").replace("₹", ""))
+        np = float(str(price).replace(",", "").replace("₹", ""))
+        if op > np and op > 0:
+            discount_pct = round(((op - np) / op) * 100, 2)
+    except:
+        pass
+        
+    scraper_status = "200 OK" if deal_data.get("valid") else "Enrichment Fail"
+    if deal_data.get("enrich_error"):
+        scraper_status = deal_data.get("enrich_error")
+
+    row = [timestamp, source, title, price, discount_pct, tag, scraper_status]
+    
+    try:
+        with open(stats_file, mode='a', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(["Timestamp", "Source", "Title", "Price", "Discount%", "Tag", "ScraperStatus"])
+            writer.writerow(row)
+    except Exception as e:
+        logging.error(f"Failed to update stats.csv: {e}")
+
+def update_heartbeat():
+    """Updates heartbeat.json to show system uptime."""
+    heartbeat_file = "heartbeat.json"
+    data = {
+        "last_run": datetime.now().isoformat(),
+        "status": "🟢 Online"
+    }
+    try:
+        with open(heartbeat_file, 'w') as f:
+            json.dump(data, f)
+    except Exception as e:
+        logging.error(f"Failed to update heartbeat: {e}")
+
 async def track_referral_click(user_id: str, deal_id: str):
     """Stubs: Log referral click."""
     # Real implementation would write to DB
@@ -1438,6 +1497,8 @@ async def deal_engine(single_run=False):
                                 if msg:
                                      mark_deal_sent(deal_id)
                                      log_post(deal.get("url", "unknown"), deal.get("category", "general"))
+                                     # Update stats.csv for dashboard
+                                     update_stats_csv(deal)
                             
                                 # Add to Follow-up Cache
                                 followup_data = {
