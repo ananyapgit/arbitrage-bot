@@ -1,8 +1,6 @@
 name: Arbitrage Bot Runner
 
 on:
-  schedule:
-    - cron: '2-57/5 * * * *' # Randomized 5-minute offset to avoid congestion
   workflow_dispatch:
 
 jobs:
@@ -62,3 +60,16 @@ jobs:
         push_options: '--force'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Trigger Next Run (5-Minute Loop)
+      if: always()
+      env:
+        GH_PAT: ${{ secrets.GH_PAT }}
+      run: |
+        echo "Waiting 5 minutes before triggering the next run..."
+        sleep 300
+        curl -X POST \
+          -H "Authorization: token $GH_PAT" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/${{ github.repository }}/actions/workflows/bot_runner.yml/dispatches \
+          -d '{"ref":"main"}'

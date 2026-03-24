@@ -1,9 +1,9 @@
 import os
 import sys
 
-def env_bool(env_name, default):
-    val = os.getenv(env_name, str(default)).lower()
-    return val in ('true', '1', 't', 'y', 'yes')
+def env_bool(env_name, default): 
+    val = str(os.getenv(env_name, default)).lower() 
+    return val in ('true', '1', 'yes', 'y') 
 
 from dotenv import load_dotenv
 load_dotenv("secrets.env")
