@@ -70,8 +70,10 @@ def env_float(key, default):
 # Bot Behavior
 POST_INTERVAL_SECONDS = env_int("POST_INTERVAL_SECONDS", 900)
 ANTI_SPAM_DELAY = env_int("ANTI_SPAM_DELAY", 5)
-MAX_DEALS_PER_BATCH = env_int("MAX_DEALS_PER_BATCH", 10)
-MIN_DISCOUNT_THRESHOLD = env_float("MIN_DISCOUNT_THRESHOLD", 5.0)
+MAX_DEALS_PER_BATCH = env_int("MAX_DEALS_PER_BATCH", 15)
+THROTTLE_DEALS_PER_RUN = env_int("THROTTLE_DEALS_PER_RUN", 0)
+MIN_DISCOUNT_THRESHOLD = env_float("MIN_DISCOUNT_THRESHOLD", 0.0)
+POST_WITH_IMAGE = env_bool("POST_WITH_IMAGE", False)
 
 def env_bool(key, default):
     return os.getenv(key, str(default)).lower() == "true"
