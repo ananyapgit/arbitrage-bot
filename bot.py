@@ -71,6 +71,8 @@ SPAM_PAUSE_FILE = "spam_pause.json"
 
 # Global State
 # T-046: Memory Leak Prevention via SQLite Deduplication
+processed_cache = {}
+
 def init_db():
     conn = sqlite3.connect("sent_deals.db")
     c = conn.cursor()
@@ -994,10 +996,10 @@ async def process_followups(session, bot: Bot, stats: dict):
 
 def update_stats_csv(deal_data: dict):
     """
-    Appends successful deal data to data/master_log.csv for the high-fidelity dashboard.
-    Fields: Timestamp, Source, Title, Price, Discount%, Tag, ScraperStatus
+    Appends successful deal data to dashboard/data/master_log.csv for the high-fidelity dashboard.
+    Fields: timestamp, source, title, price, discount_percent, instant_link
     """
-    stats_dir = "data"
+    stats_dir = "dashboard/data"
     stats_file = os.path.join(stats_dir, "master_log.csv")
     
     if not os.path.exists(stats_dir):
@@ -1010,7 +1012,21 @@ def update_stats_csv(deal_data: dict):
     source = deal_data.get("marketplace", "Unknown")
     title = deal_data.get("title", "N/A")
     price = deal_data.get("new_price", "N/A")
-    tag = "anany-21" # Revenue Lock Tag
+    instant_link = deal_data.get("url", "")
+    
+    # Ensure Instant Link uses direct ?tag=anany-21 format
+    if "amazon.in" in instant_link:
+        if "tag=" not in instant_link:
+            sep = "&" if "?" in instant_link else "?"
+            instant_link = f"{instant_link}{sep}tag=anany-21"
+        else:
+            instant_link = re.sub(r"tag=[^&]+", "tag=anany-21", instant_link)
+    elif "flipkart.com" in instant_link:
+        if "affid=" not in instant_link:
+            sep = "&" if "?" in instant_link else "?"
+            instant_link = f"{instant_link}{sep}affid=anany"
+        else:
+            instant_link = re.sub(r"affid=[^&]+", "affid=anany", instant_link)
     
     # Calculate discount
     discount_pct = 0
@@ -1022,17 +1038,13 @@ def update_stats_csv(deal_data: dict):
     except:
         pass
         
-    scraper_status = "200 OK" if deal_data.get("valid") else "Enrichment Fail"
-    if deal_data.get("enrich_error"):
-        scraper_status = deal_data.get("enrich_error")
-
-    row = [timestamp, source, title, price, discount_pct, tag, scraper_status]
+    row = [timestamp, source, title, price, discount_pct, instant_link]
     
     try:
         with open(stats_file, mode='a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             if not file_exists:
-                writer.writerow(["Timestamp", "Source", "Title", "Price", "Discount%", "Tag", "ScraperStatus"])
+                writer.writerow(["timestamp", "source", "title", "price", "discount_percent", "instant_link"])
             writer.writerow(row)
     except Exception as e:
         logging.error(f"Failed to update master_log.csv: {e}")
@@ -1211,9 +1223,7 @@ async def post_to_discord(session, webhook_url: str, deal: dict, variant: str):
 # ================== MAIN ENGINE ==================
 
 async def deal_engine(single_run=False):
-    # CRITICAL STABILIZATION: Fix NameError by initializing processed_cache
     global processed_cache
-    processed_cache = {} 
     
     logging.info(f"🚀 Crawl.io Bot Started (Phase 6+) | TEST_MODE={TEST_MODE} | Single Run: {single_run}")
     logging.info("DATA SOURCE: LIVE WEB SCRAPERS ONLY (NO STATIC FEEDS)")
@@ -1228,7 +1238,6 @@ async def deal_engine(single_run=False):
     telegram_bot = Bot(token=BOT_TOKEN)
     
     # Load Cache
-    global processed_cache
     processed_cache.clear() # REVENUE PRIORITY: Ensure cache is empty
     logging.info(f"Loaded {len(processed_cache)} items from cache.")
 
