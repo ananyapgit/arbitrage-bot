@@ -17,6 +17,11 @@ async def get_flipkart_product(url):
     """
     Fetches product details from a live Flipkart URL.
     """
+    # ANTI-CATEGORY LOGIC: Only process individual product URLs
+    from bot import is_individual_product_url
+    if not is_individual_product_url(url):
+        return None
+    
     headers = {
         "User-Agent": random.choice(USER_AGENTS),
         "Accept-Language": "en-US,en;q=0.9"

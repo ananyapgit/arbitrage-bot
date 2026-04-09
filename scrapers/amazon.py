@@ -29,6 +29,11 @@ async def get_amazon_product(url):
     Fetches product details from a live Amazon URL.
     Returns None if scraping fails or critical data is missing.
     """
+    # ANTI-CATEGORY LOGIC: Only process individual product URLs
+    from bot import is_individual_product_url
+    if not is_individual_product_url(url):
+        return None
+    
     # ANTI-DETECTION: Random delay between product scrapes (mimic human browsing)
     scrape_delay = random.uniform(2, 5)
     await asyncio.sleep(scrape_delay)
@@ -80,40 +85,57 @@ async def get_amazon_product(url):
     
     price = price_el.get_text(strip=True) if price_el else None
 
-    # --- JSON-LD EXTRACTION (Ultimate Fail-Safe) ---
-    if not price or not title:
-        try:
-            json_ld_scripts = soup.find_all("script", type="application/ld+json")
-            for script in json_ld_scripts:
-                try:
-                    data = json.loads(script.string)
-                    # Handle both single objects and lists of objects
-                    if isinstance(data, list):
-                        data = data[0]
-                    
+    # --- AMAZON STEALTH PRECISION: JSON-LD for sku/productID ---
+    product_id = None
+    try:
+        json_ld_scripts = soup.find_all("script", type="application/ld+json")
+        for script in json_ld_scripts:
+            try:
+                data = json.loads(script.string)
+                # Handle both single objects and lists of objects
+                if isinstance(data, list):
+                    data = data[0]
+                
+                # Target specific product data with sku/productID
+                if data.get("@type") == "Product":
                     if not title and "name" in data:
                         title = data["name"]
                     
+                    # Extract product ID for precision
+                    if not product_id:
+                        product_id = data.get("sku") or data.get("productID") or data.get("mpn")
+                    
+                    # Extract specific price from offers
                     if not price:
-                        # Prices can be in 'offers'
                         offers = data.get("offers")
                         if isinstance(offers, dict):
                             price = offers.get("price")
+                            # Validate this is a specific product price, not a range
+                            if price and isinstance(price, (int, float, str)):
+                                try:
+                                    price_val = float(str(price).replace("$", "").replace(",", ""))
+                                    # Discard if price is too low (likely error) or too high (category page)
+                                    if price_val < 1 or price_val > 50000:
+                                        price = None
+                                except:
+                                    price = None
                         elif isinstance(offers, list) and len(offers) > 0:
                             price = offers[0].get("price")
                     
                     if title and price:
                         break
-                except (json.JSONDecodeError, TypeError):
-                    continue
-        except Exception as e:
-            print(f"JSON-LD Extraction failed: {e}")
+            except (json.JSONDecodeError, TypeError):
+                continue
+    except Exception as e:
+        print(f"JSON-LD Extraction failed: {e}")
 
-    # Return hard-coded defaults if all else fails (as per bot.py requirement, but handled here for completeness)
-    if not title:
-        title = "Limited Time Offer"
-    if not price:
-        price = "Check Best Price"
+    # DISCARD if no specific price found (stealth precision)
+    if not price or price == "Check Best Price":
+        return None
+
+    # DISCARD if no proper title (likely category page)
+    if not title or len(title) < 3:
+        return None
     
     # REVENUE TAG LOCK: Hard-code anany-21 at the scraper level
     if "?" in url:

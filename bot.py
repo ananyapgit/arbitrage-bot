@@ -73,6 +73,29 @@ SPAM_PAUSE_FILE = "spam_pause.json"
 # T-046: Memory Leak Prevention via SQLite Deduplication
 processed_cache = {}
 
+def is_individual_product_url(url):
+    """
+    Anti-Category Logic: Only process individual product URLs.
+    Reject category pages, deals pages, and listing pages.
+    """
+    if not url:
+        return False
+    
+    # Individual product indicators
+    product_indicators = ['/p/', '/dp/', '/product/', '/items/']
+    
+    # Category/deals page indicators to reject
+    category_indicators = ['/deals', '/offers', '/sale', '/category', '/categories', '/browse', '/search', '/s/', '/gp/bestsellers', '/gp/goldbox']
+    
+    # Check if URL contains product indicators
+    has_product_indicator = any(indicator in url.lower() for indicator in product_indicators)
+    
+    # Check if URL contains category indicators (reject these)
+    has_category_indicator = any(indicator in url.lower() for indicator in category_indicators)
+    
+    # Only allow if it has product indicators AND no category indicators
+    return has_product_indicator and not has_category_indicator
+
 def init_db():
     conn = sqlite3.connect("sent_deals.db")
     c = conn.cursor()
@@ -446,6 +469,12 @@ async def enrich_deal(session, deal: dict) -> dict:
     if not url:
         deal["valid"] = False
         log_rejection("N/A", {"stage": "Schema", "detail": "missing_url"})
+        return deal
+    
+    # ANTI-CATEGORY LOGIC: Reject category/deals pages immediately
+    if not is_individual_product_url(url):
+        deal["valid"] = False
+        log_rejection(url, {"stage": "Category", "detail": "not_individual_product"})
         return deal
 
     # Category Inference (if missing or unknown)
@@ -1018,6 +1047,27 @@ def update_stats_csv(deal_data: dict):
     affiliate_url = deal_data.get("url", "")
     platform = deal_data.get("marketplace", "Unknown")
     
+    # TITLE FORMAT: Ensure 'Brand + Model' format, reject category-style titles
+    title_lower = title.lower()
+    category_title_keywords = ["sale", "off", "deal", "offer", "discount", "electronics", "fashion", "accessories", "best", "top", "popular"]
+    
+    # Reject if title contains category keywords (not individual product)
+    if any(keyword in title_lower for keyword in category_title_keywords):
+        return  # Skip this deal, don't record to dashboard
+    
+    # Format title to 'Brand + Model' if possible
+    if platform.lower() == "amazon":
+        # Amazon: Try to extract Brand + Model from title
+        words = title.split()
+        if len(words) >= 2:
+            # First word is likely brand, second is model
+            title = f"{words[0]} {' '.join(words[1:3]) if len(words) > 2 else words[1]}"
+    elif platform.lower() == "flipkart":
+        # Flipkart: Similar logic
+        words = title.split()
+        if len(words) >= 2:
+            title = f"{words[0]} {' '.join(words[1:3]) if len(words) > 2 else words[1]}"
+    
     # Ensure affiliate_url uses direct ?tag=anany-21 format
     if "amazon.in" in affiliate_url:
         if "tag=" not in affiliate_url:
@@ -1241,9 +1291,9 @@ async def deal_engine(single_run=False):
     # Initialize Bot
     telegram_bot = Bot(token=BOT_TOKEN)
     
-    # Load Cache
-    processed_cache.clear() # REVENUE PRIORITY: Ensure cache is empty
-    logging.info(f"Loaded {len(processed_cache)} items from cache.")
+    # Initialize Cache (SQLite is primary, processed_cache is backup)
+    processed_cache = {}  # Initialize for compatibility
+    logging.info(f"Initialized processed_cache for deduplication logic.")
 
     while True:
         # T-047: Heartbeat
