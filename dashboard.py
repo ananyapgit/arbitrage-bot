@@ -57,15 +57,21 @@ st.markdown("""
 
 # Helper to load stats
 def load_data():
-    stats_file = "data/master_log.csv"
-    if os.path.exists(stats_file):
-        try:
-            df = pd.read_csv(stats_file)
-            df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-            return df
-        except:
-            return pd.DataFrame()
-    return pd.DataFrame()
+    # Load from GitHub raw CSV for real-time data
+    csv_url = "https://raw.githubusercontent.com/ananyapgit/arbitrage-bot/main/dashboard/public/data/master_log.csv"
+    try:
+        df = pd.read_csv(csv_url)
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        # Rename columns to match existing dashboard expectations
+        df = df.rename(columns={
+            'timestamp': 'Timestamp',
+            'discount_percentage': 'Discount%',
+            'platform': 'Source'
+        })
+        return df
+    except Exception as e:
+        st.error(f"Failed to load data from GitHub: {e}")
+        return pd.DataFrame()
 
 def load_heartbeat():
     heartbeat_file = "heartbeat.json"
@@ -123,7 +129,36 @@ if not df.empty:
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown('<div class="metric-card"><i class="fas fa-database icon"></i><br>### Lifetime Impact<br><h2>' + str(len(df)) + '</h2><p>Total Deals Sent</p></div>', unsafe_allow_html=True)
+        total_deals = len(df)
+        st.markdown(f'''
+        <div class="metric-card">
+            <i class="fas fa-database icon"></i><br>
+            ### Total Revenue Links<br>
+            <h2 id="dealCounter">{total_deals}</h2>
+            <p>Live Deal Pipeline</p>
+        </div>
+        <script>
+        // CountUp animation for deal counter
+        function animateCounter() {{
+            const counter = document.getElementById('dealCounter');
+            if (counter) {{
+                const target = {total_deals};
+                let current = 0;
+                const increment = target / 50;
+                const timer = setInterval(() => {{
+                    current += increment;
+                    if (current >= target) {{
+                        current = target;
+                        clearInterval(timer);
+                    }}
+                    counter.textContent = Math.floor(current);
+                }}, 30);
+            }}
+        }}
+        // Run animation when page loads
+        setTimeout(animateCounter, 500);
+        </script>
+        ''', unsafe_allow_html=True)
         
     with col2:
         last_24h = df[df['Timestamp'] > (datetime.now() - timedelta(hours=24))]
@@ -143,9 +178,15 @@ if not df.empty:
     
     with col_chart1:
         st.markdown("### <i class='fas fa-chart-pie icon'></i> Category Deal Velocity", unsafe_allow_html=True)
-        # Radar Chart Logic
-        cat_counts = df['Source'].value_counts().reset_index()
-        fig_radar = px.line_polar(cat_counts, r='count', theta='Source', line_close=True)
+        # Radar Chart Logic - Use category distribution from CSV
+        if 'category' in df.columns:
+            cat_counts = df['category'].value_counts().reset_index()
+            cat_counts.columns = ['category', 'count']
+            fig_radar = px.line_polar(cat_counts, r='count', theta='category', line_close=True)
+        else:
+            # Fallback to Source if category not available
+            cat_counts = df['Source'].value_counts().reset_index()
+            fig_radar = px.line_polar(cat_counts, r='count', theta='Source', line_close=True)
         fig_radar.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',

@@ -996,10 +996,10 @@ async def process_followups(session, bot: Bot, stats: dict):
 
 def update_stats_csv(deal_data: dict):
     """
-    Appends successful deal data to dashboard/data/master_log.csv for the high-fidelity dashboard.
-    Fields: timestamp, source, title, price, discount_percent, instant_link
+    Appends successful deal data to dashboard/public/data/master_log.csv for the high-fidelity dashboard.
+    Fields: timestamp, deal_id, title, price, original_price, discount_percentage, category, source_url, affiliate_url, platform
     """
-    stats_dir = "dashboard/data"
+    stats_dir = "dashboard/public/data"
     stats_file = os.path.join(stats_dir, "master_log.csv")
     
     if not os.path.exists(stats_dir):
@@ -1009,42 +1009,46 @@ def update_stats_csv(deal_data: dict):
     
     # Extract metrics
     timestamp = datetime.now().isoformat()
-    source = deal_data.get("marketplace", "Unknown")
+    deal_id = deal_data.get("url", "unknown")[-12:]  # Last 12 chars of URL as ID
     title = deal_data.get("title", "N/A")
     price = deal_data.get("new_price", "N/A")
-    instant_link = deal_data.get("url", "")
+    original_price = deal_data.get("old_price", "N/A")
+    category = deal_data.get("category", "general")
+    source_url = deal_data.get("url", "")
+    affiliate_url = deal_data.get("url", "")
+    platform = deal_data.get("marketplace", "Unknown")
     
-    # Ensure Instant Link uses direct ?tag=anany-21 format
-    if "amazon.in" in instant_link:
-        if "tag=" not in instant_link:
-            sep = "&" if "?" in instant_link else "?"
-            instant_link = f"{instant_link}{sep}tag=anany-21"
+    # Ensure affiliate_url uses direct ?tag=anany-21 format
+    if "amazon.in" in affiliate_url:
+        if "tag=" not in affiliate_url:
+            sep = "&" if "?" in affiliate_url else "?"
+            affiliate_url = f"{affiliate_url}{sep}tag=anany-21"
         else:
-            instant_link = re.sub(r"tag=[^&]+", "tag=anany-21", instant_link)
-    elif "flipkart.com" in instant_link:
-        if "affid=" not in instant_link:
-            sep = "&" if "?" in instant_link else "?"
-            instant_link = f"{instant_link}{sep}affid=anany"
+            affiliate_url = re.sub(r"tag=[^&]+", "tag=anany-21", affiliate_url)
+    elif "flipkart.com" in affiliate_url:
+        if "affid=" not in affiliate_url:
+            sep = "&" if "?" in affiliate_url else "?"
+            affiliate_url = f"{affiliate_url}{sep}affid=anany"
         else:
-            instant_link = re.sub(r"affid=[^&]+", "affid=anany", instant_link)
+            affiliate_url = re.sub(r"affid=[^&]+", "affid=anany", affiliate_url)
     
-    # Calculate discount
-    discount_pct = 0
+    # Calculate discount percentage
+    discount_percentage = 0
     try:
-        op = float(str(deal_data.get("old_price", 0)).replace(",", "").replace("₹", ""))
+        op = float(str(original_price).replace(",", "").replace("₹", ""))
         np = float(str(price).replace(",", "").replace("₹", ""))
         if op > np and op > 0:
-            discount_pct = round(((op - np) / op) * 100, 2)
+            discount_percentage = round(((op - np) / op) * 100, 2)
     except:
         pass
         
-    row = [timestamp, source, title, price, discount_pct, instant_link]
+    row = [timestamp, deal_id, title, price, original_price, discount_percentage, category, source_url, affiliate_url, platform]
     
     try:
         with open(stats_file, mode='a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             if not file_exists:
-                writer.writerow(["timestamp", "source", "title", "price", "discount_percent", "instant_link"])
+                writer.writerow(["timestamp", "deal_id", "title", "price", "original_price", "discount_percentage", "category", "source_url", "affiliate_url", "platform"])
             writer.writerow(row)
     except Exception as e:
         logging.error(f"Failed to update master_log.csv: {e}")
