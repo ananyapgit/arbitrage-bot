@@ -37,17 +37,20 @@ async def get_free_courses(url):
 
     courses = []
     
-    # ATOMIC SCRAPING: Look for individual course links, not category cards
-    # This targets individual course pages directly
-    course_links = soup.select("a[href*='/course/'], a[href*='/p/'], a[href*='/product/']")
+    # ATOMIC SCRAPING: Target .deal-card or .product-item classes specifically
+    # This targets individual deal cards, not sale banners
+    deal_cards = soup.select(".deal-card, .product-item, .course-card, .card")
     
+    course_links = []
+    for card in deal_cards:
+        # Extract link from deal card
+        link_elem = card.select_one("a[href]")
+        if link_elem:
+            course_links.append(link_elem)
+    
+    # Additional fallback: Look for direct product links
     if not course_links:
-        # Fallback: Look for course cards but will need to click through
-        cards = soup.select(".card, .course-card, .course-listing, .udlite-search-course-card")
-        for card in cards:
-            link_elem = card.select_one("a[href]")
-            if link_elem:
-                course_links.append(link_elem)
+        course_links = soup.select("a[href*='/course/'], a[href*='/p/'], a[href*='/product/']")
     
     for link_elem in course_links:
         link = link_elem.get("href")

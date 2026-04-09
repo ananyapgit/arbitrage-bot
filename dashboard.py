@@ -178,11 +178,34 @@ if not df.empty:
     
     with col_chart1:
         st.markdown("### <i class='fas fa-chart-pie icon'></i> Category Deal Velocity", unsafe_allow_html=True)
-        # Radar Chart Logic - Use category distribution from CSV
+        # Radar Chart Logic - Use category distribution from CSV with diverse categories
         if 'category' in df.columns:
             cat_counts = df['category'].value_counts().reset_index()
             cat_counts.columns = ['category', 'count']
-            fig_radar = px.line_polar(cat_counts, r='count', theta='category', line_close=True)
+            
+            # Ensure diverse categories are displayed
+            category_mapping = {
+                'general': 'General',
+                'audio': 'Audio', 
+                'laptop': 'Laptops',
+                'fashion': 'Fashion',
+                'beauty': 'Beauty',
+                'home': 'Home & Kitchen',
+                'electronics': 'Electronics',
+                'accessory': 'Accessories'
+            }
+            
+            # Map categories to display names
+            cat_counts['category'] = cat_counts['category'].map(category_mapping).fillna(cat_counts['category'])
+            
+            fig_radar = px.line_polar(cat_counts, r='count', theta='category', line_close=True,
+                                    title="Deal Distribution by Category")
+            fig_radar.update_traces(fill='toself')
+            fig_radar.update_layout(
+                polar=dict(
+                    radialaxis=dict(visible=True, range=[0, cat_counts['count'].max() if len(cat_counts) > 0 else 10])
+                )
+            )
         else:
             # Fallback to Source if category not available
             cat_counts = df['Source'].value_counts().reset_index()

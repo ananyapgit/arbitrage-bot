@@ -96,6 +96,62 @@ def is_individual_product_url(url):
     # Only allow if it has product indicators AND no category indicators
     return has_product_indicator and not has_category_indicator
 
+def validate_deal(deal_data: dict) -> bool:
+    """
+    STRICT DATA VALIDATION: A deal MUST have:
+    1. A specific title (not category-style)
+    2. A specific price (not a range)
+    3. discount_percentage > 20%
+    
+    Returns False if any validation fails.
+    """
+    # Rule 1: Specific title validation
+    title = deal_data.get("title", "")
+    if not title or len(title) < 3:
+        return False
+    
+    # Reject category-style titles
+    title_lower = title.lower()
+    category_keywords = ["sale", "off", "deal", "offer", "discount", "electronics", "fashion", "accessories", "best", "top", "popular", "today's", "deals of the day"]
+    if any(keyword in title_lower for keyword in category_keywords):
+        return False
+    
+    # Rule 2: Specific price validation (not a range)
+    price = deal_data.get("new_price") or deal_data.get("price")
+    if not price:
+        return False
+    
+    # Convert price to float for validation
+    try:
+        price_str = str(price).replace("₹", "").replace("$", "").replace(",", "").strip()
+        price_val = float(price_str)
+        
+        # Reject if price is a range indicator or invalid
+        if "-" in price_str or "to" in price_str.lower() or "up to" in price_str.lower():
+            return False
+        
+        # Reject if price is unrealistic
+        if price_val < 1 or price_val > 50000:
+            return False
+            
+    except (ValueError, TypeError):
+        return False
+    
+    # Rule 3: Discount percentage > 20%
+    discount_pct = deal_data.get("discount_percentage") or deal_data.get("discount_percent")
+    if not discount_pct:
+        return False
+    
+    try:
+        discount_val = float(str(discount_pct).replace("%", ""))
+        if discount_val <= 20.0:
+            return False
+    except (ValueError, TypeError):
+        return False
+    
+    # All validations passed
+    return True
+
 def init_db():
     conn = sqlite3.connect("sent_deals.db")
     c = conn.cursor()
@@ -1564,8 +1620,13 @@ async def deal_engine(single_run=False):
                                 if msg:
                                      mark_deal_sent(deal_id)
                                      log_post(deal.get("url", "unknown"), deal.get("category", "general"))
-                                     # Update master_log.csv for dashboard
-                                     update_stats_csv(deal)
+                                     
+                                     # STRICT VALIDATION: Only process if deal meets criteria
+                                     if validate_deal(deal):
+                                         # Update master_log.csv for dashboard
+                                         update_stats_csv(deal)
+                                     else:
+                                         logging.warning(f"Deal failed validation: {deal.get('title', 'Unknown')}")
                             
                                 # Add to Follow-up Cache
                                 followup_data = {

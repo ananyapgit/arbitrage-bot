@@ -11,6 +11,109 @@ import json
 import config
 from datetime import datetime
 
+# Category rotation for diverse scraping
+AMAZON_CATEGORIES = [
+    "electronics", "home-kitchen", "fashion", "beauty", "toys", "sports", "books"
+]
+
+async def get_amazon_movers_shakers():
+    """
+    Scrapes Amazon India Movers & Shakers JSON-LD feed for diverse products.
+    Rotates through categories to break laptop loop.
+    """
+    category = random.choice(AMAZON_CATEGORIES)
+    url = f"https://www.amazon.in/gp/movers-and-shakers/{category}"
+    
+    headers = {
+        "User-Agent": random.choice(USER_AGENTS),
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers, timeout=config.REQUEST_TIMEOUT) as response:
+                if response.status == 200:
+                    html = await response.text()
+                    soup = BeautifulSoup(html, "html.parser")
+                    
+                    # Extract JSON-LD data
+                    json_scripts = soup.find_all("script", type="application/ld+json")
+                    deals = []
+                    
+                    for script in json_scripts:
+                        try:
+                            data = json.loads(script.string)
+                            if isinstance(data, list):
+                                data = data[0]
+                            
+                            # Look for product data in Movers & Shakers
+                            if data.get("@type") == "ItemList":
+                                items = data.get("itemListElement", [])
+                                for item in items:
+                                    if item.get("@type") == "Product":
+                                        product = {
+                                            "title": item.get("name"),
+                                            "url": item.get("url"),
+                                            "price": item.get("offers", {}).get("price"),
+                                            "marketplace": "Amazon"
+                                        }
+                                        if product["title"] and product["url"]:
+                                            deals.append(product)
+                        except:
+                            continue
+                    
+                    return deals
+    except Exception as e:
+        print(f"Movers & Shakers scraping failed: {e}")
+        return []
+
+async def get_amazon_todays_deals():
+    """
+    Scrapes Amazon Today's Deals JSON-LD feed for diverse products.
+    """
+    url = "https://www.amazon.in/gp/goldbox"
+    
+    headers = {
+        "User-Agent": random.choice(USER_AGENTS),
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers, timeout=config.REQUEST_TIMEOUT) as response:
+                if response.status == 200:
+                    html = await response.text()
+                    soup = BeautifulSoup(html, "html.parser")
+                    
+                    # Extract deal cards
+                    deal_cards = soup.select(".dealCard, .deal-card, .a-deal-card")
+                    deals = []
+                    
+                    for card in deal_cards:
+                        link_elem = card.select_one("a[href]")
+                        title_elem = card.select_one(".deal-title, .a-deal-card-title")
+                        
+                        if link_elem and title_elem:
+                            url = link_elem.get("href")
+                            title = title_elem.get_text(strip=True)
+                            
+                            if url and title:
+                                if url.startswith("/"):
+                                    url = "https://www.amazon.in" + url
+                                
+                                deals.append({
+                                    "title": title,
+                                    "url": url,
+                                    "marketplace": "Amazon"
+                                })
+                    
+                    return deals
+    except Exception as e:
+        print(f"Today's Deals scraping failed: {e}")
+        return []
+
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
@@ -23,6 +126,29 @@ USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.6100.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
 ]
+
+async def get_diverse_amazon_deals():
+    """
+    BREAK THE LAPTOP LOOP: Get diverse Amazon deals from multiple sources.
+    Rotates through categories: Electronics, Home, Fashion, Beauty.
+    """
+    all_deals = []
+    
+    # Try Movers & Shakers first
+    try:
+        movers_deals = await get_amazon_movers_shakers()
+        all_deals.extend(movers_deals)
+    except Exception as e:
+        print(f"Movers & Shakers failed: {e}")
+    
+    # Try Today's Deals as fallback
+    try:
+        today_deals = await get_amazon_todays_deals()
+        all_deals.extend(today_deals)
+    except Exception as e:
+        print(f"Today's Deals failed: {e}")
+    
+    return all_deals
 
 async def get_amazon_product(url):
     """
