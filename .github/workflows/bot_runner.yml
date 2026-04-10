@@ -11,8 +11,13 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4.1.1
       with:
-        token: ${{ secrets.GITHUB_TOKEN }} # Needed for pushing changes
+        token: ${{ secrets.GH_PAT }} # Needed for pushing changes (dashboard live sync)
         submodules: false # Explicitly disable submodules to prevent crash
+
+    - name: Set up Node.js (for actions)
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -40,7 +45,6 @@ jobs:
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         AMAZON_TAG: ${{ secrets.AMAZON_TAG }}
         FLIPKART_TAG: ${{ secrets.FLIPKART_TAG }}
-        REDIRECT_BRIDGE_URL: ${{ secrets.REDIRECT_BRIDGE_URL }}
         GITHUB_ACTIONS: "true"
         # Add other secrets as needed
       run: python main.py
@@ -57,9 +61,8 @@ jobs:
       with:
         commit_message: "🤖 Auto-Update: Bot Logs, Data & Stats [skip ci]"
         file_pattern: "click_logs.csv deals.json trust_decay.json rejection_audit.log analytics.json cache.json sale_followup_cache.json heartbeat.timestamp dashboard/public/data/master_log.csv heartbeat.json sent_deals.db"
-        push_options: '--force'
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
     - name: Trigger Next Run (5-Minute Loop)
       if: always()

@@ -60,6 +60,13 @@ CHANNELS = {
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "placeholder_disabled")
 HIGH_EPC_CATEGORIES = ["electronics"]
 
+# WhatsApp Channel (Meta WhatsApp Cloud API)
+WHATSAPP_ENABLED = env_bool("WHATSAPP_ENABLED", False)
+WHATSAPP_ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN", "")
+WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
+WHATSAPP_RECIPIENT = os.getenv("WHATSAPP_RECIPIENT", "")  # E.164 format, e.g. 91XXXXXXXXXX
+WHATSAPP_CHANNEL_NAME = os.getenv("WHATSAPP_CHANNEL_NAME", "Arbitrage..")
+
 def env_int(key, default):
     try:
         return int(os.getenv(key, str(default)))
@@ -132,7 +139,7 @@ SCRAPE_INTERVAL_MAX = 75
 # Revenue Protection (Sub-IDs)
 EPC_THROTTLE_THRESHOLD = 0.10 # Pause category if EPC < $0.10
 
-REDIRECT_PUBLIC_URL = os.getenv("REDIRECT_PUBLIC_URL", "https://redirect-service-kyf0.onrender.com/r")
+REDIRECT_PUBLIC_URL = os.getenv("REDIRECT_PUBLIC_URL", "")
 REDIRECT_BRIDGE_URL = REDIRECT_PUBLIC_URL
 
 SUB_IDS = {

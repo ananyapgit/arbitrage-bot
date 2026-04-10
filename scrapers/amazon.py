@@ -10,11 +10,59 @@ import random
 import json
 import config
 from datetime import datetime
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 # Category rotation for diverse scraping
 AMAZON_CATEGORIES = [
     "electronics", "home-kitchen", "fashion", "beauty", "toys", "sports", "books"
 ]
+
+
+def _force_affiliate(url: str) -> str:
+    parsed = urlparse(url)
+    params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    params["tag"] = config.AFFILIATE_TAGS.get("amazon.in") or "anany-21"
+    return urlunparse(parsed._replace(query=urlencode(params)))
+
+
+def _extract_listing_deals(soup: BeautifulSoup) -> list[dict]:
+    deals: list[dict] = []
+    seen: set[str] = set()
+
+    for anchor in soup.select("a[href*='/dp/']"):
+        href = anchor.get("href", "").strip()
+        if not href:
+            continue
+        if href.startswith("/"):
+            href = "https://www.amazon.in" + href.split("?")[0]
+        if "/dp/" not in href or href in seen:
+            continue
+
+        container = anchor.parent
+        title = (
+            anchor.get("title")
+            or anchor.get_text(" ", strip=True)
+            or (anchor.select_one("img[alt]") or {}).get("alt")
+        )
+        price_el = None
+        if container and hasattr(container, "select_one"):
+            price_el = container.select_one(".a-price .a-offscreen, .a-price-whole, .a-offscreen")
+        price = price_el.get_text(strip=True) if price_el else None
+
+        if title:
+            seen.add(href)
+            deals.append(
+                {
+                    "title": title.strip(),
+                    "url": href,
+                    "affiliate_url": _force_affiliate(href),
+                    "price": price,
+                    "source": "amazon",
+                    "marketplace": "Amazon",
+                }
+            )
+
+    return deals
 
 async def get_amazon_movers_shakers():
     """
@@ -31,7 +79,8 @@ async def get_amazon_movers_shakers():
     }
     
     try:
-        async with aiohttp.ClientSession() as session:
+        connector = aiohttp.TCPConnector(ssl=False)
+        async with aiohttp.ClientSession(connector=connector) as session:
             async with session.get(url, headers=headers, timeout=config.REQUEST_TIMEOUT) as response:
                 if response.status == 200:
                     html = await response.text()
@@ -63,7 +112,9 @@ async def get_amazon_movers_shakers():
                         except:
                             continue
                     
+                    deals.extend(_extract_listing_deals(soup))
                     return deals
+                return []
     except Exception as e:
         print(f"Movers & Shakers scraping failed: {e}")
         return []
@@ -81,7 +132,8 @@ async def get_amazon_todays_deals():
     }
     
     try:
-        async with aiohttp.ClientSession() as session:
+        connector = aiohttp.TCPConnector(ssl=False)
+        async with aiohttp.ClientSession(connector=connector) as session:
             async with session.get(url, headers=headers, timeout=config.REQUEST_TIMEOUT) as response:
                 if response.status == 200:
                     html = await response.text()
@@ -109,7 +161,9 @@ async def get_amazon_todays_deals():
                                     "marketplace": "Amazon"
                                 })
                     
+                    deals.extend(_extract_listing_deals(soup))
                     return deals
+                return []
     except Exception as e:
         print(f"Today's Deals scraping failed: {e}")
         return []
@@ -136,14 +190,14 @@ async def get_diverse_amazon_deals():
     
     # Try Movers & Shakers first
     try:
-        movers_deals = await get_amazon_movers_shakers()
+        movers_deals = await get_amazon_movers_shakers() or []
         all_deals.extend(movers_deals)
     except Exception as e:
         print(f"Movers & Shakers failed: {e}")
     
     # Try Today's Deals as fallback
     try:
-        today_deals = await get_amazon_todays_deals()
+        today_deals = await get_amazon_todays_deals() or []
         all_deals.extend(today_deals)
     except Exception as e:
         print(f"Today's Deals failed: {e}")
@@ -158,6 +212,7 @@ async def get_amazon_product(url):
     # ANTI-CATEGORY LOGIC: Only process individual product URLs
     from bot import is_individual_product_url
     if not is_individual_product_url(url):
+        print(f"Amazon rejected non-product URL: {url}")
         return None
     
     # ANTI-DETECTION: Random delay between product scrapes (mimic human browsing)
@@ -179,17 +234,30 @@ async def get_amazon_product(url):
     }
 
     # Retry up to 5 times on network errors to scrape harder
-    async with aiohttp.ClientSession() as session:
+    connector = aiohttp.TCPConnector(ssl=False)
+    async with aiohttp.ClientSession(connector=connector) as session:
         for attempt in range(5):
             try:
                 # Use optimized timeout from config
                 async with session.get(url, headers=headers, timeout=config.REQUEST_TIMEOUT) as response:
-                    if response.status == 403:
+                    if response.status in (403, 429, 503):
                         with open("health_check.log", "a") as f:
-                            f.write(f"{datetime.now()}: 403 Forbidden for {url}\n")
+                            f.write(f"{datetime.now()}: Amazon blocked for {url} ({response.status})\n")
+                        print(f"Amazon blocked: {url}")
                         return None
                     response.raise_for_status()
                     html = await response.text()
+                    text_lower = html.lower()
+                    if any(marker in text_lower for marker in [
+                        "captcha",
+                        "enter the characters you see below",
+                        "sorry, we just need to make sure you're not a robot",
+                        "robot check",
+                    ]):
+                        with open("health_check.log", "a") as f:
+                            f.write(f"{datetime.now()}: Amazon blocked for {url} (captcha)\n")
+                        print(f"Amazon blocked: {url}")
+                        return None
                     break  # Success, exit retry loop
             except (aiohttp.ClientError, asyncio.TimeoutError):
                 if attempt == 2:  # Last attempt failed
@@ -201,6 +269,9 @@ async def get_amazon_product(url):
     # --- RESILIENT SELECTORS (Amazon March 2026 Update) ---
     title_el = soup.select_one("#productTitle")
     title = title_el.get_text(strip=True) if title_el else None
+    if not title:
+        meta_title = soup.select_one("meta[property='og:title'], meta[name='title']")
+        title = meta_title.get("content", "").strip() if meta_title else None
     
     # Search for price in specified order: .a-price-whole, .a-offscreen, span[data-a-color='price']
     price_el = soup.select_one(".a-price-whole")
@@ -210,6 +281,9 @@ async def get_amazon_product(url):
         price_el = soup.select_one("span[data-a-color='price']")
     
     price = price_el.get_text(strip=True) if price_el else None
+    if not price:
+        price_meta = soup.select_one("meta[property='product:price:amount'], meta[property='og:price:amount']")
+        price = price_meta.get("content", "").strip() if price_meta else None
 
     # --- AMAZON STEALTH PRECISION: JSON-LD for sku/productID ---
     product_id = None
@@ -257,22 +331,27 @@ async def get_amazon_product(url):
 
     # DISCARD if no specific price found (stealth precision)
     if not price or price == "Check Best Price":
+        print(f"Amazon missing price: {url}")
         return None
 
     # DISCARD if no proper title (likely category page)
     if not title or len(title) < 3:
+        print(f"Amazon missing title: {url}")
         return None
     
-    # REVENUE TAG LOCK: Hard-code anany-21 at the scraper level
-    if "?" in url:
-        tagged_url = f"{url}&tag=anany-21"
-    else:
-        tagged_url = f"{url}?tag=anany-21"
+    # REVENUE TAG LOCK: preserve query params while forcing the affiliate tag
+    parsed = urlparse(url)
+    params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    params["tag"] = config.AFFILIATE_TAGS.get("amazon.in") or "anany-21"
+    tagged_url = urlunparse(parsed._replace(query=urlencode(params)))
 
     result = {
         "title": title,
         "price": price,
-        "url": tagged_url
+        "url": url,
+        "affiliate_url": tagged_url,
+        "source": "amazon",
+        "marketplace": "Amazon"
     }
     
     # Stock & Urgency Extraction

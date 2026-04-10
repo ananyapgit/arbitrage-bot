@@ -13,12 +13,12 @@ from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
 
 import aiohttp
 from cachetools import TTLCache
-from telegram import Bot
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import TelegramError
 
 from scrapers.manual_feed import get_manual_deal
 from scrapers.courses import get_free_courses
-from scrapers.amazon import get_amazon_product
+from scrapers.amazon import get_amazon_product, get_diverse_amazon_deals
 from scrapers.flipkart import get_flipkart_product
 
 import config
@@ -47,6 +47,11 @@ BOT_TOKEN = config.BOT_TOKEN
 CHANNELS = config.CHANNELS
 DISCORD_WEBHOOK_URL = config.DISCORD_WEBHOOK_URL
 HIGH_EPC_CATEGORIES = getattr(config, "HIGH_EPC_CATEGORIES", ["electronics"])
+WHATSAPP_ENABLED = getattr(config, "WHATSAPP_ENABLED", False)
+WHATSAPP_ACCESS_TOKEN = getattr(config, "WHATSAPP_ACCESS_TOKEN", "")
+WHATSAPP_PHONE_NUMBER_ID = getattr(config, "WHATSAPP_PHONE_NUMBER_ID", "")
+WHATSAPP_RECIPIENT = getattr(config, "WHATSAPP_RECIPIENT", "")
+WHATSAPP_CHANNEL_NAME = getattr(config, "WHATSAPP_CHANNEL_NAME", "Arbitrage..")
 POST_INTERVAL_SECONDS = 300 # Revenue Priority: 5 Minutes
 ANTI_SPAM_DELAY = 1 # Revenue Priority: 1 Second
 MAX_DEALS_PER_BATCH = 15 # Revenue Priority: 15
@@ -72,6 +77,74 @@ SPAM_PAUSE_FILE = "spam_pause.json"
 # Global State
 # T-046: Memory Leak Prevention via SQLite Deduplication
 processed_cache = {}
+
+
+def normalize_price(value):
+    if value is None:
+        return None
+    cleaned = str(value).replace("₹", "").replace("$", "").replace(",", "").strip()
+    if not cleaned:
+        return None
+    return cleaned
+
+
+def ensure_affiliate_url(url: str, source: str) -> str:
+    if not url:
+        return ""
+
+    parsed = urlparse(url)
+    params = dict(parse_qs(parsed.query, keep_blank_values=True))
+    source_l = (source or "").lower()
+
+    if "amazon" in source_l or "amazon." in parsed.netloc:
+        params["tag"] = [config.AFFILIATE_TAGS.get("amazon.in") or "anany-21"]
+    elif "flipkart" in source_l or "flipkart" in parsed.netloc:
+        params["affid"] = [config.AFFILIATE_TAGS.get("flipkart.com") or "anany"]
+
+    return urlunparse(parsed._replace(query=urlencode(params, doseq=True)))
+
+
+def has_valid_affiliate_url(url: str, source: str) -> bool:
+    if not url:
+        return False
+    source_l = (source or "").lower()
+    if "amazon" in source_l or "amazon." in url:
+        return "tag=" in url
+    if "flipkart" in source_l or "flipkart" in url:
+        return "affid=" in url
+    return url.startswith("http")
+
+
+def coerce_deal_object(deal: dict) -> dict:
+    source = (deal.get("source") or deal.get("marketplace") or "").lower()
+    if "amazon" in source:
+        source = "amazon"
+    elif any(x in source for x in ["coupon", "couponami", "coupondunia"]):
+        source = "coupondunia"
+    elif "flipkart" in source:
+        source = "flipkart"
+    else:
+        source = "unknown"
+
+    raw_url = deal.get("url") or deal.get("affiliate_url") or ""
+    affiliate_url = ensure_affiliate_url(deal.get("affiliate_url") or raw_url, source)
+
+    normalized = {
+        "title": (deal.get("title") or "").strip(),
+        "price": deal.get("price") or deal.get("new_price"),
+        "original_price": deal.get("original_price") or deal.get("old_price"),
+        "url": raw_url,
+        "affiliate_url": affiliate_url,
+        "source": source,
+        "marketplace": deal.get("marketplace") or source.title(),
+        "category": deal.get("category", "general"),
+    }
+
+    if normalized["price"] is not None:
+        normalized["new_price"] = normalized["price"]
+    if normalized["original_price"] is not None:
+        normalized["old_price"] = normalized["original_price"]
+    return normalized
 
 def is_individual_product_url(url):
     """
@@ -390,6 +463,49 @@ def load_json(filepath, default=None):
         logging.error(f"Error loading {filepath}: {e}")
         return default
 
+
+def load_seed_amazon_deals():
+    """
+    Seed Amazon product URLs from existing repo artifacts so Amazon is always
+    present in the candidate set even when listing scraping is blocked.
+    """
+    seeds = []
+    seen = set()
+
+    for path in ["site/deals.json", "reddit_drafts.json"]:
+        try:
+            payload = load_json(path, default=[]) or []
+            for item in payload:
+                if not isinstance(item, dict):
+                    continue
+                raw = item.get("url", "")
+                if not raw and "body" in item:
+                    match = re.search(r"https://www\.amazon\.in/[^\s)]+", item.get("body", ""))
+                    raw = match.group(0) if match else ""
+                if not raw or "amazon.in" not in raw.lower():
+                    continue
+                affiliate_url = ensure_affiliate_url(raw, "amazon")
+                if affiliate_url in seen:
+                    continue
+                seen.add(affiliate_url)
+                seeds.append(
+                    {
+                        "title": item.get("title", "Amazon Deal"),
+                        "price": item.get("new_price"),
+                        "original_price": item.get("old_price"),
+                        "url": raw,
+                        "affiliate_url": affiliate_url,
+                        "source": "amazon",
+                        "marketplace": "Amazon",
+                        "category": item.get("category", "general"),
+                    }
+                )
+        except Exception as exc:
+            logging.warning(f"Failed loading Amazon seeds from {path}: {exc}")
+
+    logging.info("Loaded %s Amazon seed deals", len(seeds))
+    return seeds
+
 def save_json(filepath, data):
     """Safely saves JSON data to a file."""
     if TEST_MODE and filepath == CACHE_FILE:
@@ -527,8 +643,10 @@ async def enrich_deal(session, deal: dict) -> dict:
         log_rejection("N/A", {"stage": "Schema", "detail": "missing_url"})
         return deal
     
-    # ANTI-CATEGORY LOGIC: Reject category/deals pages immediately
-    if not is_individual_product_url(url):
+    source = str(deal.get("source") or deal.get("marketplace") or "").lower()
+
+    # Allow coupon/deal aggregator items to pass through without product URL heuristics.
+    if "coupon" not in source and not is_individual_product_url(url):
         deal["valid"] = False
         log_rejection(url, {"stage": "Category", "detail": "not_individual_product"})
         return deal
@@ -1067,7 +1185,7 @@ async def process_followups(session, bot: Bot, stats: dict):
             
             if not TEST_MODE:
                 chat_id = CHANNELS["main"]["chat_id"]
-                await post_to_telegram(bot, chat_id, caption)
+                await post_to_telegram(bot, chat_id, caption, enriched.get("affiliate_url") or enriched.get("url", ""))
                 await post_to_discord(session, DISCORD_WEBHOOK_URL, enriched, variant)
             
             processed_count += 1
@@ -1082,7 +1200,7 @@ async def process_followups(session, bot: Bot, stats: dict):
 def update_stats_csv(deal_data: dict):
     """
     Appends successful deal data to dashboard/public/data/master_log.csv for the high-fidelity dashboard.
-    Fields: timestamp, deal_id, title, price, original_price, discount_percentage, category, source_url, affiliate_url, platform
+    Fields: timestamp, id, title, price, original_price, discount, category, store, link, status
     """
     stats_dir = "dashboard/public/data"
     stats_file = os.path.join(stats_dir, "master_log.csv")
@@ -1094,14 +1212,24 @@ def update_stats_csv(deal_data: dict):
     
     # Extract metrics
     timestamp = datetime.now().isoformat()
-    deal_id = deal_data.get("url", "unknown")[-12:]  # Last 12 chars of URL as ID
+    deal_id = (
+        deal_data.get("id")
+        or deal_data.get("deal_id")
+        or (deal_data.get("url", "unknown")[-12:])  # Last 12 chars of URL as ID
+    )
     title = deal_data.get("title", "N/A")
     price = deal_data.get("new_price", "N/A")
     original_price = deal_data.get("old_price", "N/A")
     category = deal_data.get("category", "general")
     source_url = deal_data.get("url", "")
-    affiliate_url = deal_data.get("url", "")
-    platform = deal_data.get("marketplace", "Unknown")
+    affiliate_url = deal_data.get("affiliate_url") or deal_data.get("url", "")
+    platform = deal_data.get("marketplace") or deal_data.get("platform") or "Unknown"
+    status = (
+        deal_data.get("status")
+        or deal_data.get("ScraperStatus")
+        or deal_data.get("scraper_status")
+        or "200 OK"
+    )
     
     # TITLE FORMAT: Ensure 'Brand + Model' format, reject category-style titles
     title_lower = title.lower()
@@ -1148,13 +1276,37 @@ def update_stats_csv(deal_data: dict):
     except:
         pass
         
-    row = [timestamp, deal_id, title, price, original_price, discount_percentage, category, source_url, affiliate_url, platform]
+    row = [
+        timestamp,
+        deal_id,
+        title,
+        price,
+        original_price,
+        discount_percentage,
+        category,
+        platform,
+        affiliate_url,
+        status,
+    ]
     
     try:
         with open(stats_file, mode='a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             if not file_exists:
-                writer.writerow(["timestamp", "deal_id", "title", "price", "original_price", "discount_percentage", "category", "source_url", "affiliate_url", "platform"])
+                writer.writerow(
+                    [
+                        "timestamp",
+                        "id",
+                        "title",
+                        "price",
+                        "original_price",
+                        "discount",
+                        "category",
+                        "store",
+                        "link",
+                        "status",
+                    ]
+                )
             writer.writerow(row)
     except Exception as e:
         logging.error(f"Failed to update master_log.csv: {e}")
@@ -1209,7 +1361,9 @@ def format_telegram_message(deal: dict) -> tuple[str, str]:
     Returns: (formatted_message, variant_id)
     """
     title = deal.get("title", "Limited Time Offer")
-    price = deal.get("new_price", "Check Best Price")
+    price = deal.get("new_price") or deal.get("price") or "Check Best Price"
+    source = deal.get("source") or deal.get("marketplace") or "unknown"
+    original_price = deal.get("old_price") or deal.get("original_price")
     
     # Currency formatting
     def format_currency(val):
@@ -1222,45 +1376,56 @@ def format_telegram_message(deal: dict) -> tuple[str, str]:
     
     # REVENUE-FIRST TAGGING: Every link must be tagged.
     # deal["url"] should already have anany-21 from scrapers or add_affiliate_tag
-    final_url = deal.get("url", "https://www.amazon.in")
-    
-    # Instant Link Speed: No Render Redirect Lag.
-    # We ensure the tag is present here as a hard-coded lock.
-    if "amazon.in" in final_url:
-        if "tag=" not in final_url:
-            sep = "&" if "?" in final_url else "?"
-            final_url = f"{final_url}{sep}tag=anany-21"
-        else:
-            # Force our tag even if another exists
-            final_url = re.sub(r"tag=[^&]+", "tag=anany-21", final_url)
-    elif "flipkart.com" in final_url:
-        if "affid=" not in final_url:
-            sep = "&" if "?" in final_url else "?"
-            final_url = f"{final_url}{sep}affid=anany"
-        else:
-            # Force our affid even if another exists
-            final_url = re.sub(r"affid=[^&]+", "affid=anany", final_url)
+    final_url = ensure_affiliate_url(deal.get("affiliate_url") or deal.get("url", ""), str(source))
 
-    # REVENUE FORMATTING: 🛍️ {Title} 💰 Offer: {Price} 👉Click Here to Buy Now
-    msg = f"🛍️ {title} 💰 Offer: {price_str} 👉<a href='{final_url}'>Click Here to Buy Now</a>"
+    lines = [
+        f"🛍️ <b>{title}</b>",
+        f"💰 Price: <b>{price_str}</b>",
+        f"🏷️ Source: <b>{str(source).title()}</b>",
+    ]
+    if original_price:
+        lines.append(f"📉 Was: <b>{format_currency(original_price)}</b>")
+    discount = deal.get("discount_percentage") or deal.get("discount_percent")
+    if discount:
+        lines.append(f"🔥 Discount: <b>{discount}%</b>")
+    msg = "\n".join(lines)
     
     return msg, "A"
 
+
+def format_whatsapp_message(deal: dict) -> str:
+    title = deal.get("title", "Limited Time Offer")
+    price = deal.get("new_price") or deal.get("price") or "Check Best Price"
+    source = deal.get("source") or deal.get("marketplace") or "unknown"
+    original_price = deal.get("old_price") or deal.get("original_price")
+    affiliate_url = ensure_affiliate_url(
+        deal.get("affiliate_url") or deal.get("url", ""),
+        str(source),
+    )
+
+    parts = [
+        f"*{WHATSAPP_CHANNEL_NAME}*",
+        f"🛍️ {title}",
+        f"💰 Price: {price}",
+        f"🏷️ Source: {str(source).title()}",
+    ]
+    if original_price:
+        parts.append(f"📉 Was: {original_price}")
+    parts.append(f"🛒 Buy Now: {affiliate_url}")
+    return "\n".join(parts)
+
 # ================== POSTING LOGIC ==================
 
-async def post_to_telegram(bot: Bot, chat_id: int, caption: str):
+async def post_to_telegram(bot: Bot, chat_id: int, caption: str, affiliate_url: str):
     """Posts to Telegram with retry logic. Returns message object."""
-    # REVENUE IS THE ONLY PRIORITY: HARD-CODE DESTINATION
-    chat_id = '-1003561797352'
-    
     # Log caption for verification
-    logging.info(f"Preparing to post to Telegram: {caption}")
+    logging.info(f"Preparing to post to Telegram: {caption} | url={affiliate_url}")
 
     if TEST_MODE:
         return None
         
     # Guardrail: Block localhost redirects
-    if "localhost" in caption:
+    if "localhost" in caption or "localhost" in affiliate_url:
         logging.error("Blocking post: localhost redirect detected in caption")
         return None
         
@@ -1277,11 +1442,37 @@ async def post_to_telegram(bot: Bot, chat_id: int, caption: str):
         logging.warning("Telegram Posting Skipped: chat_id is None")
         return None
 
+    if not affiliate_url or not affiliate_url.startswith("http"):
+        logging.error("Telegram Posting Skipped: invalid affiliate_url")
+        return None
+
+    keyboard = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("🛒 Buy Now", url=affiliate_url)]]
+    )
+    reply_markup_payload = {
+        "inline_keyboard": [[{"text": "🛒 Buy Now", "url": affiliate_url}]]
+    }
+
     for attempt in range(3):
         try:
-            msg = await bot.send_message(chat_id=chat_id, text=caption, parse_mode="HTML")
-            return msg
-        except TelegramError as e:
+            payload = {
+                "chat_id": str(chat_id),
+                "text": caption,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": False,
+                "reply_markup": json.dumps(reply_markup_payload),
+            }
+            connector = aiohttp.TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=connector) as session:
+                api_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+                async with session.post(api_url, data=payload, timeout=20) as response:
+                    data = await response.json(content_type=None)
+                    if response.status == 200 and data.get("ok"):
+                        result = data.get("result", {})
+                        logging.info("Telegram post succeeded with affiliate_url=%s", affiliate_url)
+                        return type("TelegramMessage", (), {"message_id": result.get("message_id", 0)})()
+                    raise TelegramError(f"Bot API error {response.status}: {data}")
+        except Exception as e:
             err_str = str(e).lower()
             if "flood" in err_str or "spam" in err_str or "userdeactivated" in err_str:
                 logging.critical(f"TELEGRAM SPAM/FLOOD DETECTED: {e}. Pausing for 24h.")
@@ -1292,12 +1483,51 @@ async def post_to_telegram(bot: Bot, chat_id: int, caption: str):
                 return None
             
             if attempt == 2:
-                logging.error(f"Telegram error (final): {e}")
+                logging.error(f"Telegram error (final): {e!r}")
                 update_trust_decay("system", f"TELEGRAM_ERROR_FINAL: {e}")
             else:
-                logging.warning(f"Telegram error (attempt {attempt+1}): {e}")
+                logging.warning(f"Telegram error (attempt {attempt+1}): {e!r}")
                 await asyncio.sleep(2)
     return None
+
+
+async def post_to_whatsapp(text_message: str) -> bool:
+    """
+    Sends the same deal payload to WhatsApp Cloud API.
+    """
+    if not WHATSAPP_ENABLED:
+        return False
+    if not (WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_RECIPIENT):
+        logging.warning("WhatsApp posting skipped: missing WhatsApp configuration")
+        return False
+    if TEST_MODE:
+        return False
+
+    api_url = f"https://graph.facebook.com/v21.0/{WHATSAPP_PHONE_NUMBER_ID}/messages"
+    headers = {
+        "Authorization": f"Bearer {WHATSAPP_ACCESS_TOKEN}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": str(WHATSAPP_RECIPIENT),
+        "type": "text",
+        "text": {"preview_url": True, "body": text_message},
+    }
+
+    try:
+        connector = aiohttp.TCPConnector(ssl=False)
+        async with aiohttp.ClientSession(connector=connector) as session:
+            async with session.post(api_url, headers=headers, json=payload, timeout=20) as response:
+                body = await response.text()
+                if response.status in (200, 201):
+                    logging.info("WhatsApp post succeeded")
+                    return True
+                logging.error(f"WhatsApp API error {response.status}: {body}")
+                return False
+    except Exception as e:
+        logging.error(f"WhatsApp post failed: {e!r}")
+        return False
 
 async def post_to_discord(session, webhook_url: str, deal: dict, variant: str):
     """Posts rich embed to Discord."""
@@ -1376,6 +1606,7 @@ async def deal_engine(single_run=False):
         try:
             # 1. LIVE SCRAPING (No Static Feeds)
             deals = []
+            source_counts = {}
             try:
                 logging.info("Scraping live sources...")
                 tasks = []
@@ -1390,18 +1621,13 @@ async def deal_engine(single_run=False):
                 
                 if 'amazon' in enabled:
                     try:
-                        # Scrape Amazon Laptops & Electronics for high EPC
-                        tasks.append(get_amazon_product("https://www.amazon.in/s?k=laptops"))
-                        tasks.append(get_amazon_product("https://www.amazon.in/s?k=smartphones"))
+                        tasks.append(get_diverse_amazon_deals())
                     except Exception:
                         pass
-
-                if 'flipkart' in enabled:
                     try:
-                        # Flipkart Scraper
-                        tasks.append(get_flipkart_product("https://www.flipkart.com/search?q=laptops"))
-                    except Exception:
-                        pass
+                        deals.extend(load_seed_amazon_deals())
+                    except Exception as e:
+                        logging.warning(f"Amazon seed loading failed: {e}")
                 
                 scraped = await asyncio.gather(*tasks, return_exceptions=True) if tasks else []
                 total = 0
@@ -1412,24 +1638,25 @@ async def deal_engine(single_run=False):
                     elif isinstance(res, dict) and res.get("url"):
                         deals.append(res)
                         total += 1
-                logging.info(f"Scraped {total} deals from live web.")
+                for deal in deals:
+                    src = (deal.get("source") or deal.get("marketplace") or "unknown").lower()
+                    source_counts[src] = source_counts.get(src, 0) + 1
+                logging.info(f"Scraped {total} deals from live web. Breakdown: {source_counts}")
             except Exception as e:
                 logging.error(f"Live Scrape Failed: {e}")
 
             if not deals:
                 logging.warning("No deals found from live scrapers.")
-                if single_run:
-                    logging.info("Single run active: Exiting due to no deals.")
-                    break
-                await asyncio.sleep(60)
-                continue
 
             # Batch Stats
             stats = {
                 "sent": 0, "skipped_cache": 0, "low_disc": 0, 
                 "invalid": 0, "out_of_stock": 0, "enrich_fail": 0,
                 "tagged": 0, "throttled": 0, "variant_a": 0, "variant_b": 0,
-                "follow_up_alerts_sent": 0, "stock_change_detected": 0
+                "follow_up_alerts_sent": 0, "stock_change_detected": 0,
+                "rejected_missing_title": 0, "rejected_missing_price": 0,
+                "rejected_invalid_affiliate": 0, "rejected_duplicate": 0,
+                "rejected_blocked": 0, "whatsapp_sent": 0, "whatsapp_failed": 0
             }
 
             try:
@@ -1440,22 +1667,20 @@ async def deal_engine(single_run=False):
                     
                 # --- PHASE 1: PROCESS NEW DEALS ---
                         # Diversity Gatekeeper: Limit deals from a single source to 3 per run
-                        source_counts = {}
+                        source_gate_counts = {}
                         deals_to_process = []
                         
                         # Sort deals to prioritize Amazon/Flipkart
                         sorted_deals = sorted(deals, key=lambda x: 0 if "amazon" in x.get("url", "").lower() or "flipkart" in x.get("url", "").lower() else 1)
                         
                         for d in sorted_deals:
+                            d = coerce_deal_object(d)
                             url = d.get("url", "").lower()
-                            source = "unknown"
-                            if "amazon" in url: source = "amazon"
-                            elif "flipkart" in url: source = "flipkart"
-                            elif "couponami" in url or d.get("persona") == "Couponami": source = "couponami"
+                            source = d.get("source", "unknown")
                             
-                            if source_counts.get(source, 0) < 3:
+                            if source_gate_counts.get(source, 0) < 3:
                                 deals_to_process.append(d)
-                                source_counts[source] = source_counts.get(source, 0) + 1
+                                source_gate_counts[source] = source_gate_counts.get(source, 0) + 1
                         
                         # Shuffle slightly to mix sources within the limit
                         random.shuffle(deals_to_process)
@@ -1513,6 +1738,7 @@ async def deal_engine(single_run=False):
                         #         reciprocity_state["free"] += 1
                         
                         for deal in final_batch:
+                            deal = coerce_deal_object(deal)
                             cat = deal.get("category", "general")
                             if "category" not in deal:
                                 if "audio" in deal.get("title", "").lower(): cat = "audio"
@@ -1540,6 +1766,8 @@ async def deal_engine(single_run=False):
                             deal_id = asin if asin else raw_url
                             if is_deal_sent(deal_id):
                                 stats["skipped_cache"] += 1
+                                stats["rejected_duplicate"] += 1
+                                log_rejection(raw_url, {"stage": "Duplicate", "detail": "duplicate"})
                                 continue
                             #             "old_price": deal.get("old_price"),
                             #             "new_price": deal.get("new_price"),
@@ -1551,12 +1779,34 @@ async def deal_engine(single_run=False):
                             # 3. Affiliate Tagging - NOW HANDLED AT SCRAPER LEVEL
                             # tagged_url = await add_affiliate_tag(session, raw_url, deal.get("marketplace", ""), category)
                             # deal["url"] = tagged_url
+                            deal["affiliate_url"] = ensure_affiliate_url(
+                                deal.get("affiliate_url") or raw_url,
+                                deal.get("source") or deal.get("marketplace", ""),
+                            )
                             stats["tagged"] += 1
+
+                            if not deal.get("title"):
+                                stats["invalid"] += 1
+                                stats["rejected_missing_title"] += 1
+                                log_rejection(raw_url, {"stage": "Schema", "detail": "missing_title"})
+                                continue
+                            if not deal.get("price") and not deal.get("new_price"):
+                                stats["invalid"] += 1
+                                stats["rejected_missing_price"] += 1
+                                log_rejection(raw_url, {"stage": "Schema", "detail": "missing_price"})
+                                continue
+                            if not has_valid_affiliate_url(deal.get("affiliate_url", ""), deal.get("source", "")):
+                                stats["invalid"] += 1
+                                stats["rejected_invalid_affiliate"] += 1
+                                log_rejection(raw_url, {"stage": "Affiliate", "detail": "invalid_affiliate_link"})
+                                continue
     
                             # 4. Enrichment & Validation
                             deal = await enrich_deal(session, deal)
                         
                             if not deal.get("valid", False):
+                                if "blocked" in str(deal.get("enrich_error", "")).lower():
+                                    stats["rejected_blocked"] += 1
                                 if "enrich_error" in deal:
                                     stats["enrich_fail"] += 1
                                 else:
@@ -1601,14 +1851,16 @@ async def deal_engine(single_run=False):
                                 if post_cat in ["course", "education", "book"]:
                                      chat_id = config.CHANNELS["education"]["chat_id"]
                                 
-                                final_url = deal.get("url", "")
+                                final_url = deal.get("affiliate_url") or deal.get("url", "")
                                 if not final_url or not isinstance(final_url, str) or not final_url.startswith("http"):
                                     logging.error(f"Posting deal without valid URL field: {deal.get('title')}")
-                                if "http" not in caption:
-                                    logging.warning(f"Caption missing URL for deal: {deal.get('title')}")
-                                if "buy" not in caption.lower() and "grab" not in caption.lower():
-                                    logging.warning(f"Caption missing CTA for deal: {deal.get('title')}")
-                                msg = await post_to_telegram(telegram_bot, chat_id, caption)
+                                msg = await post_to_telegram(telegram_bot, chat_id, caption, final_url)
+                                whatsapp_payload = format_whatsapp_message(deal)
+                                wa_ok = await post_to_whatsapp(whatsapp_payload)
+                                if wa_ok:
+                                    stats["whatsapp_sent"] += 1
+                                elif WHATSAPP_ENABLED:
+                                    stats["whatsapp_failed"] += 1
                                 try:
                                     post_cat = deal.get("category", "general")
                                     if post_cat in HIGH_EPC_CATEGORIES:
@@ -1654,13 +1906,35 @@ async def deal_engine(single_run=False):
                                     logging.error(f"Waitlist alert processing failed: {e}")
                             
                             processed_count += 1
-                            stats["sent"] += 1
+                            if msg:
+                                stats["sent"] += 1
                             await asyncio.sleep(ANTI_SPAM_DELAY)
                     
                         # --- PHASE 2: PROCESS FOLLOW-UPS ---
                         # Run follow-up checks (does not consume main batch limit in this implementation, 
                         # or we can pass remaining limit. Current impl has its own limit check inside)
                         await process_followups(session, telegram_bot, stats)
+
+                        if stats["sent"] == 0:
+                            fallback_text = "⚠️ No fresh deals found, retrying next cycle"
+                            fallback_url = "https://www.amazon.in/?tag=" + (config.AFFILIATE_TAGS.get("amazon.in") or "anany-21")
+                            logging.warning("No deals sent this run. Sending fallback message.")
+                            msg = await post_to_telegram(
+                                telegram_bot,
+                                config.CHANNELS["main"]["chat_id"],
+                                fallback_text,
+                                fallback_url,
+                            )
+                            fallback_wa_ok = await post_to_whatsapp(
+                                f"*{WHATSAPP_CHANNEL_NAME}*\n{fallback_text}\n🛒 Buy Now: {fallback_url}"
+                            )
+                            if fallback_wa_ok:
+                                stats["whatsapp_sent"] += 1
+                            elif WHATSAPP_ENABLED:
+                                stats["whatsapp_failed"] += 1
+                            if msg:
+                                stats["sent"] += 1
+                                logging.info("Fallback message sent successfully.")
     
             except asyncio.TimeoutError:
                 logging.error('CRITICAL: Batch processing timed out (300s). Saving progress.')

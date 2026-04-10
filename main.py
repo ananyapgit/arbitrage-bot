@@ -18,9 +18,10 @@ if __name__ == "__main__":
         sys.exit('CRITICAL: BOT_TOKEN MISSING - Check .env or Secrets')
 
     is_github_action = os.getenv("GITHUB_ACTIONS") == "true"
+    single_run = os.getenv("SINGLE_RUN", "false").lower() in {"1", "true", "yes", "y"}
     
-    if is_github_action:
-        logging.info("Running in Serverless Mode (GitHub Actions) - Single Cycle")
+    if is_github_action or single_run:
+        logging.info("Running in Single-Run Mode")
         try:
             asyncio.run(deal_engine(single_run=True))
         except Exception as e:
