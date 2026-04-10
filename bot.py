@@ -13,7 +13,7 @@ from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
 
 import aiohttp
 from cachetools import TTLCache
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Bot
 from telegram.error import TelegramError
 
 from scrapers.manual_feed import get_manual_deal
@@ -483,6 +483,8 @@ def load_seed_amazon_deals():
                     match = re.search(r"https://www\.amazon\.in/[^\s)]+", item.get("body", ""))
                     raw = match.group(0) if match else ""
                 if not raw or "amazon.in" not in raw.lower():
+                    continue
+                if "/dp/example" in raw.lower():
                     continue
                 affiliate_url = ensure_affiliate_url(raw, "amazon")
                 if affiliate_url in seen:
@@ -1185,7 +1187,16 @@ async def process_followups(session, bot: Bot, stats: dict):
             
             if not TEST_MODE:
                 chat_id = CHANNELS["main"]["chat_id"]
-                await post_to_telegram(bot, chat_id, caption, enriched.get("affiliate_url") or enriched.get("url", ""))
+                followup_url = enriched.get("affiliate_url") or enriched.get("url", "")
+                _, tg_status = await post_to_telegram(bot, chat_id, caption, followup_url)
+                wa_ok, wa_status = await post_to_whatsapp(format_whatsapp_message(enriched))
+                final_result = "success" if tg_status == "Success" and wa_ok else ("partial_success" if wa_ok else "fail")
+                update_delivery_audit_csv(
+                    deal_id=str(enriched.get("url", "followup")),
+                    telegram_status=tg_status,
+                    whatsapp_status=wa_status,
+                    final_result=final_result,
+                )
                 await post_to_discord(session, DISCORD_WEBHOOK_URL, enriched, variant)
             
             processed_count += 1
@@ -1311,6 +1322,34 @@ def update_stats_csv(deal_data: dict):
     except Exception as e:
         logging.error(f"Failed to update master_log.csv: {e}")
 
+
+def update_delivery_audit_csv(
+    deal_id: str,
+    telegram_status: str,
+    whatsapp_status: str,
+    final_result: str,
+):
+    """
+    Appends delivery outcomes for reliability analytics.
+    Columns: timestamp, deal_id, telegram_status, whatsapp_status, final_result
+    """
+    stats_dir = "dashboard/public/data"
+    audit_file = os.path.join(stats_dir, "delivery_audit.csv")
+    if not os.path.exists(stats_dir):
+        os.makedirs(stats_dir)
+    file_exists = os.path.isfile(audit_file)
+    row = [datetime.now().isoformat(), deal_id, telegram_status, whatsapp_status, final_result]
+    try:
+        with open(audit_file, mode="a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(
+                    ["timestamp", "deal_id", "telegram_status", "whatsapp_status", "final_result"]
+                )
+            writer.writerow(row)
+    except Exception as e:
+        logging.error(f"Failed to update delivery_audit.csv: {e}")
+
 def update_heartbeat():
     """Updates heartbeat.json to show system uptime."""
     heartbeat_file = "heartbeat.json"
@@ -1417,17 +1456,17 @@ def format_whatsapp_message(deal: dict) -> str:
 # ================== POSTING LOGIC ==================
 
 async def post_to_telegram(bot: Bot, chat_id: int, caption: str, affiliate_url: str):
-    """Posts to Telegram with retry logic. Returns message object."""
+    """Posts to Telegram with retry logic. Returns (message_obj, status)."""
     # Log caption for verification
     logging.info(f"Preparing to post to Telegram: {caption} | url={affiliate_url}")
 
     if TEST_MODE:
-        return None
+        return None, "Fail"
         
     # Guardrail: Block localhost redirects
     if "localhost" in caption or "localhost" in affiliate_url:
         logging.error("Blocking post: localhost redirect detected in caption")
-        return None
+        return None, "Fail"
         
     # Shadow Mode Redirect
     if config.SHADOW_MODE:
@@ -1436,19 +1475,15 @@ async def post_to_telegram(bot: Bot, chat_id: int, caption: str, affiliate_url: 
             chat_id = config.SHADOW_CHANNEL_ID
         else:
             logging.warning("Shadow Channel ID not set. Skipping post.")
-            return None
+            return None, "Fail"
 
     if not chat_id:
         logging.warning("Telegram Posting Skipped: chat_id is None")
-        return None
+        return None, "Fail"
 
     if not affiliate_url or not affiliate_url.startswith("http"):
         logging.error("Telegram Posting Skipped: invalid affiliate_url")
-        return None
-
-    keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("🛒 Buy Now", url=affiliate_url)]]
-    )
+        return None, "Fail"
     reply_markup_payload = {
         "inline_keyboard": [[{"text": "🛒 Buy Now", "url": affiliate_url}]]
     }
@@ -1470,8 +1505,15 @@ async def post_to_telegram(bot: Bot, chat_id: int, caption: str, affiliate_url: 
                     if response.status == 200 and data.get("ok"):
                         result = data.get("result", {})
                         logging.info("Telegram post succeeded with affiliate_url=%s", affiliate_url)
-                        return type("TelegramMessage", (), {"message_id": result.get("message_id", 0)})()
+                        return type("TelegramMessage", (), {"message_id": result.get("message_id", 0)})(), "Success"
                     raise TelegramError(f"Bot API error {response.status}: {data}")
+        except asyncio.TimeoutError as e:
+            if attempt == 2:
+                logging.error(f"Telegram timeout (final): {e!r}")
+                update_trust_decay("system", f"TELEGRAM_TIMEOUT_FINAL: {e}")
+                return None, "Timeout"
+            logging.warning(f"Telegram timeout (attempt {attempt+1}): {e!r}")
+            await asyncio.sleep(2)
         except Exception as e:
             err_str = str(e).lower()
             if "flood" in err_str or "spam" in err_str or "userdeactivated" in err_str:
@@ -1480,7 +1522,7 @@ async def post_to_telegram(bot: Bot, chat_id: int, caption: str, affiliate_url: 
                 # Activate 24h Safety Pause
                 activate_spam_pause(24)
                 await asyncio.sleep(60) # Short sleep before loop catches the pause
-                return None
+                return None, "Fail"
             
             if attempt == 2:
                 logging.error(f"Telegram error (final): {e!r}")
@@ -1488,20 +1530,20 @@ async def post_to_telegram(bot: Bot, chat_id: int, caption: str, affiliate_url: 
             else:
                 logging.warning(f"Telegram error (attempt {attempt+1}): {e!r}")
                 await asyncio.sleep(2)
-    return None
+    return None, "Fail"
 
 
-async def post_to_whatsapp(text_message: str) -> bool:
+async def post_to_whatsapp(text_message: str) -> tuple[bool, str]:
     """
     Sends the same deal payload to WhatsApp Cloud API.
     """
     if not WHATSAPP_ENABLED:
-        return False
+        return False, "Fail"
     if not (WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_RECIPIENT):
         logging.warning("WhatsApp posting skipped: missing WhatsApp configuration")
-        return False
+        return False, "Fail"
     if TEST_MODE:
-        return False
+        return False, "Fail"
 
     api_url = f"https://graph.facebook.com/v21.0/{WHATSAPP_PHONE_NUMBER_ID}/messages"
     headers = {
@@ -1522,12 +1564,12 @@ async def post_to_whatsapp(text_message: str) -> bool:
                 body = await response.text()
                 if response.status in (200, 201):
                     logging.info("WhatsApp post succeeded")
-                    return True
+                    return True, "Success"
                 logging.error(f"WhatsApp API error {response.status}: {body}")
-                return False
+                return False, "Fail"
     except Exception as e:
         logging.error(f"WhatsApp post failed: {e!r}")
-        return False
+        return False, "Fail"
 
 async def post_to_discord(session, webhook_url: str, deal: dict, variant: str):
     """Posts rich embed to Discord."""
@@ -1842,6 +1884,11 @@ async def deal_engine(single_run=False):
                             caption, variant = format_telegram_message(deal)
                             if variant == "A": stats["variant_a"] += 1
                             else: stats["variant_b"] += 1
+
+                            msg = None
+                            tg_status = "Fail"
+                            wa_status = "Fail"
+                            final_result = "fail"
     
                             if not TEST_MODE:
                                 # Channel Routing
@@ -1854,13 +1901,24 @@ async def deal_engine(single_run=False):
                                 final_url = deal.get("affiliate_url") or deal.get("url", "")
                                 if not final_url or not isinstance(final_url, str) or not final_url.startswith("http"):
                                     logging.error(f"Posting deal without valid URL field: {deal.get('title')}")
-                                msg = await post_to_telegram(telegram_bot, chat_id, caption, final_url)
+                                msg, tg_status = await post_to_telegram(telegram_bot, chat_id, caption, final_url)
                                 whatsapp_payload = format_whatsapp_message(deal)
-                                wa_ok = await post_to_whatsapp(whatsapp_payload)
+                                wa_ok, wa_status = await post_to_whatsapp(whatsapp_payload)
                                 if wa_ok:
                                     stats["whatsapp_sent"] += 1
                                 elif WHATSAPP_ENABLED:
                                     stats["whatsapp_failed"] += 1
+                                final_result = (
+                                    "success"
+                                    if tg_status == "Success" and wa_ok
+                                    else ("partial_success" if wa_ok else "fail")
+                                )
+                                update_delivery_audit_csv(
+                                    deal_id=str(deal_id),
+                                    telegram_status=tg_status,
+                                    whatsapp_status=wa_status,
+                                    final_result=final_result,
+                                )
                                 try:
                                     post_cat = deal.get("category", "general")
                                     if post_cat in HIGH_EPC_CATEGORIES:
@@ -1869,7 +1927,7 @@ async def deal_engine(single_run=False):
                                     logging.warning(f"Discord cross-post skipped due to error: {e}")
                             
                                 # SQLite Persistent Deduplication
-                                if msg:
+                                if msg or final_result == "partial_success":
                                      mark_deal_sent(deal_id)
                                      log_post(deal.get("url", "unknown"), deal.get("category", "general"))
                                      
@@ -1906,7 +1964,7 @@ async def deal_engine(single_run=False):
                                     logging.error(f"Waitlist alert processing failed: {e}")
                             
                             processed_count += 1
-                            if msg:
+                            if msg or final_result == "partial_success":
                                 stats["sent"] += 1
                             await asyncio.sleep(ANTI_SPAM_DELAY)
                     
@@ -1915,26 +1973,7 @@ async def deal_engine(single_run=False):
                         # or we can pass remaining limit. Current impl has its own limit check inside)
                         await process_followups(session, telegram_bot, stats)
 
-                        if stats["sent"] == 0:
-                            fallback_text = "⚠️ No fresh deals found, retrying next cycle"
-                            fallback_url = "https://www.amazon.in/?tag=" + (config.AFFILIATE_TAGS.get("amazon.in") or "anany-21")
-                            logging.warning("No deals sent this run. Sending fallback message.")
-                            msg = await post_to_telegram(
-                                telegram_bot,
-                                config.CHANNELS["main"]["chat_id"],
-                                fallback_text,
-                                fallback_url,
-                            )
-                            fallback_wa_ok = await post_to_whatsapp(
-                                f"*{WHATSAPP_CHANNEL_NAME}*\n{fallback_text}\n🛒 Buy Now: {fallback_url}"
-                            )
-                            if fallback_wa_ok:
-                                stats["whatsapp_sent"] += 1
-                            elif WHATSAPP_ENABLED:
-                                stats["whatsapp_failed"] += 1
-                            if msg:
-                                stats["sent"] += 1
-                                logging.info("Fallback message sent successfully.")
+                        # Empty-run acknowledgements intentionally disabled.
     
             except asyncio.TimeoutError:
                 logging.error('CRITICAL: Batch processing timed out (300s). Saving progress.')
