@@ -1,0 +1,93 @@
+timestamp,deal_identifier,reason,source,line_of_code
+2026-04-10T20:55:16.542483,https://www.couponami.com//7-days-of-hands-on-ai-development-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T20:55:16.628998,https://www.couponami.com/programming-other/rust-programming-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T20:55:16.631007,https://www.couponami.com//ai-for-all-r,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T20:59:52.832785,https://www.couponami.com/programming-other/rust-programming-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T20:59:52.832785,https://www.couponami.com//7-days-of-hands-on-ai-development-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T20:59:52.832785,https://www.couponami.com//ai-for-all-r,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T20:59:52.840124,https://www.amazon.in/Surrounded-Idiots-Behaviour-Effectively-Communicate/dp/1785046209/ref=zg_bsms_g_books_d_sccl_3/520-2697040-6866106,Schema Failure | missing_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T20:59:52.840124,https://www.amazon.in/dp/B0GWMB1K6D/ref=zg_bsms_g_books_d_sccl_2/520-2697040-6866106,Schema Failure | missing_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T20:59:52.840124,https://www.amazon.in/dp/B0GWMCT176/ref=zg_bsms_g_books_d_sccl_1/520-2697040-6866106,Schema Failure | missing_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:05:26.453850,https://www.couponami.com/programming-other/rust-programming-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:05:26.455853,https://www.couponami.com//7-days-of-hands-on-ai-development-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:05:26.458850,https://www.couponami.com//ai-for-all-r,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:05:26.460927,https://www.amazon.in/dp/B0GWMB1K6D/ref=zg_bsms_g_books_d_sccl_2/523-1299253-2574002,Schema Failure | missing_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:05:26.462862,https://www.amazon.in/Surrounded-Idiots-Behaviour-Effectively-Communicate/dp/1785046209/ref=zg_bsms_g_books_d_sccl_3/523-1299253-2574002,Schema Failure | missing_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:05:26.464862,https://www.amazon.in/dp/B0GWMCT176/ref=zg_bsms_g_books_d_sccl_1/523-1299253-2574002,Schema Failure | missing_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:10:16.525925,https://www.couponami.com//7-days-of-hands-on-ai-development-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:10:16.527925,https://www.couponami.com/programming-other/rust-programming-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:10:16.530132,https://www.couponami.com//ai-for-all-r,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:10:16.532143,https://www.amazon.in/Cable-Portable-Cooking-Kitchen-Pretend/dp/B08MTW2TNC/ref=zg_bsms_g_toys_d_sccl_1/520-5934015-2117018,Schema Failure | missing_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:10:16.534142,https://www.amazon.in/DearJoy-Stuffed-Elephant-Hugging-Birthday/dp/B08K4Q3DRL/ref=zg_bsms_g_toys_d_sccl_3/520-5934015-2117018,Schema Failure | missing_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:10:16.536140,https://www.amazon.in/Ball-Soft-Stuffed-Plush-Birthday/dp/B07CTJ2HXP/ref=zg_bsms_g_toys_d_sccl_2/520-5934015-2117018,Schema Failure | missing_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:14:56.048913,https://www.couponami.com/programming-other/rust-programming-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:14:56.052002,https://www.couponami.com//7-days-of-hands-on-ai-development-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:14:56.052002,https://www.couponami.com//ai-for-all-r,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:15:54.869332,https://www.couponami.com//ai-for-all-r,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:15:54.872984,https://www.couponami.com//7-days-of-hands-on-ai-development-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:15:54.873992,https://www.couponami.com/programming-other/rust-programming-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:15:54.874990,https://www.amazon.in/STP-iPhone-Max-Pro-Installation/dp/B09MJBGS4H/ref=zg_bsms_g_electronics_d_sccl_3/520-8476515-1548610,Schema Failure | missing_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:15:54.876991,https://www.amazon.in/OnePlus-Snapdragon-Segments-Complete-Personalized/dp/B0GRBBPBGQ/ref=zg_bsms_g_electronics_d_sccl_1/520-8476515-1548610,Schema Failure | missing_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:15:54.878993,https://www.amazon.in/DR-Original-Type-Cable-Adapter/dp/B0CNM4V6Q5/ref=zg_bsms_g_electronics_d_sccl_2/520-8476515-1548610,Schema Failure | missing_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:16:44.342177,https://www.couponami.com/programming-other/rust-programming-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.2800.0_x64__qbz5n2kfra8p0\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:16:44.348058,https://www.couponami.com//7-days-of-hands-on-ai-development-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.2800.0_x64__qbz5n2kfra8p0\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:16:44.348058,https://www.couponami.com//ai-for-all-r,Duplicate Failure | duplicate,scraper,LOC:File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.2800.0_x64__qbz5n2kfra8p0\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:16:44.350564,https://www.amazon.in/Apple-AirPods-Pro-2nd-Generation/dp/B0BDKD8DVD?tag=crawl0f-21,Duplicate Failure | duplicate,scraper,LOC:File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.2800.0_x64__qbz5n2kfra8p0\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:21:00.384354,https://www.couponami.com//ai-for-all-r,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:21:00.386356,https://www.couponami.com/programming-other/rust-programming-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:21:00.388354,https://www.couponami.com//7-days-of-hands-on-ai-development-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:21:00.390352,https://www.amazon.in/dp/B0GWMCT176/ref=zg_bsms_g_books_d_sccl_1/522-0614751-3180158,Schema Failure | missing_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:21:00.392358,https://www.amazon.in/dp/B0GWMB1K6D/ref=zg_bsms_g_books_d_sccl_2/522-0614751-3180158,Schema Failure | missing_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:21:00.394767,https://www.amazon.in/Surrounded-Idiots-Behaviour-Effectively-Communicate/dp/1785046209/ref=zg_bsms_g_books_d_sccl_3/522-0614751-3180158,Schema Failure | missing_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:26:46.908746,https://www.couponami.com//ai-for-all-r,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:26:46.911762,https://www.couponami.com//7-days-of-hands-on-ai-development-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:26:46.913062,https://www.couponami.com/programming-other/rust-programming-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:31:10.229995,https://www.couponami.com/programming-other/rust-programming-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:31:10.231996,https://www.couponami.com//7-days-of-hands-on-ai-development-bootcamp,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-10T21:31:10.234997,https://www.couponami.com//ai-for-all-r,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)

@@ -133,3 +133,4 @@ watchdog==6.0.0
 websocket-client==1.9.0
 yacs==0.1.8
 yarl==1.22.0
+sendgrid>=6.11.0

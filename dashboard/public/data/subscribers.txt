@@ -1,0 +1,3 @@
+# One email per line (used by bot SendGrid loot broadcasts).
+# Example (remove # to activate):
+# reader@example.com

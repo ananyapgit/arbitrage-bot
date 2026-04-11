@@ -20,6 +20,7 @@ from scrapers.manual_feed import get_manual_deal
 from scrapers.courses import get_free_courses
 from scrapers.amazon import get_amazon_product, get_diverse_amazon_deals
 from scrapers.flipkart import get_flipkart_product
+from sendgrid_notifier import SendGridNotifier
 
 import config
 
@@ -1191,7 +1192,7 @@ async def process_followups(session, bot: Bot, stats: dict):
                 _, tg_status = await post_to_telegram(bot, chat_id, caption, followup_url)
                 wa_ok, wa_status = await post_to_whatsapp(format_whatsapp_message(enriched))
                 final_result = "success" if tg_status == "Success" and wa_ok else ("partial_success" if wa_ok else "fail")
-                update_delivery_audit_csv(
+                append_delivery_audit_bundle(
                     deal_id=str(enriched.get("url", "followup")),
                     telegram_status=tg_status,
                     whatsapp_status=wa_status,
@@ -1208,147 +1209,140 @@ async def process_followups(session, bot: Bot, stats: dict):
 
 # ================== TRACKING & ANALYTICS ==================
 
-def update_stats_csv(deal_data: dict):
-    """
-    Appends successful deal data to dashboard/public/data/master_log.csv for the high-fidelity dashboard.
-    Fields: timestamp, id, title, price, original_price, discount, category, store, link, status
-    """
+MASTER_LOG_FIELDS = [
+    "timestamp",
+    "id",
+    "title",
+    "price",
+    "original_price",
+    "discount",
+    "category",
+    "platform",
+    "affiliate_link",
+]
+DELIVERY_AUDIT_FIELDS = ["timestamp", "channel", "status", "deal_id"]
+
+
+def _ensure_dashboard_dir() -> str:
     stats_dir = "dashboard/public/data"
+    os.makedirs(stats_dir, exist_ok=True)
+    return stats_dir
+
+
+def append_delivery_audit_row(channel: str, status: str, deal_id: str) -> None:
+    stats_dir = _ensure_dashboard_dir()
+    audit_file = os.path.join(stats_dir, "delivery_audit.csv")
+    file_exists = os.path.isfile(audit_file)
+    if file_exists:
+        try:
+            with open(audit_file, encoding="utf-8", errors="ignore") as rf:
+                hdr = rf.readline()
+            if hdr and ("telegram_status" in hdr) and ("channel" not in hdr):
+                legacy = audit_file.replace(".csv", f"_legacy_{int(time.time())}.csv")
+                os.replace(audit_file, legacy)
+                logging.info("delivery_audit.csv legacy schema — rotated to %s", legacy)
+                file_exists = False
+        except OSError:
+            pass
+    row = [datetime.now().isoformat(), channel, status, deal_id]
+    try:
+        with open(audit_file, mode="a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(DELIVERY_AUDIT_FIELDS)
+            writer.writerow(row)
+    except OSError as e:
+        logging.error("Failed to append delivery_audit.csv: %s", e)
+
+
+def append_delivery_audit_bundle(
+    deal_id: str,
+    telegram_status: str,
+    whatsapp_status: str,
+    final_result: str,
+) -> None:
+    """One row per channel attempt (telegram, whatsapp, delivery aggregate)."""
+    append_delivery_audit_row("telegram", telegram_status, deal_id)
+    append_delivery_audit_row("whatsapp", whatsapp_status, deal_id)
+    append_delivery_audit_row("delivery", final_result, deal_id)
+
+
+def sync_to_dashboard(deal_data: dict) -> None:
+    """
+    Append a deal row to dashboard/public/data/master_log.csv.
+    Schema: timestamp, id, title, price, original_price, discount, category, platform, affiliate_link
+    """
+    stats_dir = _ensure_dashboard_dir()
     stats_file = os.path.join(stats_dir, "master_log.csv")
-    
-    if not os.path.exists(stats_dir):
-        os.makedirs(stats_dir)
-        
     file_exists = os.path.isfile(stats_file)
-    
-    # Extract metrics
+
     timestamp = datetime.now().isoformat()
     deal_id = (
         deal_data.get("id")
         or deal_data.get("deal_id")
-        or (deal_data.get("url", "unknown")[-12:])  # Last 12 chars of URL as ID
+        or (str(deal_data.get("url", "unknown"))[-24:])
     )
-    title = deal_data.get("title", "N/A")
-    price = deal_data.get("new_price", "N/A")
-    original_price = deal_data.get("old_price", "N/A")
+    title = str(deal_data.get("title", "N/A")).strip()
+    price = deal_data.get("new_price", deal_data.get("price", "N/A"))
+    original_price = deal_data.get("old_price", deal_data.get("original_price", "N/A"))
     category = deal_data.get("category", "general")
-    source_url = deal_data.get("url", "")
-    affiliate_url = deal_data.get("affiliate_url") or deal_data.get("url", "")
-    platform = deal_data.get("marketplace") or deal_data.get("platform") or "Unknown"
-    status = (
-        deal_data.get("status")
-        or deal_data.get("ScraperStatus")
-        or deal_data.get("scraper_status")
-        or "200 OK"
-    )
-    
-    # TITLE FORMAT: Ensure 'Brand + Model' format, reject category-style titles
-    title_lower = title.lower()
-    category_title_keywords = ["sale", "off", "deal", "offer", "discount", "electronics", "fashion", "accessories", "best", "top", "popular"]
-    
-    # Reject if title contains category keywords (not individual product)
-    if any(keyword in title_lower for keyword in category_title_keywords):
-        return  # Skip this deal, don't record to dashboard
-    
-    # Format title to 'Brand + Model' if possible
-    if platform.lower() == "amazon":
-        # Amazon: Try to extract Brand + Model from title
-        words = title.split()
-        if len(words) >= 2:
-            # First word is likely brand, second is model
-            title = f"{words[0]} {' '.join(words[1:3]) if len(words) > 2 else words[1]}"
-    elif platform.lower() == "flipkart":
-        # Flipkart: Similar logic
-        words = title.split()
-        if len(words) >= 2:
-            title = f"{words[0]} {' '.join(words[1:3]) if len(words) > 2 else words[1]}"
-    
-    # Ensure affiliate_url uses direct ?tag=anany-21 format
-    if "amazon.in" in affiliate_url:
-        if "tag=" not in affiliate_url:
-            sep = "&" if "?" in affiliate_url else "?"
-            affiliate_url = f"{affiliate_url}{sep}tag=anany-21"
+    platform = str(deal_data.get("marketplace") or deal_data.get("platform") or deal_data.get("source") or "Unknown")
+    affiliate_link = str(deal_data.get("affiliate_url") or deal_data.get("url") or "")
+
+    if "amazon.in" in affiliate_link:
+        if "tag=" not in affiliate_link:
+            sep = "&" if "?" in affiliate_link else "?"
+            affiliate_link = f"{affiliate_link}{sep}tag=anany-21"
         else:
-            affiliate_url = re.sub(r"tag=[^&]+", "tag=anany-21", affiliate_url)
-    elif "flipkart.com" in affiliate_url:
-        if "affid=" not in affiliate_url:
-            sep = "&" if "?" in affiliate_url else "?"
-            affiliate_url = f"{affiliate_url}{sep}affid=anany"
+            affiliate_link = re.sub(r"tag=[^&]+", "tag=anany-21", affiliate_link)
+    elif "flipkart.com" in affiliate_link:
+        if "affid=" not in affiliate_link:
+            sep = "&" if "?" in affiliate_link else "?"
+            affiliate_link = f"{affiliate_link}{sep}affid=anany"
         else:
-            affiliate_url = re.sub(r"affid=[^&]+", "affid=anany", affiliate_url)
-    
-    # Calculate discount percentage
-    discount_percentage = 0
+            affiliate_link = re.sub(r"affid=[^&]+", "affid=anany", affiliate_link)
+
+    discount_pct = 0.0
     try:
-        op = float(str(original_price).replace(",", "").replace("₹", ""))
-        np = float(str(price).replace(",", "").replace("₹", ""))
+        op = float(str(original_price).replace(",", "").replace("₹", "").strip() or 0)
+        np = float(str(price).replace(",", "").replace("₹", "").strip() or 0)
         if op > np and op > 0:
-            discount_percentage = round(((op - np) / op) * 100, 2)
-    except:
+            discount_pct = round(((op - np) / op) * 100, 2)
+    except (TypeError, ValueError):
         pass
-        
+    discount_str = f"{discount_pct:.2f}" if discount_pct else ""
+
     row = [
         timestamp,
         deal_id,
         title,
         price,
         original_price,
-        discount_percentage,
+        discount_str,
         category,
         platform,
-        affiliate_url,
-        status,
+        affiliate_link,
     ]
-    
+
     try:
-        with open(stats_file, mode='a', newline='', encoding='utf-8') as f:
+        if file_exists:
+            with open(stats_file, "r", encoding="utf-8", errors="ignore") as rf:
+                first = rf.readline().strip()
+            if first:
+                parts = [p.strip() for p in first.split(",")]
+                if parts != MASTER_LOG_FIELDS:
+                    legacy = stats_file.replace(".csv", f"_legacy_{int(time.time())}.csv")
+                    os.replace(stats_file, legacy)
+                    logging.info("master_log.csv header mismatch — rotated to %s", legacy)
+                    file_exists = False
+
+        with open(stats_file, mode="a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             if not file_exists:
-                writer.writerow(
-                    [
-                        "timestamp",
-                        "id",
-                        "title",
-                        "price",
-                        "original_price",
-                        "discount",
-                        "category",
-                        "store",
-                        "link",
-                        "status",
-                    ]
-                )
+                writer.writerow(MASTER_LOG_FIELDS)
             writer.writerow(row)
-    except Exception as e:
-        logging.error(f"Failed to update master_log.csv: {e}")
-
-
-def update_delivery_audit_csv(
-    deal_id: str,
-    telegram_status: str,
-    whatsapp_status: str,
-    final_result: str,
-):
-    """
-    Appends delivery outcomes for reliability analytics.
-    Columns: timestamp, deal_id, telegram_status, whatsapp_status, final_result
-    """
-    stats_dir = "dashboard/public/data"
-    audit_file = os.path.join(stats_dir, "delivery_audit.csv")
-    if not os.path.exists(stats_dir):
-        os.makedirs(stats_dir)
-    file_exists = os.path.isfile(audit_file)
-    row = [datetime.now().isoformat(), deal_id, telegram_status, whatsapp_status, final_result]
-    try:
-        with open(audit_file, mode="a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            if not file_exists:
-                writer.writerow(
-                    ["timestamp", "deal_id", "telegram_status", "whatsapp_status", "final_result"]
-                )
-            writer.writerow(row)
-    except Exception as e:
-        logging.error(f"Failed to update delivery_audit.csv: {e}")
+    except OSError as e:
+        logging.error("Failed to sync master_log.csv: %s", e)
 
 def update_heartbeat():
     """Updates heartbeat.json to show system uptime."""
@@ -1698,7 +1692,8 @@ async def deal_engine(single_run=False):
                 "follow_up_alerts_sent": 0, "stock_change_detected": 0,
                 "rejected_missing_title": 0, "rejected_missing_price": 0,
                 "rejected_invalid_affiliate": 0, "rejected_duplicate": 0,
-                "rejected_blocked": 0, "whatsapp_sent": 0, "whatsapp_failed": 0
+                "rejected_blocked": 0, "whatsapp_sent": 0, "whatsapp_failed": 0,
+                "loot_emails": 0,
             }
 
             try:
@@ -1706,8 +1701,8 @@ async def deal_engine(single_run=False):
                 async with asyncio.timeout(300):
                     async with aiohttp.ClientSession() as session:
                         processed_count = 0
-                    
-                # --- PHASE 1: PROCESS NEW DEALS ---
+
+                        # --- PHASE 1: PROCESS NEW DEALS ---
                         # Diversity Gatekeeper: Limit deals from a single source to 3 per run
                         source_gate_counts = {}
                         deals_to_process = []
@@ -1880,7 +1875,14 @@ async def deal_engine(single_run=False):
                                 logging.info(f"Skipping Low Discount ({discount_percentage:.2f}%): {deal['title']}")
                                 log_rejection(deal.get("url", "unknown"), {"stage": "Revenue", "detail": "low_discount"})
                                 continue
-                        
+
+                            if discount_percentage > 50 and not TEST_MODE and not DRY_RUN:
+                                try:
+                                    loot_n = SendGridNotifier().broadcast_loot_deal(deal, discount_percentage)
+                                    stats["loot_emails"] = stats.get("loot_emails", 0) + int(loot_n or 0)
+                                except Exception as sg_err:
+                                    logging.warning("Loot email broadcast skipped: %s", sg_err)
+
                             caption, variant = format_telegram_message(deal)
                             if variant == "A": stats["variant_a"] += 1
                             else: stats["variant_b"] += 1
@@ -1913,7 +1915,7 @@ async def deal_engine(single_run=False):
                                     if tg_status == "Success" and wa_ok
                                     else ("partial_success" if wa_ok else "fail")
                                 )
-                                update_delivery_audit_csv(
+                                append_delivery_audit_bundle(
                                     deal_id=str(deal_id),
                                     telegram_status=tg_status,
                                     whatsapp_status=wa_status,
@@ -1933,8 +1935,7 @@ async def deal_engine(single_run=False):
                                      
                                      # STRICT VALIDATION: Only process if deal meets criteria
                                      if validate_deal(deal):
-                                         # Update master_log.csv for dashboard
-                                         update_stats_csv(deal)
+                                         sync_to_dashboard(deal)
                                      else:
                                          logging.warning(f"Deal failed validation: {deal.get('title', 'Unknown')}")
                             
@@ -1979,7 +1980,8 @@ async def deal_engine(single_run=False):
                 logging.error('CRITICAL: Batch processing timed out (300s). Saving progress.')
             # 8. Logging & Cleanup
             if not TEST_MODE:
-                save_json(CACHE_FILE, list(processed_cache))
+                cache_payload = list(processed_cache.keys()) if isinstance(processed_cache, dict) else list(processed_cache)
+                save_json(CACHE_FILE, cache_payload)
                 save_json(SALE_FOLLOWUP_CACHE_FILE, followup_cache)
                 update_analytics(stats)
                 

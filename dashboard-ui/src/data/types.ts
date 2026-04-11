@@ -11,19 +11,20 @@ export type ArbitrageRow = {
   status: string
 }
 
+/** Matches bot.py delivery_audit.csv (timestamp, channel, status, deal_id). */
+export type DeliveryAuditEntry = {
+  timestamp: string
+  deal_id: string
+  channel: string
+  status: string
+}
+
 export type ArbitrageDataState = {
   rows: ArbitrageRow[]
-  deliveryAudit: Array<{
-    timestamp: string
-    deal_id: string
-    telegram_status: string
-    whatsapp_status: string
-    final_result: string
-  }>
+  deliveryAudit: DeliveryAuditEntry[]
   lastSyncAt: number | null
   loading: boolean
   error: string | null
   alive: boolean
   liveFeed: Array<{ ts: number; level: 'INFO' | 'WARN' | 'ERROR'; msg: string; data?: unknown }>
 }
-

@@ -577,6 +577,384 @@
         "follow_up_alerts_sent": 0,
         "stock_change_detected": 0
       }
+    },
+    {
+      "timestamp": "2026-04-10T12:22:25.578416",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 3,
+        "throttled": 0,
+        "variant_a": 3,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 0,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 0,
+        "rejected_blocked": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T12:23:18.887301",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 3,
+        "throttled": 0,
+        "variant_a": 3,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 0,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 0,
+        "rejected_blocked": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T12:27:59.717048",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 3,
+        "throttled": 0,
+        "variant_a": 3,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 0,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 0,
+        "rejected_blocked": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T12:33:00.652635",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 3,
+        "throttled": 0,
+        "variant_a": 3,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 0,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 0,
+        "rejected_blocked": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T12:34:37.311147",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 6,
+        "throttled": 0,
+        "variant_a": 6,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 0,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 0,
+        "rejected_blocked": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T12:38:52.700272",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 3,
+        "throttled": 0,
+        "variant_a": 3,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 0,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 0,
+        "rejected_blocked": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T20:50:43.581439",
+      "stats": {
+        "sent": 3,
+        "skipped_cache": 0,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 3,
+        "throttled": 0,
+        "variant_a": 3,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 0,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 0,
+        "rejected_blocked": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T20:55:17.988304",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 3,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 0,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 0,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 3,
+        "rejected_blocked": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T20:59:53.941738",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 3,
+        "low_disc": 0,
+        "invalid": 3,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 3,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 3,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 3,
+        "rejected_blocked": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T21:05:27.515883",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 3,
+        "low_disc": 0,
+        "invalid": 3,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 3,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 3,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 3,
+        "rejected_blocked": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T21:10:17.409868",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 3,
+        "low_disc": 0,
+        "invalid": 3,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 3,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 3,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 3,
+        "rejected_blocked": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T21:15:25.767872",
+      "stats": {
+        "sent": 3,
+        "skipped_cache": 3,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 3,
+        "throttled": 0,
+        "variant_a": 3,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 0,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 3,
+        "rejected_blocked": 0,
+        "whatsapp_sent": 0,
+        "whatsapp_failed": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T21:15:55.756446",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 3,
+        "low_disc": 0,
+        "invalid": 3,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 3,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 3,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 3,
+        "rejected_blocked": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T21:16:44.364445",
+      "stats": {
+        "sent": 0,
+        "skipped_cache": 4,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 0,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 0,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 4,
+        "rejected_blocked": 0,
+        "whatsapp_sent": 0,
+        "whatsapp_failed": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T21:21:01.210992",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 3,
+        "low_disc": 0,
+        "invalid": 3,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 3,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 3,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 3,
+        "rejected_blocked": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T21:26:47.871686",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 3,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 0,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 0,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 3,
+        "rejected_blocked": 0
+      }
+    },
+    {
+      "timestamp": "2026-04-10T21:31:11.118235",
+      "stats": {
+        "sent": 1,
+        "skipped_cache": 3,
+        "low_disc": 0,
+        "invalid": 0,
+        "out_of_stock": 0,
+        "enrich_fail": 0,
+        "tagged": 0,
+        "throttled": 0,
+        "variant_a": 0,
+        "variant_b": 0,
+        "follow_up_alerts_sent": 0,
+        "stock_change_detected": 0,
+        "rejected_missing_title": 0,
+        "rejected_missing_price": 0,
+        "rejected_invalid_affiliate": 0,
+        "rejected_duplicate": 3,
+        "rejected_blocked": 0
+      }
     }
   ],
   "daily_stats": {
@@ -587,6 +965,11 @@
     },
     "2026-01-27": {
       "sent": 0,
+      "clicks": 0,
+      "revenue": 0.0
+    },
+    "2026-04-10": {
+      "sent": 14,
       "clicks": 0,
       "revenue": 0.0
     }

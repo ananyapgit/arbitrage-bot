@@ -28,5 +28,167 @@
     "user_id": "system",
     "event_type": "TELEGRAM_ERROR_FINAL: Chat not found",
     "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:22:05.899296",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:22:13.369347",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:22:19.619899",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:22:25.544215",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:23:00.282548",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:23:06.655402",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:23:13.052699",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:23:18.884194",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:27:41.290775",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:27:47.605618",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:27:54.035351",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:27:59.713941",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:32:42.272845",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:32:48.620213",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:32:54.871492",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:33:00.652635",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:33:49.177161",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: Cannot connect to host api.telegram.org:443 ssl:default [The specified network name is no longer available]",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:33:55.911687",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: Cannot connect to host api.telegram.org:443 ssl:default [The specified network name is no longer available]",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:34:02.351575",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: Cannot connect to host api.telegram.org:443 ssl:default [The specified network name is no longer available]",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:34:11.890092",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: Cannot connect to host api.telegram.org:443 ssl:default [The specified network name is no longer available]",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:34:22.090437",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: Cannot connect to host api.telegram.org:443 ssl:default [The specified network name is no longer available]",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:34:30.945768",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: Cannot connect to host api.telegram.org:443 ssl:default [The specified network name is no longer available]",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:34:37.288061",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: Cannot connect to host api.telegram.org:443 ssl:default [The specified network name is no longer available]",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:38:33.096461",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:38:40.320748",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:38:47.004563",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
+  },
+  {
+    "timestamp": "2026-04-10T12:38:52.695600",
+    "user_id": "system",
+    "event_type": "TELEGRAM_ERROR_FINAL: httpx.ConnectError: ",
+    "decay_score_increment": 1
   }
 ]

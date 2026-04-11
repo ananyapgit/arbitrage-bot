@@ -4,7 +4,7 @@ import sys
 import os
 
 # Set dummy redirect URL to pass guardrail (simulating prod env)
-os.environ["REDIRECT_PUBLIC_URL"] = "https://mock-bridge.com/r"
+# Redirect bridge env removed from product path.
 
 import bot
 from datetime import datetime

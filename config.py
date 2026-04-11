@@ -139,9 +139,6 @@ SCRAPE_INTERVAL_MAX = 75
 # Revenue Protection (Sub-IDs)
 EPC_THROTTLE_THRESHOLD = 0.10 # Pause category if EPC < $0.10
 
-REDIRECT_PUBLIC_URL = os.getenv("REDIRECT_PUBLIC_URL", "")
-REDIRECT_BRIDGE_URL = REDIRECT_PUBLIC_URL
-
 SUB_IDS = {
     "electronics": "elec_001",
     "fashion": "fash_001",
