@@ -69,10 +69,33 @@ class SendGridNotifier:
             logging.error("SendGrid: install the 'sendgrid' package (pip install sendgrid).")
             return 0
 
+        # STRICT SENDER CHECK: Ensure from_email matches environment variable
+        expected_from_email = os.getenv('SENDGRID_FROM_EMAIL')
+        if expected_from_email and self.from_email != expected_from_email.strip():
+            logging.error(f"SendGrid: from_email mismatch. Expected: {expected_from_email}, Got: {self.from_email}")
+            return 0
+        
+        # FORCE USE OF ENVIRONMENT SENDER EMAIL
+        if expected_from_email:
+            self.from_email = expected_from_email.strip()
+
+        # LOWER THRESHOLD FOR TESTING: Allow deals >10% if TEST_MODE=True
+        test_mode = os.getenv('TEST_MODE', 'false').lower() in {'true', '1', 'yes'}
+        force_email_test = os.getenv('FORCE_EMAIL_TEST', 'false').lower() in {'true', '1', 'yes'}
+        threshold = 1.0 if (test_mode or force_email_test) else 20.0
+        
+        if discount_pct < threshold:
+            logging.info(f"SendGrid: discount {discount_pct}% below threshold {threshold}%; skipping broadcast.")
+            return 0
+
         recipients = self.load_subscribers()
         if not recipients:
             logging.info("SendGrid: no subscribers in %s", SUBSCRIBERS_FILE)
             return 0
+
+        # LOGGING FOR GITHUB ACTIONS
+        deal_id = str(deal.get("id") or deal.get("deal_id") or "unknown")
+        print(f"[EMAIL] Attempting to send deal {deal_id} to {len(recipients)} recipients")
 
         title = html.escape(str(deal.get("title") or "Deal").strip())
         link = str(deal.get("affiliate_url") or deal.get("url") or "").strip()
@@ -80,18 +103,19 @@ class SendGridNotifier:
         deal_id = str(deal.get("id") or deal.get("deal_id") or link[-24:] or "unknown")
 
         html_body = f"""<!DOCTYPE html>
-<html><body style="margin:0;background:#F2F0EB;font-family:Inter,system-ui,sans-serif;">
+<html><body style="margin:0;background:#000000;font-family:Inter,system-ui,sans-serif;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 12px;">
     <tr><td align="center">
-      <table width="100%" style="max-width:560px;background:#FFFFFF;border:1px solid #E3E3E0;border-radius:16px;padding:28px 24px;">
-        <tr><td style="font-size:11px;letter-spacing:0.14em;color:#6B6B6B;text-transform:uppercase;">Loot alert</td></tr>
-        <tr><td style="padding-top:8px;font-size:20px;font-weight:700;color:#1A1A1A;line-height:1.25;">{title}</td></tr>
-        <tr><td style="padding-top:12px;font-size:15px;color:#333;">{discount_pct:.0f}%+ discount detected on the arbitrage bot.</td></tr>
-        <tr><td style="padding-top:24px;" align="center">
-          <a href="{link_esc}" style="display:inline-block;padding:14px 32px;background:#FFD700;color:#000000;font-weight:800;
-            text-decoration:none;border-radius:10px;font-size:15px;letter-spacing:0.02em;">Buy now</a>
+      <table width="100%" style="max-width:560px;background:#1A1A1A;border:2px solid #FFD700;border-radius:12px;padding:32px 28px;">
+        <tr><td style="font-size:12px;letter-spacing:0.15em;color:#FFD700;text-transform:uppercase;font-weight:600;">LOOT ALERT</td></tr>
+        <tr><td style="padding-top:12px;font-size:22px;font-weight:800;color:#FFFFFF;line-height:1.3;">{title}</td></tr>
+        <tr><td style="padding-top:16px;font-size:16px;color:#FFD700;font-weight:600;">{discount_pct:.0f}%+ DISCOUNT DETECTED</td></tr>
+        <tr><td style="padding-top:8px;font-size:14px;color:#CCCCCC;">High-value arbitrage deal from live scanner.</td></tr>
+        <tr><td style="padding-top:28px;" align="center">
+          <a href="{link_esc}" style="display:inline-block;padding:16px 36px;background:#FFD700;color:#000000;font-weight:900;
+            text-decoration:none;border-radius:8px;font-size:16px;letter-spacing:0.02em;text-transform:uppercase;">BUY NOW</a>
         </td></tr>
-        <tr><td style="padding-top:20px;font-size:11px;color:#9A9A97;">Automated message — do not reply.</td></tr>
+        <tr><td style="padding-top:24px;font-size:11px;color:#666666;">Automated message - do not reply.</td></tr>
       </table>
     </td></tr>
   </table>

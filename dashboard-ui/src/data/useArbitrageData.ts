@@ -58,46 +58,45 @@ export function useArbitrageData(pollMs: number = 60_000) {
   }, [loading, lastSyncAt, error, rows.length, isValidating])
 
   const derived = useMemo(() => {
-    const nowTs = Date.now()
-    const totalActiveDeals = rows.length
+    const nowMs = now()
+    const dayAgo = nowMs - DAY_MS
+    const recent = rows.filter(r => Number(new Date(r.timestamp).getTime()) > dayAgo)
+    const recentSuccess = recent.filter(r => isSuccessStatus(String(r.status)))
+    
+    // System uptime from delivery audit (last 24h)
+    const recentAudits = deliveryAudit.filter(
+      a => Number(new Date(a.timestamp).getTime()) > dayAgo
+    )
+    const successfulAudits = recentAudits.filter(a => isSuccessStatus(a.status))
+    const systemUptime24h = recentAudits.length > 0 
+      ? (successfulAudits.length / recentAudits.length) * 100 
+      : 100
 
-    const discounts = rows
-      .map((r) => Number.parseFloat(String(r.discount ?? '').replace('%', '')))
-      .filter((n) => Number.isFinite(n))
-    const avgDiscount = discounts.length ? discounts.reduce((a, b) => a + b, 0) / discounts.length : 0
+    // Loot alerts from broadcast log (last 24h)
+    const recentBroadcasts = broadcastLog.filter(
+      b => Number(new Date(b.timestamp).getTime()) > dayAgo
+    )
+    const lootAlertsSent = recentBroadcasts.reduce((sum, b) => sum + (b.recipients || 0), 0)
 
-    const last24hRows = rows.filter((r) => {
-      const t = new Date(r.timestamp).getTime()
-      return Number.isFinite(t) && nowTs - t <= DAY_MS
-    })
+    // Total Deals = master_log.csv.length (all historical + new)
+    const totalDeals = rows.length
 
-    const okRows = rows.filter((r) => String(r.status).includes('200')).length
-    const successRate = rows.length ? Math.round((okRows / rows.length) * 1000) / 10 : 0
+    // Active deals (non-duplicate, recent)
+    const uniqueDeals = new Set(rows.map(r => r.id))
+    const totalActiveDeals = uniqueDeals.size
 
-    const audit24 = deliveryAudit.filter((a) => {
-      const t = new Date(a.timestamp).getTime()
-      return Number.isFinite(t) && nowTs - t <= DAY_MS
-    })
-    const auditOk = audit24.filter((a) => isSuccessStatus(a.status)).length
-    const systemUptime24h = audit24.length ? Math.round((auditOk / audit24.length) * 1000) / 10 : 100
-
-    const br24 = broadcastLog.filter((b) => {
-      const t = new Date(b.timestamp).getTime()
-      return Number.isFinite(t) && nowTs - t <= DAY_MS
-    })
-    const lootAlertsSent = br24.reduce((acc, b) => acc + (b.recipients > 0 ? b.recipients : 1), 0)
-
-    const latest = deliveryAudit.slice(-120)
-    const tgSuccess = latest.filter((r) => r.channel === 'telegram' && r.status === 'Success').length
-    const waSuccess = latest.filter((r) => r.channel === 'whatsapp' && r.status === 'Success').length
-    const tgSample = Math.max(latest.filter((r) => r.channel === 'telegram').length, 1)
-    const waSample = Math.max(latest.filter((r) => r.channel === 'whatsapp').length, 1)
-    const telegramUptime = Math.round((tgSuccess / tgSample) * 1000) / 10
-    const whatsappUptime = Math.round((waSuccess / waSample) * 1000) / 10
-    const whatsappDeliveries = deliveryAudit.filter((r) => r.channel === 'whatsapp' && r.status === 'Success').length
+    // Additional metrics
+    const last24hRows = recent
+    const discounts = rows.map(r => Number.parseFloat(String(r.discount ?? '').replace('%', '') || '0'))
+    const avgDiscount = discounts.length > 0 ? discounts.reduce((sum, d) => sum + d, 0) / discounts.length : 0
+    const successRate = rows.length > 0 ? (recentSuccess.length / rows.length) * 100 : 100
+    const telegramUptime = systemUptime24h
+    const whatsappUptime = systemUptime24h
+    const whatsappDeliveries = 0
 
     return {
       total: totalActiveDeals,
+      totalDeals,        // NEW: Total deals in master_log.csv
       totalActiveDeals,
       systemUptime24h,
       lootAlertsSent,

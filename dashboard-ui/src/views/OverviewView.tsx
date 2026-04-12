@@ -66,9 +66,9 @@ export function OverviewView() {
 
       <div className="col-span-12 md:col-span-4">
         <BentoCard>
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-[#6B6B6B]">Total active deals</div>
-          <div className="mt-1 text-2xl font-semibold tabular-nums">{derived.totalActiveDeals}</div>
-          <div className="mt-1 text-[11px] text-[#9A9A97]">master_log.csv row count</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-[#6B6B6B]">Total Deals</div>
+          <div className="mt-1 text-2xl font-semibold tabular-nums">{derived.totalDeals || derived.totalActiveDeals}</div>
+          <div className="mt-1 text-[11px] text-[#9A9A97]">master_log.csv row count (historic + new)</div>
         </BentoCard>
       </div>
       <div className="col-span-12 md:col-span-4">

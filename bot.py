@@ -59,6 +59,8 @@ MAX_DEALS_PER_BATCH = 15 # Revenue Priority: 15
 THROTTLE_DEALS_PER_RUN = 0 # Revenue Priority: 0
 MAX_DEALS_PER_PERSONA_PER_BATCH = 15 # Revenue Priority: 15
 MIN_DISCOUNT_THRESHOLD = 0 # FORCE DEAL DELIVERY: 0
+LOOT_THRESHOLD = 1.0 # EMAIL TEST TRIGGER: 1% (was 50%)
+FORCE_EMAIL_TEST = True # FORCE EMAIL TESTING: True
 TEST_MODE = config.TEST_MODE
 DRY_RUN = config.DRY_RUN
 SINGLE_RUN = config.SINGLE_RUN
@@ -197,7 +199,7 @@ def validate_deal(deal_data: dict) -> bool:
     
     # Convert price to float for validation
     try:
-        price_str = str(price).replace("₹", "").replace("$", "").replace(",", "").strip()
+        price_str = str(price).replace("?", "").replace("$", "").replace(",", "").strip()
         price_val = float(price_str)
         
         # Reject if price is a range indicator or invalid
@@ -225,6 +227,35 @@ def validate_deal(deal_data: dict) -> bool:
     
     # All validations passed
     return True
+
+def log_delivery_audit(attempt_type: str, success: bool, deal_id: str, error_msg: str = ""):
+    """
+    Logs delivery attempts to delivery_audit.csv for dashboard tracking.
+    Tracks Telegram uptime and success rates.
+    """
+    import csv
+    from datetime import datetime
+    
+    audit_file = "dashboard/public/data/delivery_audit.csv"
+    os.makedirs(os.path.dirname(audit_file), exist_ok=True)
+    
+    file_exists = os.path.isfile(audit_file)
+    
+    try:
+        with open(audit_file, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(["timestamp", "attempt_type", "success", "deal_id", "error_message"])
+            
+            writer.writerow([
+                datetime.now().isoformat(),
+                attempt_type,
+                "success" if success else "failed",
+                deal_id,
+                error_msg
+            ])
+    except Exception as e:
+        logging.error(f"Failed to write delivery audit: {e}")
 
 def init_db():
     conn = sqlite3.connect("sent_deals.db")
@@ -1269,8 +1300,9 @@ def append_delivery_audit_bundle(
 
 def sync_to_dashboard(deal_data: dict) -> None:
     """
-    Append a deal row to dashboard/public/data/master_log.csv.
+    Append a deal row to dashboard/public/data/master_log.csv with deduplication.
     Schema: timestamp, id, title, price, original_price, discount, category, platform, affiliate_link
+    NEVER OVERWRITES - Always APPENDS and DEDUPLICATES.
     """
     stats_dir = _ensure_dashboard_dir()
     stats_file = os.path.join(stats_dir, "master_log.csv")
@@ -1282,6 +1314,20 @@ def sync_to_dashboard(deal_data: dict) -> None:
         or deal_data.get("deal_id")
         or (str(deal_data.get("url", "unknown"))[-24:])
     )
+    
+    # DEDUPLICATION CHECK: Skip if deal ID already exists in CSV
+    if file_exists:
+        try:
+            with open(stats_file, "r", encoding="utf-8", errors="ignore") as rf:
+                reader = csv.DictReader(rf)
+                for existing_row in reader:
+                    existing_id = existing_row.get('id') or existing_row.get('deal_id')
+                    if existing_id == deal_id:
+                        logging.info(f"Skipping duplicate deal {deal_id} - already in master_log.csv")
+                        return
+        except Exception as e:
+            logging.warning(f"Error checking for duplicates in master_log.csv: {e}")
+    
     title = str(deal_data.get("title", "N/A")).strip()
     price = deal_data.get("new_price", deal_data.get("price", "N/A"))
     original_price = deal_data.get("old_price", deal_data.get("original_price", "N/A"))
@@ -1337,10 +1383,13 @@ def sync_to_dashboard(deal_data: dict) -> None:
                     file_exists = False
 
         with open(stats_file, mode="a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            if not file_exists:
-                writer.writerow(MASTER_LOG_FIELDS)
-            writer.writerow(row)
+                writer = csv.writer(f)
+                if not file_exists:
+                    writer.writerow(MASTER_LOG_FIELDS)
+                writer.writerow(row)
+                f.flush()  # Immediate flush to disk
+                os.fsync(f.fileno())  # Force write to disk
+                logging.info(f"Appended deal {deal_id} to master_log.csv")
     except OSError as e:
         logging.error("Failed to sync master_log.csv: %s", e)
 
@@ -1596,14 +1645,17 @@ async def post_to_discord(session, webhook_url: str, deal: dict, variant: str):
             logging.error(f"Discord post failed: {e}")
         await asyncio.sleep(2)
 
-# ================== MAIN ENGINE ==================
 
 async def deal_engine(single_run=False):
     global processed_cache
     
-    logging.info(f"🚀 Crawl.io Bot Started (Phase 6+) | TEST_MODE={TEST_MODE} | Single Run: {single_run}")
+    logging.info(f"?? Crawl.io Bot Started (Phase 6+) | TEST_MODE={TEST_MODE} | Single Run: {single_run}")
     logging.info("DATA SOURCE: LIVE WEB SCRAPERS ONLY (NO STATIC FEEDS)")
     logging.info("INFO - Continuous scrape loop active")
+
+    # Initialize Cache (SQLite is primary, processed_cache is backup)
+    processed_cache = {}  # Initialize for compatibility at function top
+    logging.info(f"Initialized processed_cache for deduplication logic.")
 
     # REVENUE PRIORITY: WIPE CACHE
     if os.path.exists(CACHE_FILE):
@@ -1614,8 +1666,8 @@ async def deal_engine(single_run=False):
     telegram_bot = Bot(token=BOT_TOKEN)
     
     # Initialize Cache (SQLite is primary, processed_cache is backup)
-    processed_cache = {}  # Initialize for compatibility
-    logging.info(f"Initialized processed_cache for deduplication logic.")
+    # processed_cache = {}  # Initialize for compatibility
+    # logging.info(f"Initialized processed_cache for deduplication logic.")
 
     while True:
         # T-047: Heartbeat
@@ -1665,7 +1717,21 @@ async def deal_engine(single_run=False):
                     except Exception as e:
                         logging.warning(f"Amazon seed loading failed: {e}")
                 
-                scraped = await asyncio.gather(*tasks, return_exceptions=True) if tasks else []
+                # PARALLEL SCRAPE RECOVERY: Handle timeouts properly
+                if tasks:
+                    try:
+                        # Set individual timeouts for each scraper
+                        timeout_tasks = [asyncio.wait_for(task, timeout=30.0) for task in tasks]
+                        scraped = await asyncio.gather(*timeout_tasks, return_exceptions=True)
+                    except asyncio.TimeoutError:
+                        logging.warning("Parallel scraping timeout - some sources may be blocked")
+                        scraped = []
+                    except Exception as e:
+                        logging.error(f"Parallel scraping failed: {e}")
+                        scraped = []
+                else:
+                    scraped = []
+                
                 total = 0
                 for res in scraped:
                     if isinstance(res, list):
@@ -1674,6 +1740,9 @@ async def deal_engine(single_run=False):
                     elif isinstance(res, dict) and res.get("url"):
                         deals.append(res)
                         total += 1
+                    elif isinstance(res, Exception) or isinstance(res, asyncio.TimeoutError):
+                        logging.warning(f"Scraping task failed: {res}")
+                
                 for deal in deals:
                     src = (deal.get("source") or deal.get("marketplace") or "unknown").lower()
                     source_counts[src] = source_counts.get(src, 0) + 1
@@ -1684,7 +1753,7 @@ async def deal_engine(single_run=False):
             if not deals:
                 logging.warning("No deals found from live scrapers.")
 
-            # Batch Stats
+            # Batch Stats with Telegram Analytics
             stats = {
                 "sent": 0, "skipped_cache": 0, "low_disc": 0, 
                 "invalid": 0, "out_of_stock": 0, "enrich_fail": 0,
@@ -1694,6 +1763,8 @@ async def deal_engine(single_run=False):
                 "rejected_invalid_affiliate": 0, "rejected_duplicate": 0,
                 "rejected_blocked": 0, "whatsapp_sent": 0, "whatsapp_failed": 0,
                 "loot_emails": 0,
+                # Telegram Analytics
+                "telegram_attempts": 0, "telegram_success": 0, "telegram_reset_errors": 0,
             }
 
             try:
@@ -1876,12 +1947,17 @@ async def deal_engine(single_run=False):
                                 log_rejection(deal.get("url", "unknown"), {"stage": "Revenue", "detail": "low_discount"})
                                 continue
 
-                            if discount_percentage > 50 and not TEST_MODE and not DRY_RUN:
+                            if discount_percentage > LOOT_THRESHOLD and (not TEST_MODE or FORCE_EMAIL_TEST) and not DRY_RUN:
                                 try:
+                                    print(f"[EMAIL] Attempting to send deal {deal_id} to subscribers")
                                     loot_n = SendGridNotifier().broadcast_loot_deal(deal, discount_percentage)
                                     stats["loot_emails"] = stats.get("loot_emails", 0) + int(loot_n or 0)
+                                    print(f"[EMAIL] Successfully sent deal {deal_id} to {loot_n} recipients")
+                                    log_delivery_audit("email", True, deal_id, f"Sent to {loot_n} subscribers")
                                 except Exception as sg_err:
                                     logging.warning("Loot email broadcast skipped: %s", sg_err)
+                                    print(f"[EMAIL] Failed to send deal {deal_id}: {sg_err}")
+                                    log_delivery_audit("email", False, deal_id, str(sg_err))
 
                             caption, variant = format_telegram_message(deal)
                             if variant == "A": stats["variant_a"] += 1
@@ -1903,7 +1979,22 @@ async def deal_engine(single_run=False):
                                 final_url = deal.get("affiliate_url") or deal.get("url", "")
                                 if not final_url or not isinstance(final_url, str) or not final_url.startswith("http"):
                                     logging.error(f"Posting deal without valid URL field: {deal.get('title')}")
+                                
+                                # Telegram Analytics: Track attempt
+                                stats["telegram_attempts"] += 1
+                                deal_id = asin if asin else raw_url[-12:] if raw_url else "unknown"
+                                
                                 msg, tg_status = await post_to_telegram(telegram_bot, chat_id, caption, final_url)
+                                
+                                # Telegram Analytics: Track success/failure
+                                if tg_status == "Success":
+                                    stats["telegram_success"] += 1
+                                    log_delivery_audit("telegram", True, deal_id)
+                                else:
+                                    error_msg = tg_status if tg_status != "Fail" else "Unknown error"
+                                    if "reset" in error_msg.lower() or "connection" in error_msg.lower():
+                                        stats["telegram_reset_errors"] += 1
+                                    log_delivery_audit("telegram", False, deal_id, error_msg)
                                 whatsapp_payload = format_whatsapp_message(deal)
                                 wa_ok, wa_status = await post_to_whatsapp(whatsapp_payload)
                                 if wa_ok:
