@@ -19,6 +19,7 @@ from telegram.error import TelegramError
 BYPASS_PERSONA_FILE = "persona_bypass.json"
 
 from scrapers.manual_feed import get_manual_deal
+from scrapers.earnkaro import get_earnkaro_deals
 from scrapers.courses import get_free_courses
 from scrapers.amazon import get_amazon_product, get_diverse_amazon_deals
 from scrapers.flipkart import get_flipkart_product, get_flipkart_deals
@@ -155,9 +156,67 @@ class AffiliateLinkGenerator:
     """
 
     @staticmethod
-    def generate(url: str, source: str) -> str:
-        out = ensure_affiliate_url(url or "", source or "")
-        return out or ""
+    async def generate(session: aiohttp.ClientSession, url: str, source: str) -> str:
+        """
+        EarnKaro integration:
+        - Amazon: native tag injection (AMAZON_TAG)
+        - Others: EarnKaro profit link generation when configured
+        Fail-safe: on API failure, return raw url and log [MONEY_LOSS].
+        """
+        raw = (url or "").strip()
+        if not raw:
+            return ""
+
+        try:
+            parsed = urlparse(raw)
+            host = (parsed.netloc or "").lower()
+        except Exception:
+            host = ""
+
+        # If already an EarnKaro profit link, don't double-tag.
+        if "earnkaro" in host:
+            return raw
+
+        # Amazon: native injection
+        if "amazon" in (source or "").lower() or "amazon." in host:
+            return ensure_affiliate_url(raw, "amazon")
+
+        # Non-Amazon: EarnKaro
+        key = (os.getenv("EARNKARO_API_KEY") or "").strip()
+        if not key:
+            print(f"[MONEY_LOSS] Failed to monetize link for {raw} (missing EARNKARO_API_KEY)", flush=True)
+            return raw
+
+        api = f"https://earnkaro.com/api/v1/generate_link?api_key={quote(key)}&url={quote(raw, safe='')}"
+        try:
+            async with session.get(api, timeout=15) as resp:
+                body = await resp.text()
+                if resp.status != 200:
+                    print(f"[MONEY_LOSS] Failed to monetize link for {raw} (status={resp.status})", flush=True)
+                    return raw
+                try:
+                    payload = json.loads(body)
+                except Exception:
+                    payload = {}
+
+                # common variants: {data:{profit_link:"..."}} or {profit_link:"..."} or {link:"..."}
+                profit = (
+                    (payload.get("data") or {}).get("profit_link")
+                    or payload.get("profit_link")
+                    or payload.get("link")
+                    or payload.get("url")
+                    or ""
+                )
+                profit = str(profit).strip()
+                if profit and profit.startswith("http"):
+                    dom = host.split(":")[0] if host else "unknown"
+                    print(f"[REVENUE:SUCCESS] EarnKaro Profit Link generated for {dom}.", flush=True)
+                    return profit
+        except Exception:
+            pass
+
+        print(f"[MONEY_LOSS] Failed to monetize link for {raw}", flush=True)
+        return raw
 
     @staticmethod
     def is_valid(url: str, source: str) -> bool:
@@ -165,7 +224,10 @@ class AffiliateLinkGenerator:
         # Flipkart exception for outreach verification: allow raw http links (affiliate not required).
         if "flipkart" in src:
             return (url or "").startswith("http")
-        return has_valid_affiliate_url(url or "", source or "")
+        # For non-amazon, EarnKaro may fail and we may fall back to raw url.
+        if "amazon" in src:
+            return has_valid_affiliate_url(url or "", source or "")
+        return (url or "").startswith("http")
 
 
 def coerce_deal_object(deal: dict) -> dict:
@@ -1736,7 +1798,7 @@ async def deal_engine(single_run=False):
             if bypass_strict_persona:
                 print(f"[BYPASS] Strict persona gate disabled (runs_left={bypass_runs_left})", flush=True)
             try:
-                logging.info("Scraping live sources (TRIPLE-SOURCE concurrency)...")
+                logging.info("Scraping live sources (QUAD-SOURCE concurrency)...")
                 enabled = getattr(config, "ENABLED_SOURCES", ["amazon", "flipkart", "couponami"])
 
                 async def _wrap(label: str, coro):
@@ -1749,7 +1811,7 @@ async def deal_engine(single_run=False):
                         print(f"[SCRAPE:{label}] FAIL {exc!r}")
                         return []
 
-                # Mandatory: gather all three simultaneously. One failure must not stop others.
+                # Mandatory: gather all four simultaneously. One failure must not stop others.
                 tasks = []
                 if "amazon" in enabled:
                     tasks.append(_wrap("AMAZON", get_diverse_amazon_deals()))
@@ -1757,8 +1819,25 @@ async def deal_engine(single_run=False):
                     tasks.append(_wrap("FLIPKART", get_flipkart_deals()))
                 if "couponami" in enabled:
                     tasks.append(_wrap("COUPONAMI", get_manual_deal()))
+                if "earnkaro" in enabled:
+                    tasks.append(_wrap("EARNKARO", get_earnkaro_deals()))
 
                 scraped = await asyncio.gather(*tasks, return_exceptions=False) if tasks else []
+                try:
+                    # stable quad-sync summary (lists may be empty)
+                    def _n(x):
+                        return len(x) if isinstance(x, list) else (1 if isinstance(x, dict) else 0)
+                    quad_counts = {t: 0 for t in ["AMAZON", "FLIPKART", "COUPONAMI", "EARNKARO"]}
+                    for idx, res in enumerate(scraped):
+                        label = ["AMAZON", "FLIPKART", "COUPONAMI", "EARNKARO"][idx] if idx < 4 else f"S{idx}"
+                        quad_counts[label] = _n(res)
+                    print(
+                        f"[QUAD-SYNC] Amazon: {quad_counts['AMAZON']} deals, Flipkart: {quad_counts['FLIPKART']} deals, "
+                        f"Couponami: {quad_counts['COUPONAMI']} deals, EarnKaro: {quad_counts['EARNKARO']} deals.",
+                        flush=True,
+                    )
+                except Exception:
+                    pass
 
                 # Seed Amazon deals are additive and never block.
                 if "amazon" in enabled:
@@ -1780,6 +1859,24 @@ async def deal_engine(single_run=False):
                         total += 1
                     elif isinstance(res, Exception) or isinstance(res, asyncio.TimeoutError):
                         logging.warning(f"Scraping task failed: {res}")
+
+                # Unified deal pool: dedupe by normalized title (EarnKaro vs Flipkart etc.)
+                try:
+                    seen_titles: set[str] = set()
+                    uniq: list[dict] = []
+                    for d in deals:
+                        title_key = str(d.get("title") or "").strip().lower()
+                        if not title_key:
+                            continue
+                        if title_key in seen_titles:
+                            continue
+                        seen_titles.add(title_key)
+                        uniq.append(d)
+                    if len(uniq) != len(deals):
+                        print(f"[DEDUP] Reduced pool {len(deals)} -> {len(uniq)} (title hash)", flush=True)
+                    deals = uniq
+                except Exception:
+                    pass
                 
                 for deal in deals:
                     src = (deal.get("source") or deal.get("marketplace") or "unknown").lower()
@@ -1931,7 +2028,11 @@ async def deal_engine(single_run=False):
                             # tagged_url = await add_affiliate_tag(session, raw_url, deal.get("marketplace", ""), category)
                             # deal["url"] = tagged_url
                             gen_source = deal.get("source") or deal.get("marketplace", "")
-                            generated = AffiliateLinkGenerator.generate(deal.get("affiliate_url") or raw_url, gen_source)
+                            generated = await AffiliateLinkGenerator.generate(
+                                session,
+                                deal.get("affiliate_url") or raw_url,
+                                gen_source,
+                            )
                             if not AffiliateLinkGenerator.is_valid(generated, gen_source):
                                 print(f"[ALARM] Affiliate generation failed for {raw_url}")
                                 log_rejection(raw_url, {"stage": "Affiliate", "detail": "affiliate_generation_failed"})

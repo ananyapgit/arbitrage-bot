@@ -164,3 +164,84 @@ class SendGridNotifier:
         else:
             print(f"[EMAIL:PARTIAL] Sent to {sent}/{len(recipients)} subscribers", flush=True)
         return sent
+
+    def broadcast_daily_loot(self, deals: list[dict], subject: str = "Daily Loot") -> int:
+        """
+        Consolidated HTML email (one send per subscriber).
+        Returns number of successful sends.
+        """
+        print("!!! EMAIL ENGINE ACTIVATED !!!", flush=True)
+        if not self.api_key:
+            logging.info("SendGrid: SENDGRID_API_KEY not set; skipping daily loot broadcast.")
+            return 0
+        try:
+            from sendgrid import SendGridAPIClient
+            from sendgrid.helpers.mail import Mail
+        except ImportError:
+            logging.error("SendGrid: install the 'sendgrid' package (pip install sendgrid).")
+            return 0
+
+        expected_from_email = os.getenv("SENDGRID_FROM_EMAIL")
+        if expected_from_email and self.from_email != expected_from_email.strip():
+            logging.error("SendGrid: from_email mismatch. Expected: %s, Got: %s", expected_from_email, self.from_email)
+            return 0
+        if expected_from_email:
+            self.from_email = expected_from_email.strip()
+
+        recipients = self.load_subscribers()
+        if not recipients:
+            logging.info("SendGrid: no subscribers in %s", SUBSCRIBERS_FILE)
+            return 0
+
+        top = []
+        for d in deals[:12]:
+            title = html.escape(str(d.get("title") or "Deal"))
+            link = str(d.get("affiliate_url") or d.get("url") or "").strip()
+            if not link:
+                continue
+            top.append((title, html.escape(link, quote=True)))
+
+        if not top:
+            print("[CRITICAL] Daily Loot email body empty (no valid links)", flush=True)
+            return 0
+
+        items = "".join(
+            [f"<tr><td style='padding:10px 0;border-bottom:1px solid #2A2A2A;'><a href='{u}' style='color:#FFD700;text-decoration:none;font-weight:700;'>{t}</a></td></tr>" for t, u in top]
+        )
+        html_body = f"""<!DOCTYPE html>
+<html><body style="margin:0;background:#000000;font-family:Inter,system-ui,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 12px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:560px;background:#1A1A1A;border:2px solid #FFD700;border-radius:12px;padding:28px 24px;">
+        <tr><td style="font-size:12px;letter-spacing:0.15em;color:#FFD700;text-transform:uppercase;font-weight:600;">DAILY LOOT</td></tr>
+        <tr><td style="padding-top:10px;font-size:16px;color:#FFFFFF;font-weight:800;">Top verified deals</td></tr>
+        <tr><td style="padding-top:14px;">
+          <table width="100%" cellspacing="0" cellpadding="0">{items}</table>
+        </td></tr>
+        <tr><td style="padding-top:18px;font-size:11px;color:#666666;">Automated digest - do not reply.</td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>"""
+
+        client = SendGridAPIClient(self.api_key)
+        sent = 0
+        for to_addr in recipients:
+            try:
+                msg = Mail(from_email=self.from_email, to_emails=to_addr, subject=subject, html_content=html_body)
+                resp = client.send(msg)
+                code = getattr(resp, "status_code", None)
+                if code and int(code) >= 400:
+                    logging.warning("SendGrid error %s for %s", code, to_addr)
+                else:
+                    sent += 1
+            except Exception as e:
+                logging.warning("SendGrid send failed for %s: %s", to_addr, e)
+
+        if sent:
+            _log_broadcast("daily_loot", sent)
+        if sent == len(recipients):
+            print(f"[EMAIL:SUCCESS] Sent to {sent} subscribers", flush=True)
+        else:
+            print(f"[EMAIL:PARTIAL] Sent to {sent}/{len(recipients)} subscribers", flush=True)
+        return sent

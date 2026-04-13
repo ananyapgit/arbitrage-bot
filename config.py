@@ -87,7 +87,7 @@ THROTTLE_DEALS_PER_RUN = 0
 MIN_DISCOUNT_THRESHOLD = env_float("MIN_DISCOUNT_THRESHOLD", 0.0)
 POST_WITH_IMAGE = False
 REQUEST_TIMEOUT = 5
-ENABLED_SOURCES = ['amazon', 'flipkart', 'couponami']
+ENABLED_SOURCES = ['amazon', 'flipkart', 'couponami', 'earnkaro']
 
 TEST_MODE = True
 # Force-loot threshold for production verification runs.
