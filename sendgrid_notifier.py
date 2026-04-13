@@ -26,6 +26,11 @@ def _log_broadcast(deal_id: str, recipients: int) -> None:
             if not exists:
                 w.writerow(["timestamp", "deal_id", "recipients"])
             w.writerow([datetime.now().isoformat(), deal_id, recipients])
+            f.flush()
+            try:
+                os.fsync(f.fileno())
+            except Exception:
+                pass
     except OSError as e:
         logging.error("broadcast_log write failed: %s", e)
 
@@ -39,6 +44,7 @@ class SendGridNotifier:
 
     def load_subscribers(self) -> list[str]:
         if not SUBSCRIBERS_FILE.is_file():
+            print(f"[CRITICAL] No subscribers found in data folder: missing {SUBSCRIBERS_FILE}", flush=True)
             return []
         seen: set[str] = set()
         out: list[str] = []
@@ -52,12 +58,15 @@ class SendGridNotifier:
                 continue
             seen.add(line.lower())
             out.append(line)
+        if not out:
+            print(f"[CRITICAL] No subscribers found in data folder: empty {SUBSCRIBERS_FILE}", flush=True)
         return out
 
     def broadcast_loot_deal(self, deal: dict, discount_pct: float) -> int:
         """
         Sends one HTML email per subscriber. Returns number of successful sends.
         """
+        print("!!! EMAIL ENGINE ACTIVATED !!!", flush=True)
         if not self.api_key:
             logging.info("SendGrid: SENDGRID_API_KEY not set; skipping loot broadcast.")
             return 0
@@ -82,7 +91,7 @@ class SendGridNotifier:
         # LOWER THRESHOLD FOR TESTING: Allow deals >10% if TEST_MODE=True
         test_mode = os.getenv('TEST_MODE', 'false').lower() in {'true', '1', 'yes'}
         force_email_test = os.getenv('FORCE_EMAIL_TEST', 'false').lower() in {'true', '1', 'yes'}
-        threshold = 1.0 if (test_mode or force_email_test) else 20.0
+        threshold = 10.0 if (test_mode or force_email_test) else 20.0
         
         if discount_pct < threshold:
             logging.info(f"SendGrid: discount {discount_pct}% below threshold {threshold}%; skipping broadcast.")
@@ -95,12 +104,16 @@ class SendGridNotifier:
 
         # LOGGING FOR GITHUB ACTIONS
         deal_id = str(deal.get("id") or deal.get("deal_id") or "unknown")
-        print(f"[EMAIL] Attempting to send deal {deal_id} to {len(recipients)} recipients")
+        print(f"[EMAIL] Attempting to send deal {deal_id} to {len(recipients)} recipients", flush=True)
 
         title = html.escape(str(deal.get("title") or "Deal").strip())
         link = str(deal.get("affiliate_url") or deal.get("url") or "").strip()
         link_esc = html.escape(link, quote=True)
         deal_id = str(deal.get("id") or deal.get("deal_id") or link[-24:] or "unknown")
+
+        if not link:
+            logging.warning("SendGrid: missing affiliate/url for deal_id=%s; skipping.", deal_id)
+            return 0
 
         html_body = f"""<!DOCTYPE html>
 <html><body style="margin:0;background:#000000;font-family:Inter,system-ui,sans-serif;">
@@ -120,6 +133,10 @@ class SendGridNotifier:
     </td></tr>
   </table>
 </body></html>"""
+
+        if not html_body or "<html" not in html_body.lower():
+            logging.error("SendGrid: empty/invalid HTML body; aborting broadcast.")
+            return 0
 
         client = SendGridAPIClient(self.api_key)
         sent = 0
@@ -142,4 +159,8 @@ class SendGridNotifier:
 
         if sent:
             _log_broadcast(deal_id, sent)
+        if sent == len(recipients):
+            print(f"[EMAIL:SUCCESS] Sent to {sent} subscribers", flush=True)
+        else:
+            print(f"[EMAIL:PARTIAL] Sent to {sent}/{len(recipients)} subscribers", flush=True)
         return sent

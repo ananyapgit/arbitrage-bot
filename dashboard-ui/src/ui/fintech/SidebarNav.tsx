@@ -1,13 +1,10 @@
 import { clsx } from 'clsx'
-import { Activity, HeartPulse, Radar, Send } from 'lucide-react'
+import { Activity, Zap } from 'lucide-react'
 
-export type ThesisTabId = 'overview' | 'source' | 'telegram' | 'health'
+export type ThesisTabId = 'elite'
 
 const NAV: Array<{ id: ThesisTabId; label: string; icon: typeof Activity }> = [
-  { id: 'overview', label: 'Overview', icon: Activity },
-  { id: 'source', label: 'Source Intelligence', icon: Radar },
-  { id: 'telegram', label: 'Telegram Analytics', icon: Send },
-  { id: 'health', label: 'System Health', icon: HeartPulse },
+  { id: 'elite', label: 'Kinetic Command', icon: Zap },
 ]
 
 export function SidebarNav({
@@ -20,9 +17,9 @@ export function SidebarNav({
   return (
     <aside className="flex min-h-0 w-full flex-1 flex-col px-3 py-6 text-white">
       <div className="px-2 pb-6">
-        <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/45">Thesis</div>
-        <div className="mt-1 text-lg font-semibold tracking-tight">Arbitrage</div>
-        <div className="text-xs text-white/50">Intelligence Desk</div>
+        <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/45">Engine</div>
+        <div className="mt-1 text-lg font-semibold tracking-tight">Superbot</div>
+        <div className="text-xs text-white/50">Control Center</div>
       </div>
       <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain">
         {NAV.map(({ id, label, icon: Icon }) => {

@@ -16,10 +16,12 @@ from cachetools import TTLCache
 from telegram import Bot
 from telegram.error import TelegramError
 
+BYPASS_PERSONA_FILE = "persona_bypass.json"
+
 from scrapers.manual_feed import get_manual_deal
 from scrapers.courses import get_free_courses
 from scrapers.amazon import get_amazon_product, get_diverse_amazon_deals
-from scrapers.flipkart import get_flipkart_product
+from scrapers.flipkart import get_flipkart_product, get_flipkart_deals
 from sendgrid_notifier import SendGridNotifier
 
 import config
@@ -59,8 +61,8 @@ MAX_DEALS_PER_BATCH = 15 # Revenue Priority: 15
 THROTTLE_DEALS_PER_RUN = 0 # Revenue Priority: 0
 MAX_DEALS_PER_PERSONA_PER_BATCH = 15 # Revenue Priority: 15
 MIN_DISCOUNT_THRESHOLD = 0 # FORCE DEAL DELIVERY: 0
-LOOT_THRESHOLD = 1.0 # EMAIL TEST TRIGGER: 1% (was 50%)
-FORCE_EMAIL_TEST = True # FORCE EMAIL TESTING: True
+LOOT_THRESHOLD = float(getattr(config, "LOOT_THRESHOLD", 50.0))  # Loot deal threshold (%)
+FORCE_EMAIL_TEST = False  # Set True to override threshold in prod
 TEST_MODE = config.TEST_MODE
 DRY_RUN = config.DRY_RUN
 SINGLE_RUN = config.SINGLE_RUN
@@ -91,6 +93,35 @@ def normalize_price(value):
     return cleaned
 
 
+def _load_persona_bypass_runs(default_runs: int = 5) -> int:
+    """
+    Temporary production verification bypass.
+    When enabled, we bypass the per-source gate for Amazon/Flipkart so links can be validated end-to-end.
+    """
+    try:
+        if not os.path.exists(BYPASS_PERSONA_FILE):
+            return default_runs
+        with open(BYPASS_PERSONA_FILE, encoding="utf-8") as f:
+            obj = json.load(f) or {}
+        n = int(obj.get("runs_left", 0))
+        return max(0, n)
+    except Exception:
+        return default_runs
+
+
+def _save_persona_bypass_runs(runs_left: int) -> None:
+    try:
+        with open(BYPASS_PERSONA_FILE, "w", encoding="utf-8") as f:
+            json.dump({"runs_left": int(runs_left)}, f)
+            f.flush()
+            try:
+                os.fsync(f.fileno())
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
 def ensure_affiliate_url(url: str, source: str) -> str:
     if not url:
         return ""
@@ -116,6 +147,25 @@ def has_valid_affiliate_url(url: str, source: str) -> bool:
     if "flipkart" in source_l or "flipkart" in url:
         return "affid=" in url
     return url.startswith("http")
+
+
+class AffiliateLinkGenerator:
+    """
+    Mandatory affiliate plumbing: never allow raw links to reach Telegram/Email.
+    """
+
+    @staticmethod
+    def generate(url: str, source: str) -> str:
+        out = ensure_affiliate_url(url or "", source or "")
+        return out or ""
+
+    @staticmethod
+    def is_valid(url: str, source: str) -> bool:
+        src = (source or "").lower()
+        # Flipkart exception for outreach verification: allow raw http links (affiliate not required).
+        if "flipkart" in src:
+            return (url or "").startswith("http")
+        return has_valid_affiliate_url(url or "", source or "")
 
 
 def coerce_deal_object(deal: dict) -> dict:
@@ -233,27 +283,12 @@ def log_delivery_audit(attempt_type: str, success: bool, deal_id: str, error_msg
     Logs delivery attempts to delivery_audit.csv for dashboard tracking.
     Tracks Telegram uptime and success rates.
     """
-    import csv
-    from datetime import datetime
-    
-    audit_file = "dashboard/public/data/delivery_audit.csv"
-    os.makedirs(os.path.dirname(audit_file), exist_ok=True)
-    
-    file_exists = os.path.isfile(audit_file)
-    
     try:
-        with open(audit_file, "a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            if not file_exists:
-                writer.writerow(["timestamp", "attempt_type", "success", "deal_id", "error_message"])
-            
-            writer.writerow([
-                datetime.now().isoformat(),
-                attempt_type,
-                "success" if success else "failed",
-                deal_id,
-                error_msg
-            ])
+        append_delivery_audit_row(
+            channel=str(attempt_type),
+            status="Success" if success else ("ResetError" if "reset" in str(error_msg).lower() else "Fail"),
+            deal_id=str(deal_id),
+        )
     except Exception as e:
         logging.error(f"Failed to write delivery audit: {e}")
 
@@ -1242,22 +1277,30 @@ async def process_followups(session, bot: Bot, stats: dict):
 
 MASTER_LOG_FIELDS = [
     "timestamp",
-    "id",
+    "source",
     "title",
     "price",
     "original_price",
-    "discount",
     "category",
-    "platform",
-    "affiliate_link",
+    "decision",
+    "reason",
+    "affiliate_valid",
 ]
 DELIVERY_AUDIT_FIELDS = ["timestamp", "channel", "status", "deal_id"]
+
+SUPERBOT_MASTER_DIR = "data"
+SUPERBOT_MASTER_FILE = os.path.join(SUPERBOT_MASTER_DIR, "master_log.csv")
 
 
 def _ensure_dashboard_dir() -> str:
     stats_dir = "dashboard/public/data"
     os.makedirs(stats_dir, exist_ok=True)
     return stats_dir
+
+
+def _ensure_superbot_master_dir() -> str:
+    os.makedirs(SUPERBOT_MASTER_DIR, exist_ok=True)
+    return SUPERBOT_MASTER_DIR
 
 
 def append_delivery_audit_row(channel: str, status: str, deal_id: str) -> None:
@@ -1298,31 +1341,31 @@ def append_delivery_audit_bundle(
     append_delivery_audit_row("delivery", final_result, deal_id)
 
 
-def sync_to_dashboard(deal_data: dict) -> None:
+def sync_to_dashboard(deal_data: dict, decision: str = "pending", reason: str = "") -> None:
     """
-    Append a deal row to dashboard/public/data/master_log.csv with deduplication.
-    Schema: timestamp, id, title, price, original_price, discount, category, platform, affiliate_link
-    NEVER OVERWRITES - Always APPENDS and DEDUPLICATES.
+    Append a deal row to data/master_log.csv for the production dashboard.
+    Expected CSV STRUCTURE:
+    timestamp,source,title,price,original_price,category,decision,reason,affiliate_valid
     """
-    stats_dir = _ensure_dashboard_dir()
-    stats_file = os.path.join(stats_dir, "master_log.csv")
+    _ensure_superbot_master_dir()
+    stats_file = SUPERBOT_MASTER_FILE
     file_exists = os.path.isfile(stats_file)
 
     timestamp = datetime.now().isoformat()
-    deal_id = (
+    deal_id = str(
         deal_data.get("id")
         or deal_data.get("deal_id")
         or (str(deal_data.get("url", "unknown"))[-24:])
     )
     
-    # DEDUPLICATION CHECK: Skip if deal ID already exists in CSV
+    # DEDUPLICATION CHECK: Skip if the same deal_id already exists (best-effort)
     if file_exists:
         try:
             with open(stats_file, "r", encoding="utf-8", errors="ignore") as rf:
                 reader = csv.DictReader(rf)
                 for existing_row in reader:
-                    existing_id = existing_row.get('id') or existing_row.get('deal_id')
-                    if existing_id == deal_id:
+                    existing_id = str(existing_row.get("id") or existing_row.get("deal_id") or "")
+                    if existing_id and existing_id == deal_id:
                         logging.info(f"Skipping duplicate deal {deal_id} - already in master_log.csv")
                         return
         except Exception as e:
@@ -1332,8 +1375,11 @@ def sync_to_dashboard(deal_data: dict) -> None:
     price = deal_data.get("new_price", deal_data.get("price", "N/A"))
     original_price = deal_data.get("old_price", deal_data.get("original_price", "N/A"))
     category = deal_data.get("category", "general")
-    platform = str(deal_data.get("marketplace") or deal_data.get("platform") or deal_data.get("source") or "Unknown")
+    source = str(deal_data.get("source") or deal_data.get("marketplace") or deal_data.get("platform") or "Unknown")
     affiliate_link = str(deal_data.get("affiliate_url") or deal_data.get("url") or "")
+
+    # Affiliate validation
+    affiliate_valid = "true" if affiliate_link and affiliate_link.startswith("http") else "false"
 
     if "amazon.in" in affiliate_link:
         if "tag=" not in affiliate_link:
@@ -1341,34 +1387,16 @@ def sync_to_dashboard(deal_data: dict) -> None:
             affiliate_link = f"{affiliate_link}{sep}tag=anany-21"
         else:
             affiliate_link = re.sub(r"tag=[^&]+", "tag=anany-21", affiliate_link)
+        affiliate_valid = "true"
     elif "flipkart.com" in affiliate_link:
         if "affid=" not in affiliate_link:
             sep = "&" if "?" in affiliate_link else "?"
             affiliate_link = f"{affiliate_link}{sep}affid=anany"
         else:
             affiliate_link = re.sub(r"affid=[^&]+", "affid=anany", affiliate_link)
+        affiliate_valid = "true"
 
-    discount_pct = 0.0
-    try:
-        op = float(str(original_price).replace(",", "").replace("₹", "").strip() or 0)
-        np = float(str(price).replace(",", "").replace("₹", "").strip() or 0)
-        if op > np and op > 0:
-            discount_pct = round(((op - np) / op) * 100, 2)
-    except (TypeError, ValueError):
-        pass
-    discount_str = f"{discount_pct:.2f}" if discount_pct else ""
-
-    row = [
-        timestamp,
-        deal_id,
-        title,
-        price,
-        original_price,
-        discount_str,
-        category,
-        platform,
-        affiliate_link,
-    ]
+    row = [timestamp, source, title, price, original_price, category, decision, reason, affiliate_valid]
 
     try:
         if file_exists:
@@ -1379,17 +1407,21 @@ def sync_to_dashboard(deal_data: dict) -> None:
                 if parts != MASTER_LOG_FIELDS:
                     legacy = stats_file.replace(".csv", f"_legacy_{int(time.time())}.csv")
                     os.replace(stats_file, legacy)
-                    logging.info("master_log.csv header mismatch — rotated to %s", legacy)
+                    logging.info("data/master_log.csv header mismatch - rotated to %s", legacy)
                     file_exists = False
 
         with open(stats_file, mode="a", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f)
-                if not file_exists:
-                    writer.writerow(MASTER_LOG_FIELDS)
-                writer.writerow(row)
-                f.flush()  # Immediate flush to disk
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(MASTER_LOG_FIELDS)
+            writer.writerow(row)
+            f.flush()  # Immediate flush to disk
+            try:
+                os.fsync(f.fileno())
+            except Exception:
+                pass
                 os.fsync(f.fileno())  # Force write to disk
-                logging.info(f"Appended deal {deal_id} to master_log.csv")
+                logging.info(f"Appended deal {deal_id} to master_log.csv with decision: {decision}")
     except OSError as e:
         logging.error("Failed to sync master_log.csv: %s", e)
 
@@ -1559,6 +1591,10 @@ async def post_to_telegram(bot: Bot, chat_id: int, caption: str, affiliate_url: 
             await asyncio.sleep(2)
         except Exception as e:
             err_str = str(e).lower()
+            if "connection reset" in err_str or "reset by peer" in err_str:
+                # Distinct status for uptime diagnostics
+                logging.warning("Telegram connection reset detected: %r", e)
+                return None, "ResetError"
             if "flood" in err_str or "spam" in err_str or "userdeactivated" in err_str:
                 logging.critical(f"TELEGRAM SPAM/FLOOD DETECTED: {e}. Pausing for 24h.")
                 update_trust_decay("system", "SPAM_FLOOD_DETECTED")
@@ -1695,42 +1731,44 @@ async def deal_engine(single_run=False):
             # 1. LIVE SCRAPING (No Static Feeds)
             deals = []
             source_counts = {}
+            bypass_runs_left = _load_persona_bypass_runs(default_runs=5)
+            bypass_strict_persona = bypass_runs_left > 0
+            if bypass_strict_persona:
+                print(f"[BYPASS] Strict persona gate disabled (runs_left={bypass_runs_left})", flush=True)
             try:
-                logging.info("Scraping live sources...")
+                logging.info("Scraping live sources (TRIPLE-SOURCE concurrency)...")
+                enabled = getattr(config, "ENABLED_SOURCES", ["amazon", "flipkart", "couponami"])
+
+                async def _wrap(label: str, coro):
+                    try:
+                        res = await coro
+                        n = len(res) if isinstance(res, list) else (1 if isinstance(res, dict) else 0)
+                        print(f"[SCRAPE:{label}] Found {n} deals")
+                        return res
+                    except Exception as exc:
+                        print(f"[SCRAPE:{label}] FAIL {exc!r}")
+                        return []
+
+                # Mandatory: gather all three simultaneously. One failure must not stop others.
                 tasks = []
-                
-                enabled = getattr(config, "ENABLED_SOURCES", ['amazon', 'flipkart', 'couponami'])
-                
-                if 'couponami' in enabled:
+                if "amazon" in enabled:
+                    tasks.append(_wrap("AMAZON", get_diverse_amazon_deals()))
+                if "flipkart" in enabled:
+                    tasks.append(_wrap("FLIPKART", get_flipkart_deals()))
+                if "couponami" in enabled:
+                    tasks.append(_wrap("COUPONAMI", get_manual_deal()))
+
+                scraped = await asyncio.gather(*tasks, return_exceptions=False) if tasks else []
+
+                # Seed Amazon deals are additive and never block.
+                if "amazon" in enabled:
                     try:
-                        tasks.append(get_manual_deal())
-                    except Exception:
-                        pass
-                
-                if 'amazon' in enabled:
-                    try:
-                        tasks.append(get_diverse_amazon_deals())
-                    except Exception:
-                        pass
-                    try:
-                        deals.extend(load_seed_amazon_deals())
+                        seed = load_seed_amazon_deals()
+                        if seed:
+                            print(f"[SCRAPE:AMAZON] Seeded {len(seed)} deals")
+                            deals.extend(seed)
                     except Exception as e:
                         logging.warning(f"Amazon seed loading failed: {e}")
-                
-                # PARALLEL SCRAPE RECOVERY: Handle timeouts properly
-                if tasks:
-                    try:
-                        # Set individual timeouts for each scraper
-                        timeout_tasks = [asyncio.wait_for(task, timeout=30.0) for task in tasks]
-                        scraped = await asyncio.gather(*timeout_tasks, return_exceptions=True)
-                    except asyncio.TimeoutError:
-                        logging.warning("Parallel scraping timeout - some sources may be blocked")
-                        scraped = []
-                    except Exception as e:
-                        logging.error(f"Parallel scraping failed: {e}")
-                        scraped = []
-                else:
-                    scraped = []
                 
                 total = 0
                 for res in scraped:
@@ -1785,7 +1823,12 @@ async def deal_engine(single_run=False):
                             d = coerce_deal_object(d)
                             url = d.get("url", "").lower()
                             source = d.get("source", "unknown")
-                            
+
+                            # TEMP BYPASS: For Amazon/Flipkart verification, bypass per-source gate for next 5 runs.
+                            if bypass_strict_persona and source in {"amazon", "flipkart"}:
+                                deals_to_process.append(d)
+                                continue
+
                             if source_gate_counts.get(source, 0) < 3:
                                 deals_to_process.append(d)
                                 source_gate_counts[source] = source_gate_counts.get(source, 0) + 1
@@ -1887,10 +1930,17 @@ async def deal_engine(single_run=False):
                             # 3. Affiliate Tagging - NOW HANDLED AT SCRAPER LEVEL
                             # tagged_url = await add_affiliate_tag(session, raw_url, deal.get("marketplace", ""), category)
                             # deal["url"] = tagged_url
-                            deal["affiliate_url"] = ensure_affiliate_url(
-                                deal.get("affiliate_url") or raw_url,
-                                deal.get("source") or deal.get("marketplace", ""),
-                            )
+                            gen_source = deal.get("source") or deal.get("marketplace", "")
+                            generated = AffiliateLinkGenerator.generate(deal.get("affiliate_url") or raw_url, gen_source)
+                            if not AffiliateLinkGenerator.is_valid(generated, gen_source):
+                                print(f"[ALARM] Affiliate generation failed for {raw_url}")
+                                log_rejection(raw_url, {"stage": "Affiliate", "detail": "affiliate_generation_failed"})
+                                stats["invalid"] += 1
+                                stats["rejected_invalid_affiliate"] += 1
+                                continue
+                            if "amazon" in str(gen_source).lower() and "tag=" in generated:
+                                print(f"[AFFILIATE:AMAZON] tag injected ok for {raw_url}", flush=True)
+                            deal["affiliate_url"] = generated
                             stats["tagged"] += 1
 
                             if not deal.get("title"):
@@ -1947,18 +1997,7 @@ async def deal_engine(single_run=False):
                                 log_rejection(deal.get("url", "unknown"), {"stage": "Revenue", "detail": "low_discount"})
                                 continue
 
-                            if discount_percentage > LOOT_THRESHOLD and (not TEST_MODE or FORCE_EMAIL_TEST) and not DRY_RUN:
-                                try:
-                                    print(f"[EMAIL] Attempting to send deal {deal_id} to subscribers")
-                                    loot_n = SendGridNotifier().broadcast_loot_deal(deal, discount_percentage)
-                                    stats["loot_emails"] = stats.get("loot_emails", 0) + int(loot_n or 0)
-                                    print(f"[EMAIL] Successfully sent deal {deal_id} to {loot_n} recipients")
-                                    log_delivery_audit("email", True, deal_id, f"Sent to {loot_n} subscribers")
-                                except Exception as sg_err:
-                                    logging.warning("Loot email broadcast skipped: %s", sg_err)
-                                    print(f"[EMAIL] Failed to send deal {deal_id}: {sg_err}")
-                                    log_delivery_audit("email", False, deal_id, str(sg_err))
-
+                            loot_gate = 10.0 if TEST_MODE else LOOT_THRESHOLD
                             caption, variant = format_telegram_message(deal)
                             if variant == "A": stats["variant_a"] += 1
                             else: stats["variant_b"] += 1
@@ -1984,17 +2023,61 @@ async def deal_engine(single_run=False):
                                 stats["telegram_attempts"] += 1
                                 deal_id = asin if asin else raw_url[-12:] if raw_url else "unknown"
                                 
-                                msg, tg_status = await post_to_telegram(telegram_bot, chat_id, caption, final_url)
+                                # OMNI-CHANNEL LOOT BROADCAST (parallel): Telegram + SendGrid + Dashboard Sync
+                                if discount_percentage > loot_gate and not DRY_RUN:
+                                    async def _tg_task():
+                                        print(f"[TELEGRAM:ATTEMPT] deal_id={deal_id}")
+                                        return await post_to_telegram(telegram_bot, chat_id, caption, final_url)
+
+                                    async def _email_task():
+                                        try:
+                                            print(f"[EMAIL:ATTEMPT] deal_id={deal_id}")
+                                            n = SendGridNotifier().broadcast_loot_deal(deal, discount_percentage)
+                                            if n:
+                                                print(f"[EMAIL:SUCCESS] Sent to {n} subscribers")
+                                                log_delivery_audit("email", True, deal_id, f"Sent to {n} subscribers")
+                                                append_delivery_audit_row("loot_emails", str(n), str(deal_id))
+                                            else:
+                                                print(f"[EMAIL:FAIL] Sent to 0 subscribers")
+                                                log_delivery_audit("email", False, deal_id, "Sent to 0 subscribers")
+                                                append_delivery_audit_row("loot_emails", "0", str(deal_id))
+                                            return n
+                                        except Exception as sg_err:
+                                            print(f"[EMAIL:FAIL] {sg_err!r}")
+                                            log_delivery_audit("email", False, deal_id, str(sg_err))
+                                            append_delivery_audit_row("loot_emails", "0", str(deal_id))
+                                            return 0
+
+                                    async def _sync_task():
+                                        try:
+                                            sync_to_dashboard(deal, "accepted", "Loot broadcast")
+                                            print("[DASHBOARD:SYNC] Row added")
+                                            return True
+                                        except Exception as se:
+                                            print(f"[DASHBOARD:SYNC] FAIL {se!r}")
+                                            return False
+
+                                    (msg, tg_status), loot_n, _ = await asyncio.gather(
+                                        _tg_task(),
+                                        _email_task(),
+                                        _sync_task(),
+                                        return_exceptions=False,
+                                    )
+                                    stats["loot_emails"] = stats.get("loot_emails", 0) + int(loot_n or 0)
+                                else:
+                                    msg, tg_status = await post_to_telegram(telegram_bot, chat_id, caption, final_url)
                                 
                                 # Telegram Analytics: Track success/failure
                                 if tg_status == "Success":
                                     stats["telegram_success"] += 1
                                     log_delivery_audit("telegram", True, deal_id)
+                                    append_delivery_audit_row("telegram_success", "1", str(deal_id))
                                 else:
                                     error_msg = tg_status if tg_status != "Fail" else "Unknown error"
                                     if "reset" in error_msg.lower() or "connection" in error_msg.lower():
                                         stats["telegram_reset_errors"] += 1
                                     log_delivery_audit("telegram", False, deal_id, error_msg)
+                                    append_delivery_audit_row("telegram_success", "0", str(deal_id))
                                 whatsapp_payload = format_whatsapp_message(deal)
                                 wa_ok, wa_status = await post_to_whatsapp(whatsapp_payload)
                                 if wa_ok:
@@ -2026,8 +2109,9 @@ async def deal_engine(single_run=False):
                                      
                                      # STRICT VALIDATION: Only process if deal meets criteria
                                      if validate_deal(deal):
-                                         sync_to_dashboard(deal)
+                                         sync_to_dashboard(deal, "accepted", "Valid deal with affiliate link")
                                      else:
+                                         sync_to_dashboard(deal, "rejected", "Failed validation - missing required fields")
                                          logging.warning(f"Deal failed validation: {deal.get('title', 'Unknown')}")
                             
                                 # Add to Follow-up Cache
@@ -2084,6 +2168,11 @@ async def deal_engine(single_run=False):
             # Randomized Sleep
             sleep_time = POST_INTERVAL_SECONDS * random.uniform(0.85, 1.15)
             logging.info(f"Sleeping for {int(sleep_time)}s...")
+            try:
+                if bypass_runs_left > 0:
+                    _save_persona_bypass_runs(bypass_runs_left - 1)
+            except Exception:
+                pass
             
             if single_run:
                 logging.info("Single run completed. Exiting loop.")

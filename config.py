@@ -89,7 +89,9 @@ POST_WITH_IMAGE = False
 REQUEST_TIMEOUT = 5
 ENABLED_SOURCES = ['amazon', 'flipkart', 'couponami']
 
-TEST_MODE = env_bool("TEST_MODE", False)
+TEST_MODE = True
+# Force-loot threshold for production verification runs.
+LOOT_THRESHOLD = 0.1
 DRY_RUN = env_bool("DRY_RUN", False)
 SINGLE_RUN = env_bool("SINGLE_RUN", False) # Revenue Priority: Set to False for continuous run
 

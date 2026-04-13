@@ -37,7 +37,8 @@ jobs:
         [ -f deals.json ] || echo "[]" > deals.json
         [ -f click_logs.csv ] || echo "timestamp,url,user_id,category" > click_logs.csv
         [ -f analytics.json ] || echo "{}" > analytics.json
-        mkdir -p dashboard/public/data
+        mkdir -p dashboard/public/data data
+        [ -f data/master_log.csv ] || printf "timestamp,source,title,price,original_price,category,decision,reason,affiliate_valid\n" > data/master_log.csv
         [ -f dashboard/public/data/delivery_audit.csv ] || printf "timestamp,channel,status,deal_id\n" > dashboard/public/data/delivery_audit.csv
         [ -f dashboard/public/data/broadcast_log.csv ] || printf "timestamp,deal_id,recipients\n" > dashboard/public/data/broadcast_log.csv
         [ -f dashboard/public/data/subscribers.txt ] || printf "# one email per line\n" > dashboard/public/data/subscribers.txt
@@ -64,7 +65,7 @@ jobs:
       uses: stefanzweifel/git-auto-commit-action@v5
       with:
         commit_message: "🤖 Auto-Update: Bot Logs, Data & Stats [skip ci]"
-        file_pattern: "click_logs.csv deals.json trust_decay.json rejection_audit.log analytics.json cache.json sale_followup_cache.json heartbeat.timestamp sendgrid_notifier.py dashboard/public/data/master_log.csv dashboard/public/data/delivery_audit.csv dashboard/public/data/broadcast_log.csv dashboard/public/data/subscribers.txt heartbeat.json sent_deals.db"
+        file_pattern: "click_logs.csv deals.json trust_decay.json rejection_audit.log analytics.json cache.json sale_followup_cache.json heartbeat.timestamp sendgrid_notifier.py data/master_log.csv dashboard/public/data/delivery_audit.csv dashboard/public/data/broadcast_log.csv dashboard/public/data/subscribers.txt heartbeat.json sent_deals.db"
       env:
         GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
