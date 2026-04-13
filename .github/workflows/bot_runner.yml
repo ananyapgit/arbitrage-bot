@@ -51,10 +51,17 @@ jobs:
         AMAZON_TAG: ${{ secrets.AMAZON_TAG }}
         FLIPKART_TAG: ${{ secrets.FLIPKART_TAG }}
         GITHUB_ACTIONS: "true"
+        SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+        SENDGRID_FROM_EMAIL: ${{ secrets.SENDGRID_FROM_EMAIL }}
         # Add other secrets as needed
       run: python main.py
 
 
+
+    - name: Sync with origin/main (avoid non-fast-forward)
+      run: |
+        git fetch origin main
+        git rebase origin/main || (git rebase --abort || true; git reset --hard origin/main)
 
     - name: Git Identity Configuration
       run: |
