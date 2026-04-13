@@ -40,7 +40,7 @@ class SendGridNotifier:
 
     def __init__(self) -> None:
         self.api_key = (os.getenv("SENDGRID_API_KEY") or "").strip()
-        self.from_email = (os.getenv("SENDGRID_FROM_EMAIL") or "deals@noreply.local").strip()
+        self.from_email = (os.getenv("SENDGRID_FROM_EMAIL") or "").strip()
 
     def load_subscribers(self) -> list[str]:
         if not SUBSCRIBERS_FILE.is_file():
@@ -67,6 +67,8 @@ class SendGridNotifier:
         Sends one HTML email per subscriber. Returns number of successful sends.
         """
         print("!!! EMAIL ENGINE ACTIVATED !!!", flush=True)
+        if not self.from_email:
+            raise ValueError("SENDGRID_FROM_EMAIL is missing")
         if not self.api_key:
             logging.info("SendGrid: SENDGRID_API_KEY not set; skipping loot broadcast.")
             return 0
@@ -171,6 +173,8 @@ class SendGridNotifier:
         Returns number of successful sends.
         """
         print("!!! EMAIL ENGINE ACTIVATED !!!", flush=True)
+        if not self.from_email:
+            raise ValueError("SENDGRID_FROM_EMAIL is missing")
         if not self.api_key:
             logging.info("SendGrid: SENDGRID_API_KEY not set; skipping daily loot broadcast.")
             return 0

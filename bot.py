@@ -94,6 +94,30 @@ def normalize_price(value):
     return cleaned
 
 
+def _to_float_price(x) -> float | None:
+    s = str(x or "").strip()
+    if not s:
+        return None
+    s = re.sub(r"[^\d.]", "", s)
+    if not s:
+        return None
+    try:
+        return float(s)
+    except Exception:
+        return None
+
+
+def _extract_discount_pct_from_text(text: str) -> float:
+    m = re.search(r"(\d{1,3})\s*%+", str(text or ""), re.I)
+    if not m:
+        return 0.0
+    try:
+        v = float(m.group(1))
+        return v if 0 <= v <= 95 else 0.0
+    except Exception:
+        return 0.0
+
+
 def _load_persona_bypass_runs(default_runs: int = 5) -> int:
     """
     Temporary production verification bypass.
@@ -286,59 +310,28 @@ def is_individual_product_url(url):
 
 def validate_deal(deal_data: dict) -> bool:
     """
-    STRICT DATA VALIDATION: A deal MUST have:
-    1. A specific title (not category-style)
-    2. A specific price (not a range)
-    3. discount_percentage > 20%
-    
-    Returns False if any validation fails.
+    Production-grade validation.
+
+    Rules:
+    - Reject only if schema is broken OR URL was confirmed 404.
+    - Allow missing numeric price if the discount percentage is explicitly present
+      in the source feed/title (e.g. "60% OFF") so email can still trigger.
     """
-    # Rule 1: Specific title validation
-    title = deal_data.get("title", "")
+    title = str(deal_data.get("title") or "").strip()
+    url = str(deal_data.get("affiliate_url") or deal_data.get("url") or "").strip()
     if not title or len(title) < 3:
         return False
-    
-    # Reject category-style titles
-    title_lower = title.lower()
-    category_keywords = ["sale", "off", "deal", "offer", "discount", "electronics", "fashion", "accessories", "best", "top", "popular", "today's", "deals of the day"]
-    if any(keyword in title_lower for keyword in category_keywords):
+    if not url.startswith("http"):
         return False
-    
-    # Rule 2: Specific price validation (not a range)
+    if str(deal_data.get("enrich_error") or "").strip() == "404":
+        return False
+
     price = deal_data.get("new_price") or deal_data.get("price")
-    if not price:
-        return False
-    
-    # Convert price to float for validation
-    try:
-        price_str = str(price).replace("?", "").replace("$", "").replace(",", "").strip()
-        price_val = float(price_str)
-        
-        # Reject if price is a range indicator or invalid
-        if "-" in price_str or "to" in price_str.lower() or "up to" in price_str.lower():
-            return False
-        
-        # Reject if price is unrealistic
-        if price_val < 1 or price_val > 50000:
-            return False
-            
-    except (ValueError, TypeError):
-        return False
-    
-    # Rule 3: Discount percentage > 20%
-    discount_pct = deal_data.get("discount_percentage") or deal_data.get("discount_percent")
-    if not discount_pct:
-        return False
-    
-    try:
-        discount_val = float(str(discount_pct).replace("%", ""))
-        if discount_val <= 20.0:
-            return False
-    except (ValueError, TypeError):
-        return False
-    
-    # All validations passed
-    return True
+    price_val = _to_float_price(price)
+    discount_pct = deal_data.get("discount_percentage") or deal_data.get("discount_percent") or deal_data.get("discount")
+    disc_val = _extract_discount_pct_from_text(discount_pct) or _extract_discount_pct_from_text(title)
+
+    return price_val is not None or disc_val > 0
 
 def log_delivery_audit(attempt_type: str, success: bool, deal_id: str, error_msg: str = ""):
     """
@@ -792,71 +785,21 @@ async def enrich_deal(session, deal: dict) -> dict:
          elif "laptop" in title_lower: deal["category"] = "laptop"
          else: deal["category"] = "general"
 
-    # SPECIALIZED SCRAPERS
-    if "amazon" in url or "amzn" in url:
-        logging.info(f"Invoking Amazon Scraper for: {url}")
+    # Permanent fix: do NOT scrape individual Amazon/Flipkart product pages for price.
+    # Only verify URL availability (404 check) and rely on feed/listing fields.
+    if "amazon" in url or "amzn" in url or "flipkart.com" in url:
         try:
-            amz_data = await get_amazon_product(url)
-            if amz_data:
-                deal.update(amz_data)
-                # Ensure price fields match schema
-                if "price" in amz_data:
-                     deal["new_price"] = amz_data["price"]
-                
-                # FAIL-SAFE: If scraper returned empty price or title, set defaults
-                if not deal.get("title") or deal.get("title") == "N/A":
-                    deal["title"] = "Limited Time Offer"
-                if not deal.get("new_price") or deal.get("new_price") == "N/A":
-                    deal["new_price"] = "Check Best Price"
-                    
-                deal["valid"] = True
-                return deal
-            else:
-                # FAIL-SAFE ENRICHMENT: Even if scraper returns None, we MUST post if we have a URL
-                logging.warning(f"Amazon Scraper returned None for {url}. Using defaults.")
-                deal.update({
-                    "title": "Limited Time Offer",
-                    "new_price": "Check Best Price",
-                    "valid": True
-                })
-                return deal
-        except Exception as e:
-            logging.error(f"Amazon Scraper Exception: {e}")
-            # FAIL-SAFE ENRICHMENT: Continue even on exception
-            deal.update({
-                "title": "Limited Time Offer",
-                "new_price": "Check Best Price",
-                "valid": True,
-                "enrich_error": f"Exception: {e}"
-            })
-            return deal
-
-    # SPECIALIZED SCRAPERS: Flipkart
-    if "flipkart.com" in url:
-        logging.info(f"Invoking Flipkart Scraper for: {url}")
-        try:
-            fk_data = await get_flipkart_product(url)
-            if fk_data:
-                deal.update(fk_data)
-                if "price" in fk_data:
-                     deal["new_price"] = fk_data["price"]
-                
-                # FAIL-SAFE: If scraper returned empty price or title, set defaults
-                if not deal.get("title") or deal.get("title") == "N/A":
-                    deal["title"] = "Limited Time Offer"
-                if not deal.get("new_price") or deal.get("new_price") == "N/A":
-                    deal["new_price"] = "Check Best Price"
-                    
-                deal["valid"] = True
-                return deal
-            else:
-                logging.warning(f"Flipkart Scraper returned None for {url}. Using defaults.")
-                deal.update({"title": "Limited Time Offer", "new_price": "Check Best Price", "valid": True})
-                return deal
-        except Exception as e:
-            logging.error(f"Flipkart Scraper Exception: {e}")
-            deal.update({"title": "Limited Time Offer", "new_price": "Check Best Price", "valid": True, "enrich_error": f"Exception: {e}"})
-            return deal
+            async with session.get(url, headers={"User-Agent": random.choice(USER_AGENTS)}, allow_redirects=True, timeout=10) as resp:
+                if resp.status == 404:
+                    deal["valid"] = False
+                    deal["enrich_error"] = "404"
+                    log_rejection(url, {"stage": "Network", "detail": "404"})
+                    return deal
+        except Exception:
+            # If we cannot verify, do not mark invalid here; downstream validation decides.
+            pass
+        deal["valid"] = True
+        return deal
       
     # Anti-Ban: User-Agent Rotation
     headers = {
@@ -1536,8 +1479,8 @@ def format_telegram_message(deal: dict) -> tuple[str, str]:
     Formats the Telegram message with HTML, Emojis, and CTA.
     Returns: (formatted_message, variant_id)
     """
-    title = deal.get("title", "Limited Time Offer")
-    price = deal.get("new_price") or deal.get("price") or "Check Best Price"
+    title = deal.get("title") or ""
+    price = deal.get("new_price") or deal.get("price")
     source = deal.get("source") or deal.get("marketplace") or "unknown"
     original_price = deal.get("old_price") or deal.get("original_price")
     
@@ -1548,7 +1491,7 @@ def format_telegram_message(deal: dict) -> tuple[str, str]:
             return f"₹{s}"
         return s
 
-    price_str = format_currency(price)
+    price_str = format_currency(price) if price is not None else "Price unavailable"
     
     # REVENUE-FIRST TAGGING: Every link must be tagged.
     # deal["url"] should already have anany-21 from scrapers or add_affiliate_tag
@@ -1570,8 +1513,8 @@ def format_telegram_message(deal: dict) -> tuple[str, str]:
 
 
 def format_whatsapp_message(deal: dict) -> str:
-    title = deal.get("title", "Limited Time Offer")
-    price = deal.get("new_price") or deal.get("price") or "Check Best Price"
+    title = deal.get("title") or ""
+    price = deal.get("new_price") or deal.get("price")
     source = deal.get("source") or deal.get("marketplace") or "unknown"
     original_price = deal.get("old_price") or deal.get("original_price")
     affiliate_url = ensure_affiliate_url(
@@ -1582,7 +1525,7 @@ def format_whatsapp_message(deal: dict) -> str:
     parts = [
         f"*{WHATSAPP_CHANNEL_NAME}*",
         f"🛍️ {title}",
-        f"💰 Price: {price}",
+        f"💰 Price: {price if price is not None else 'Price unavailable'}",
         f"🏷️ Source: {str(source).title()}",
     ]
     if original_price:
@@ -1962,6 +1905,52 @@ async def deal_engine(single_run=False):
                         # (Simple greedy approach for now: Mix them to respect ratio over time)
                         # Just append all, but loop will update counters
                         final_batch = free_deals + paid_deals # Prioritize free to build bank
+
+                        # SENDGRID OVERHAUL: Trigger broadcast immediately after pool is populated.
+                        # No demo hacks: only include deals that have an explicit discount percentage in feed/title.
+                        try:
+                            loot_gate = LOOT_THRESHOLD
+                            email_pool: list[dict] = []
+                            for d0 in final_batch:
+                                d0 = coerce_deal_object(d0)
+                                raw0 = str(d0.get("affiliate_url") or d0.get("url") or "").strip()
+                                if not raw0.startswith("http"):
+                                    continue
+                                title0 = str(d0.get("title") or "").strip()
+                                if not title0:
+                                    continue
+                                pct0 = max(
+                                    _extract_discount_pct_from_text(d0.get("discount") or ""),
+                                    _extract_discount_pct_from_text(title0),
+                                )
+                                if pct0 <= 0 or pct0 < loot_gate:
+                                    continue
+                                gen_src0 = d0.get("source") or d0.get("marketplace", "")
+                                try:
+                                    aff0 = await AffiliateLinkGenerator.generate(session, raw0, gen_src0)
+                                except Exception:
+                                    aff0 = raw0
+                                if not AffiliateLinkGenerator.is_valid(aff0, gen_src0):
+                                    continue
+                                email_pool.append(
+                                    {
+                                        "title": title0,
+                                        "url": raw0,
+                                        "affiliate_url": aff0,
+                                        "source": gen_src0,
+                                        "discount_pct": pct0,
+                                    }
+                                )
+
+                            if email_pool and not DRY_RUN:
+                                try:
+                                    n_sent = SendGridNotifier().broadcast_daily_loot(email_pool[:30], subject="Daily Loot")
+                                    stats["loot_emails"] = stats.get("loot_emails", 0) + int(n_sent or 0)
+                                    print(f"[EMAIL:SUCCESS] Sent to {n_sent} subscribers", flush=True)
+                                except Exception as sg_exc:
+                                    print(f"[EMAIL:FAIL] {sg_exc!r}", flush=True)
+                        except Exception:
+                            pass
                     
                         # --- INTERNAL GUARDS STRIPPED ---
                         # for deal in final_batch:
@@ -2049,12 +2038,7 @@ async def deal_engine(single_run=False):
                                 stats["rejected_missing_title"] += 1
                                 log_rejection(raw_url, {"stage": "Schema", "detail": "missing_title"})
                                 continue
-                            if not deal.get("price") and not deal.get("new_price"):
-                                stats["invalid"] += 1
-                                stats["rejected_missing_price"] += 1
-                                log_rejection(raw_url, {"stage": "Schema", "detail": "missing_price"})
-                                continue
-                            if not has_valid_affiliate_url(deal.get("affiliate_url", ""), deal.get("source", "")):
+                            if not AffiliateLinkGenerator.is_valid(deal.get("affiliate_url", ""), gen_source):
                                 stats["invalid"] += 1
                                 stats["rejected_invalid_affiliate"] += 1
                                 log_rejection(raw_url, {"stage": "Affiliate", "detail": "invalid_affiliate_link"})
@@ -2084,13 +2068,27 @@ async def deal_engine(single_run=False):
                             discount_percentage = 0
                         
                             try:
-                                if old_price and new_price is not None:
-                                    op = float(str(old_price).replace(",", ""))
-                                    np = float(str(new_price).replace(",", ""))
-                                    if op > 0:
-                                        discount_percentage = ((op - np) / op) * 100
+                                op = _to_float_price(old_price)
+                                np = _to_float_price(new_price)
+                                if op is not None and np is not None and op > 0:
+                                    discount_percentage = ((op - np) / op) * 100
+                                else:
+                                    # If prices are missing, use the feed/listing percentage (e.g. "60% OFF")
+                                    discount_percentage = max(
+                                        _extract_discount_pct_from_text(deal.get("discount") or ""),
+                                        _extract_discount_pct_from_text(deal.get("title") or ""),
+                                    )
                             except Exception as e:
                                 logging.warning(f"Error calculating discount for {deal.get('title')}: {e}")
+                                discount_percentage = _extract_discount_pct_from_text(deal.get("title") or "")
+
+                            # No demo hacks: if we still have no price and no explicit discount, skip with reason.
+                            if _to_float_price(new_price) is None and discount_percentage <= 0:
+                                stats["invalid"] += 1
+                                stats["rejected_missing_price"] += 1
+                                print(f"[SKIP] Missing Price Data from Source: {deal.get('title')}", flush=True)
+                                log_rejection(raw_url, {"stage": "Schema", "detail": "missing_price_and_discount"})
+                                continue
     
                             if discount_percentage < MIN_DISCOUNT_THRESHOLD:
                                 stats["low_disc"] += 1
@@ -2098,7 +2096,7 @@ async def deal_engine(single_run=False):
                                 log_rejection(deal.get("url", "unknown"), {"stage": "Revenue", "detail": "low_discount"})
                                 continue
 
-                            loot_gate = 10.0 if TEST_MODE else LOOT_THRESHOLD
+                            loot_gate = LOOT_THRESHOLD
                             caption, variant = format_telegram_message(deal)
                             if variant == "A": stats["variant_a"] += 1
                             else: stats["variant_b"] += 1

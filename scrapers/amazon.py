@@ -69,6 +69,7 @@ def _extract_listing_deals(soup: BeautifulSoup) -> list[dict]:
                     "url": href,
                     "affiliate_url": _force_affiliate(href),
                     "price": price,
+                    "discount": None,
                     "source": "amazon",
                     "marketplace": "Amazon",
                 }
@@ -113,13 +114,19 @@ async def get_amazon_movers_shakers():
                                 items = data.get("itemListElement", [])
                                 for item in items:
                                     if item.get("@type") == "Product":
+                                        purl = item.get("url")
+                                        if purl and isinstance(purl, str) and purl.startswith("/"):
+                                            purl = "https://www.amazon.in" + purl
                                         product = {
                                             "title": item.get("name"),
-                                            "url": item.get("url"),
+                                            "url": purl,
+                                            "affiliate_url": _force_affiliate(purl) if purl else None,
                                             "price": item.get("offers", {}).get("price"),
+                                            "discount": None,
+                                            "source": "amazon",
                                             "marketplace": "Amazon"
                                         }
-                                        if product["title"] and product["url"]:
+                                        if product["title"] and product["url"] and product.get("affiliate_url"):
                                             deals.append(product)
                         except:
                             continue
@@ -158,6 +165,9 @@ async def get_amazon_todays_deals():
                     for card in deal_cards:
                         link_elem = card.select_one("a[href]")
                         title_elem = card.select_one(".deal-title, .a-deal-card-title")
+                        price_el = card.select_one(".a-price .a-offscreen, .a-price-whole, .a-offscreen")
+                        strike_el = card.select_one(".a-price.a-text-price .a-offscreen, .a-text-price .a-offscreen, .a-text-price")
+                        disc_el = card.select_one(".dealBadge, .a-deal-badge, [class*='percent'], [data-a-color='price']")
                         
                         if link_elem and title_elem:
                             url = link_elem.get("href")
@@ -166,11 +176,19 @@ async def get_amazon_todays_deals():
                             if url and title:
                                 if url.startswith("/"):
                                     url = "https://www.amazon.in" + url
-                                
+                                price = price_el.get_text(strip=True) if price_el else None
+                                old_price = strike_el.get_text(strip=True) if strike_el else None
+                                discount = disc_el.get_text(" ", strip=True) if disc_el else None
+
                                 deals.append({
                                     "title": title,
                                     "url": url,
-                                    "marketplace": "Amazon"
+                                    "affiliate_url": _force_affiliate(url),
+                                    "price": price,
+                                    "old_price": old_price,
+                                    "discount": discount,
+                                    "source": "amazon",
+                                    "marketplace": "Amazon",
                                 })
                     
                     deals.extend(_extract_listing_deals(soup))
@@ -342,7 +360,7 @@ async def get_amazon_product(url):
         print(f"JSON-LD Extraction failed: {e}")
 
     # DISCARD if no specific price found (stealth precision)
-    if not price or price == "Check Best Price":
+    if not price:
         print(f"Amazon missing price: {url}")
         return None
 
