@@ -152,6 +152,7 @@ class SendGridNotifier:
                 )
                 resp = client.send(message)
                 code = getattr(resp, "status_code", None)
+                print(f"[SENDGRID] to={to_addr} status={code}", flush=True)
                 if code and int(code) >= 400:
                     logging.warning("SendGrid error %s for %s", code, to_addr)
                 else:
@@ -235,6 +236,7 @@ class SendGridNotifier:
                 msg = Mail(from_email=self.from_email, to_emails=to_addr, subject=subject, html_content=html_body)
                 resp = client.send(msg)
                 code = getattr(resp, "status_code", None)
+                print(f"[SENDGRID] to={to_addr} status={code}", flush=True)
                 if code and int(code) >= 400:
                     logging.warning("SendGrid error %s for %s", code, to_addr)
                 else:
@@ -249,3 +251,10 @@ class SendGridNotifier:
         else:
             print(f"[EMAIL:PARTIAL] Sent to {sent}/{len(recipients)} subscribers", flush=True)
         return sent
+
+    def send_immediate_alert(self, deal: dict) -> int:
+        """
+        Immediate send path: no discount threshold gate. Prints SendGrid status code for every attempt.
+        """
+        pct = float(deal.get("discount_pct") or deal.get("discount_percentage") or 0.0)
+        return self.broadcast_loot_deal(deal, pct)

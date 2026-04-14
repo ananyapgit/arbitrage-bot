@@ -208,6 +208,10 @@ class AffiliateLinkGenerator:
         # Non-Amazon: EarnKaro
         key = (os.getenv("EARNKARO_API_KEY") or "").strip()
         if not key:
+            src_l = (source or "").lower()
+            if "flipkart" in src_l or "coupon" in src_l or "couponami" in src_l or "coupondunia" in src_l:
+                print("[CRITICAL ERROR] EARNKARO KEY NOT FOUND IN GITHUB SECRETS", flush=True)
+                raise SystemExit(2)
             print(f"[MONEY_LOSS] Failed to monetize link for {raw} (missing EARNKARO_API_KEY)", flush=True)
             return raw
 
@@ -2100,6 +2104,15 @@ async def deal_engine(single_run=False):
                             caption, variant = format_telegram_message(deal)
                             if variant == "A": stats["variant_a"] += 1
                             else: stats["variant_b"] += 1
+
+                            # SENDGRID BROADCAST SYNC: immediate trigger once deal is validated + discount computed.
+                            if discount_percentage >= loot_gate and not DRY_RUN:
+                                try:
+                                    deal["discount_pct"] = discount_percentage
+                                    n_now = SendGridNotifier().send_immediate_alert(deal)
+                                    stats["loot_emails"] = stats.get("loot_emails", 0) + int(n_now or 0)
+                                except Exception as e:
+                                    print(f"[EMAIL:FAIL] {e!r}", flush=True)
 
                             msg = None
                             tg_status = "Fail"

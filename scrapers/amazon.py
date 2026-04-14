@@ -158,38 +158,54 @@ async def get_amazon_todays_deals():
                     html = await response.text()
                     soup = BeautifulSoup(html, "html.parser")
                     
-                    # Extract deal cards
-                    deal_cards = soup.select(".dealCard, .deal-card, .a-deal-card")
+                    # SEO Pivot: parse JSON-LD (avoid CSS selectors for price)
                     deals = []
-                    
-                    for card in deal_cards:
-                        link_elem = card.select_one("a[href]")
-                        title_elem = card.select_one(".deal-title, .a-deal-card-title")
-                        price_el = card.select_one(".a-price .a-offscreen, .a-price-whole, .a-offscreen")
-                        strike_el = card.select_one(".a-price.a-text-price .a-offscreen, .a-text-price .a-offscreen, .a-text-price")
-                        disc_el = card.select_one(".dealBadge, .a-deal-badge, [class*='percent'], [data-a-color='price']")
-                        
-                        if link_elem and title_elem:
-                            url = link_elem.get("href")
-                            title = title_elem.get_text(strip=True)
-                            
-                            if url and title:
-                                if url.startswith("/"):
-                                    url = "https://www.amazon.in" + url
-                                price = price_el.get_text(strip=True) if price_el else None
-                                old_price = strike_el.get_text(strip=True) if strike_el else None
-                                discount = disc_el.get_text(" ", strip=True) if disc_el else None
-
-                                deals.append({
-                                    "title": title,
-                                    "url": url,
-                                    "affiliate_url": _force_affiliate(url),
-                                    "price": price,
-                                    "old_price": old_price,
-                                    "discount": discount,
-                                    "source": "amazon",
-                                    "marketplace": "Amazon",
-                                })
+                    try:
+                        for script in soup.find_all("script", type="application/ld+json"):
+                            try:
+                                data = json.loads(script.string)
+                            except Exception:
+                                continue
+                            objs = data if isinstance(data, list) else [data]
+                            for obj in objs:
+                                if not isinstance(obj, dict):
+                                    continue
+                                if obj.get("@type") == "ItemList":
+                                    items = obj.get("itemListElement") or []
+                                    for it in items:
+                                        if not isinstance(it, dict):
+                                            continue
+                                        prod = it.get("item") if isinstance(it.get("item"), dict) else it
+                                        if not isinstance(prod, dict):
+                                            continue
+                                        if prod.get("@type") != "Product":
+                                            continue
+                                        title = str(prod.get("name") or "").strip()
+                                        purl = prod.get("url")
+                                        if purl and isinstance(purl, str) and purl.startswith("/"):
+                                            purl = "https://www.amazon.in" + purl
+                                        offers = prod.get("offers") if isinstance(prod.get("offers"), (dict, list)) else None
+                                        price = None
+                                        old_price = None
+                                        if isinstance(offers, dict):
+                                            price = offers.get("price")
+                                        elif isinstance(offers, list) and offers and isinstance(offers[0], dict):
+                                            price = offers[0].get("price")
+                                        if title and purl and price is not None:
+                                            deals.append(
+                                                {
+                                                    "title": title,
+                                                    "url": purl,
+                                                    "affiliate_url": _force_affiliate(purl),
+                                                    "price": price,
+                                                    "old_price": old_price,
+                                                    "discount": None,
+                                                    "source": "amazon",
+                                                    "marketplace": "Amazon",
+                                                }
+                                            )
+                    except Exception:
+                        pass
                     
                     deals.extend(_extract_listing_deals(soup))
                     return deals
@@ -295,27 +311,13 @@ async def get_amazon_product(url):
                 await asyncio.sleep(random.uniform(1, 3)) # Add jitter between retries
     
     soup = BeautifulSoup(html, "html.parser")
-    
-    # --- RESILIENT SELECTORS (Amazon March 2026 Update) ---
-    title_el = soup.select_one("#productTitle")
-    title = title_el.get_text(strip=True) if title_el else None
-    if not title:
-        meta_title = soup.select_one("meta[property='og:title'], meta[name='title']")
-        title = meta_title.get("content", "").strip() if meta_title else None
-    
-    # Search for price in specified order: .a-price-whole, .a-offscreen, span[data-a-color='price']
-    price_el = soup.select_one(".a-price-whole")
-    if not price_el:
-        price_el = soup.select_one(".a-offscreen")
-    if not price_el:
-        price_el = soup.select_one("span[data-a-color='price']")
-    
-    price = price_el.get_text(strip=True) if price_el else None
-    if not price:
-        price_meta = soup.select_one("meta[property='product:price:amount'], meta[property='og:price:amount']")
-        price = price_meta.get("content", "").strip() if price_meta else None
 
-    # --- AMAZON STEALTH PRECISION: JSON-LD for sku/productID ---
+    # MACHINE-DATA PARSING (SEO Pivot):
+    # - Primary: JSON-LD Product -> offers.price + offers.priceCurrency
+    # - Fallback: meta[property='og:price:amount'|'product:price:amount'] (+ currency tags)
+    title = None
+    price = None
+    currency = None
     product_id = None
     try:
         json_ld_scripts = soup.find_all("script", type="application/ld+json")
@@ -323,41 +325,52 @@ async def get_amazon_product(url):
             try:
                 data = json.loads(script.string)
                 # Handle both single objects and lists of objects
-                if isinstance(data, list):
-                    data = data[0]
-                
-                # Target specific product data with sku/productID
-                if data.get("@type") == "Product":
-                    if not title and "name" in data:
-                        title = data["name"]
-                    
-                    # Extract product ID for precision
+                objs = data if isinstance(data, list) else [data]
+                for obj in objs:
+                    if not isinstance(obj, dict):
+                        continue
+                    if obj.get("@type") != "Product":
+                        continue
+                    if not title and obj.get("name"):
+                        title = str(obj.get("name")).strip()
                     if not product_id:
-                        product_id = data.get("sku") or data.get("productID") or data.get("mpn")
-                    
-                    # Extract specific price from offers
-                    if not price:
-                        offers = data.get("offers")
-                        if isinstance(offers, dict):
+                        product_id = obj.get("sku") or obj.get("productID") or obj.get("mpn")
+                    offers = obj.get("offers")
+                    if isinstance(offers, dict):
+                        if price is None:
                             price = offers.get("price")
-                            # Validate this is a specific product price, not a range
-                            if price and isinstance(price, (int, float, str)):
-                                try:
-                                    price_val = float(str(price).replace("$", "").replace(",", ""))
-                                    # Discard if price is too low (likely error) or too high (category page)
-                                    if price_val < 1 or price_val > 50000:
-                                        price = None
-                                except:
-                                    price = None
-                        elif isinstance(offers, list) and len(offers) > 0:
-                            price = offers[0].get("price")
-                    
+                        if currency is None:
+                            currency = offers.get("priceCurrency")
+                    elif isinstance(offers, list) and offers:
+                        o0 = offers[0] if isinstance(offers[0], dict) else {}
+                        if price is None:
+                            price = o0.get("price")
+                        if currency is None:
+                            currency = o0.get("priceCurrency")
                     if title and price:
                         break
+                if title and price:
+                    break
             except (json.JSONDecodeError, TypeError):
                 continue
     except Exception as e:
         print(f"JSON-LD Extraction failed: {e}")
+
+    # Metadata fallback (no CSS selectors)
+    if not title:
+        meta_title = soup.find("meta", attrs={"property": "og:title"}) or soup.find("meta", attrs={"name": "title"})
+        title = meta_title.get("content", "").strip() if meta_title else None
+
+    if not price:
+        price_meta = soup.find("meta", attrs={"property": "product:price:amount"}) or soup.find(
+            "meta", attrs={"property": "og:price:amount"}
+        )
+        price = price_meta.get("content", "").strip() if price_meta else None
+    if not currency:
+        cur_meta = soup.find("meta", attrs={"property": "product:price:currency"}) or soup.find(
+            "meta", attrs={"property": "og:price:currency"}
+        )
+        currency = cur_meta.get("content", "").strip() if cur_meta else None
 
     # DISCARD if no specific price found (stealth precision)
     if not price:
@@ -383,6 +396,13 @@ async def get_amazon_product(url):
         "source": "amazon",
         "marketplace": "Amazon"
     }
+
+    try:
+        cur = currency or "INR"
+        print(f"[PRICE:FOUND] amazon price={price} currency={cur}", flush=True)
+        result["price_currency"] = cur
+    except Exception:
+        pass
     
     # Stock & Urgency Extraction
     # Patterns: "Only X left in stock", "X% claimed" on Lightning Deals
