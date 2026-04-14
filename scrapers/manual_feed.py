@@ -2,6 +2,8 @@ import asyncio
 import logging
 import re
 import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from html import unescape
 from urllib.parse import urljoin
 
@@ -45,9 +47,48 @@ def _parse_rss(xml_text: str) -> list[dict]:
         title = _clean_title(item.findtext("title", default=""))
         link = (item.findtext("link", default="") or "").strip()
         description = item.findtext("description", default="") or ""
+        pub_date_raw = (item.findtext("pubDate", default="") or "").strip()
 
         if not title or not link:
             continue
+
+        # COUPONAMI EXPIRY CHECK:
+        # - Drop if older than 12 hours based on pubDate when present
+        # - Drop if an expiry-like tag exists and is in the past
+        now = datetime.now(timezone.utc)
+        try:
+            if pub_date_raw:
+                dt = parsedate_to_datetime(pub_date_raw)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                age = now - dt.astimezone(timezone.utc)
+                if age > timedelta(hours=12):
+                    print(f"[SKIP:EXPIRED] {title}", flush=True)
+                    continue
+        except Exception:
+            pass
+
+        try:
+            expiry_text = None
+            for child in list(item):
+                tag = (child.tag or "").lower()
+                if "expir" in tag or "expiry" in tag or "expires" in tag:
+                    t = (child.text or "").strip()
+                    if t:
+                        expiry_text = t
+                        break
+            if expiry_text:
+                try:
+                    edt = parsedate_to_datetime(expiry_text)
+                    if edt.tzinfo is None:
+                        edt = edt.replace(tzinfo=timezone.utc)
+                    if now > edt.astimezone(timezone.utc):
+                        print(f"[SKIP:EXPIRED] {title}", flush=True)
+                        continue
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
         price = _extract_price(description)
         deals.append(

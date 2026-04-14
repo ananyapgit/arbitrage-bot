@@ -1540,6 +1540,8 @@ def format_whatsapp_message(deal: dict) -> str:
 
 async def post_to_telegram(bot: Bot, chat_id: int, caption: str, affiliate_url: str):
     """Posts to Telegram with retry logic. Returns (message_obj, status)."""
+    # Debug block for live validation
+    print(f"[TELEGRAM_DEBUG] Attempting send to {chat_id}...", flush=True)
     # Log caption for verification
     logging.info(f"Preparing to post to Telegram: {caption} | url={affiliate_url}")
 
@@ -1599,6 +1601,13 @@ async def post_to_telegram(bot: Bot, chat_id: int, caption: str, affiliate_url: 
             await asyncio.sleep(2)
         except Exception as e:
             err_str = str(e).lower()
+            try:
+                if "bot api error" in err_str:
+                    m = re.search(r"bot api error\\s+(\\d{3})", str(e), re.I)
+                    if m:
+                        print(f"[TELEGRAM_DEBUG] API error code={m.group(1)}", flush=True)
+            except Exception:
+                pass
             if "connection reset" in err_str or "reset by peer" in err_str:
                 # Distinct status for uptime diagnostics
                 logging.warning("Telegram connection reset detected: %r", e)
@@ -1618,6 +1627,55 @@ async def post_to_telegram(bot: Bot, chat_id: int, caption: str, affiliate_url: 
                 logging.warning(f"Telegram error (attempt {attempt+1}): {e!r}")
                 await asyncio.sleep(2)
     return None, "Fail"
+
+
+def _affiliate_is_monetized(url: str, source: str) -> bool:
+    u = str(url or "")
+    s = (source or "").lower()
+    if "amazon" in s:
+        return "tag=" in u
+    # EarnKaro enforcement for non-Amazon channels
+    if "flipkart" in s or "coupon" in s or "couponami" in s or "coupondunia" in s:
+        try:
+            host = (urlparse(u).netloc or "").lower()
+        except Exception:
+            host = ""
+        return "earnkaro" in host
+    return u.startswith("http")
+
+
+async def broadcast_deal(
+    *,
+    telegram_bot: Bot,
+    chat_id: int,
+    deal: dict,
+    caption: str,
+    discount_pct: float,
+    deal_id: str,
+) -> tuple[str, int]:
+    """
+    ATOMIC BROADCAST: Telegram + SendGrid at the exact same time.
+    Only call when deal has numeric price and monetized affiliate link.
+    """
+    final_url = str(deal.get("affiliate_url") or deal.get("url") or "").strip()
+    src = str(deal.get("source") or deal.get("marketplace") or "")
+    if _to_float_price(deal.get("new_price") or deal.get("price")) is None:
+        raise ValueError("broadcast_deal called without numeric price")
+    if not _affiliate_is_monetized(final_url, src):
+        raise ValueError("broadcast_deal called without monetized affiliate link")
+
+    async def _tg():
+        print(f"[TELEGRAM:ATTEMPT] deal_id={deal_id}", flush=True)
+        _, st = await post_to_telegram(telegram_bot, chat_id, caption, final_url)
+        return st
+
+    async def _email():
+        print(f"[EMAIL:ATTEMPT] deal_id={deal_id}", flush=True)
+        # SendGrid is sync; run in thread so we can gather with Telegram.
+        return await asyncio.to_thread(SendGridNotifier().send_immediate_alert, deal)
+
+    tg_status, sent_n = await asyncio.gather(_tg(), _email(), return_exceptions=False)
+    return tg_status, int(sent_n or 0)
 
 
 async def post_to_whatsapp(text_message: str) -> tuple[bool, str]:
@@ -2134,47 +2192,27 @@ async def deal_engine(single_run=False):
                                 stats["telegram_attempts"] += 1
                                 deal_id = asin if asin else raw_url[-12:] if raw_url else "unknown"
                                 
-                                # OMNI-CHANNEL LOOT BROADCAST (parallel): Telegram + SendGrid + Dashboard Sync
+                                # ATOMIC BROADCAST (non-negotiable sync): Telegram + SendGrid in parallel.
                                 if discount_percentage > loot_gate and not DRY_RUN:
-                                    async def _tg_task():
-                                        print(f"[TELEGRAM:ATTEMPT] deal_id={deal_id}")
-                                        return await post_to_telegram(telegram_bot, chat_id, caption, final_url)
-
-                                    async def _email_task():
-                                        try:
-                                            print(f"[EMAIL:ATTEMPT] deal_id={deal_id}")
-                                            n = SendGridNotifier().broadcast_loot_deal(deal, discount_percentage)
-                                            if n:
-                                                print(f"[EMAIL:SUCCESS] Sent to {n} subscribers")
-                                                log_delivery_audit("email", True, deal_id, f"Sent to {n} subscribers")
-                                                append_delivery_audit_row("loot_emails", str(n), str(deal_id))
-                                            else:
-                                                print(f"[EMAIL:FAIL] Sent to 0 subscribers")
-                                                log_delivery_audit("email", False, deal_id, "Sent to 0 subscribers")
-                                                append_delivery_audit_row("loot_emails", "0", str(deal_id))
-                                            return n
-                                        except Exception as sg_err:
-                                            print(f"[EMAIL:FAIL] {sg_err!r}")
-                                            log_delivery_audit("email", False, deal_id, str(sg_err))
+                                    try:
+                                        tg_status, sent_n = await broadcast_deal(
+                                            telegram_bot=telegram_bot,
+                                            chat_id=chat_id,
+                                            deal=deal,
+                                            caption=caption,
+                                            discount_pct=discount_percentage,
+                                            deal_id=str(deal_id),
+                                        )
+                                        stats["loot_emails"] = stats.get("loot_emails", 0) + int(sent_n or 0)
+                                        if sent_n:
+                                            log_delivery_audit("email", True, deal_id, f"Sent to {sent_n} subscribers")
+                                            append_delivery_audit_row("loot_emails", str(sent_n), str(deal_id))
+                                        else:
+                                            log_delivery_audit("email", False, deal_id, "Sent to 0 subscribers")
                                             append_delivery_audit_row("loot_emails", "0", str(deal_id))
-                                            return 0
-
-                                    async def _sync_task():
-                                        try:
-                                            sync_to_dashboard(deal, "accepted", "Loot broadcast")
-                                            print("[DASHBOARD:SYNC] Row added")
-                                            return True
-                                        except Exception as se:
-                                            print(f"[DASHBOARD:SYNC] FAIL {se!r}")
-                                            return False
-
-                                    (msg, tg_status), loot_n, _ = await asyncio.gather(
-                                        _tg_task(),
-                                        _email_task(),
-                                        _sync_task(),
-                                        return_exceptions=False,
-                                    )
-                                    stats["loot_emails"] = stats.get("loot_emails", 0) + int(loot_n or 0)
+                                    except Exception as b_exc:
+                                        print(f"[BROADCAST:FAIL] {b_exc!r}", flush=True)
+                                        tg_status = "Fail"
                                 else:
                                     msg, tg_status = await post_to_telegram(telegram_bot, chat_id, caption, final_url)
                                 
