@@ -46,14 +46,19 @@ jobs:
 
     - name: Run Arbitrage Bot (Single Cycle)
       env:
-        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        AMAZON_TAG: ${{ secrets.AMAZON_TAG }}
-        FLIPKART_TAG: ${{ secrets.FLIPKART_TAG }}
-        GITHUB_ACTIONS: "true"
+        # Required secrets (bridge into runtime env)
+        EARNKARO_API_KEY: ${{ secrets.EARNKARO_API_KEY }}
         SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
         SENDGRID_FROM_EMAIL: ${{ secrets.SENDGRID_FROM_EMAIL }}
-        # Add other secrets as needed
+        AMAZON_TAG: ${{ secrets.AMAZON_TAG }}
+        CHAT_ID: ${{ secrets.CHAT_ID }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+
+        # Legacy names kept for backward compatibility with existing code/config
+        BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.CHAT_ID }}
+        FLIPKART_TAG: ${{ secrets.FLIPKART_TAG }}
+        GITHUB_ACTIONS: "true"
       run: python main.py
 
 
