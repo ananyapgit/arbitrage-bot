@@ -398,6 +398,61 @@ async def get_amazon_product(url):
         except Exception:
             pass
 
+    # GHOST PRICE FIX: Amazon internal twister/cart data in JS
+    if not price:
+        try:
+            # window.P.register('twister-js-init-dso-data', function(){return {...};});
+            m = re.search(
+                r"twister-js-init-dso-data[^\\{]{0,200}(\\{[\\s\\S]*?\\})\\s*\\)\\s*;",
+                html,
+                re.I,
+            )
+            if m:
+                blob = m.group(1)
+                # try strict json first; if it fails, fall back to numeric probes
+                try:
+                    data = json.loads(blob)
+                    # common shapes: nested price fields
+                    cand = (
+                        str(data.get("priceAmount") or "")
+                        or str((data.get("price") or {}).get("amount") or "")
+                        or str(((data.get("price") or {}).get("value")) or "")
+                    )
+                    if cand:
+                        price = cand
+                except Exception:
+                    # Non-JSON blobs are common; scan the twister payload for numeric fields.
+                    for pat in [
+                        r"\"priceAmount\"\\s*:\\s*(\\d+(?:\\.\\d+)?)",
+                        r"\"price\"\\s*:\\s*\"?(\\d+(?:\\.\\d+)?)\"?",
+                        r"priceAmount\\s*[:=]\\s*(\\d+(?:\\.\\d+)?)",
+                        r"price\\s*[:=]\\s*\"?(\\d+(?:\\.\\d+)?)\"?",
+                    ]:
+                        mm = re.search(pat, blob)
+                        if mm:
+                            price = mm.group(1)
+                            break
+        except Exception:
+            pass
+
+    # DEEP PRICE PARSER: hidden tracking layer
+    if not price:
+        try:
+            m = re.search(r"\"priceAmount\"\\s*:\\s*(\\d+(?:\\.\\d+)?)", html)
+            if m:
+                price = m.group(1)
+        except Exception:
+            pass
+
+    # AMAZON 'LAST RESORT' PARSER: first "price": <number> in the page source
+    if not price:
+        try:
+            m = re.search(r"\"price\"\\s*:\\s*\"?(\\d+(?:\\.\\d+)?)\"?", html)
+            if m:
+                price = m.group(1)
+        except Exception:
+            pass
+
     # CLEANING LOGIC: strip everything except digits and decimals
     def _clean_price(x):
         s = str(x or "").strip()
@@ -420,6 +475,7 @@ async def get_amazon_product(url):
 
     # DISCARD if no specific price found (stealth precision)
     if not price:
+        print("[SKIP] Price hidden in JS or missing metadata", flush=True)
         print(f"Amazon missing price: {url}")
         return None
 

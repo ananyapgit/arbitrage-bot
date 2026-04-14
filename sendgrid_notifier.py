@@ -90,14 +90,7 @@ class SendGridNotifier:
         if expected_from_email:
             self.from_email = expected_from_email.strip()
 
-        # LOWER THRESHOLD FOR TESTING: Allow deals >10% if TEST_MODE=True
-        test_mode = os.getenv('TEST_MODE', 'false').lower() in {'true', '1', 'yes'}
-        force_email_test = os.getenv('FORCE_EMAIL_TEST', 'false').lower() in {'true', '1', 'yes'}
-        threshold = 10.0 if (test_mode or force_email_test) else 20.0
-        
-        if discount_pct < threshold:
-            logging.info(f"SendGrid: discount {discount_pct}% below threshold {threshold}%; skipping broadcast.")
-            return 0
+        # Threshold gating is enforced by the bot dispatcher (LOOT_THRESHOLD).
 
         recipients = self.load_subscribers()
         if not recipients:
@@ -254,7 +247,8 @@ class SendGridNotifier:
 
     def send_immediate_alert(self, deal: dict) -> int:
         """
-        Immediate send path: no discount threshold gate. Prints SendGrid status code for every attempt.
+        Immediate send path: no discount threshold gate.
+        Prints SendGrid status code for every attempt.
         """
         pct = float(deal.get("discount_pct") or deal.get("discount_percentage") or 0.0)
         return self.broadcast_loot_deal(deal, pct)
