@@ -319,37 +319,54 @@ async def get_amazon_product(url):
     price = None
     currency = None
     product_id = None
+
+    def _iter_jsonld_nodes(obj):
+        if isinstance(obj, dict):
+            yield obj
+            for v in obj.values():
+                yield from _iter_jsonld_nodes(v)
+        elif isinstance(obj, list):
+            for it in obj:
+                yield from _iter_jsonld_nodes(it)
+
+    def _is_product(node: dict) -> bool:
+        t = node.get("@type")
+        if isinstance(t, str):
+            return t.lower() == "product"
+        if isinstance(t, list):
+            return any(isinstance(x, str) and x.lower() == "product" for x in t)
+        return False
     try:
         json_ld_scripts = soup.find_all("script", type="application/ld+json")
         for script in json_ld_scripts:
             try:
                 data = json.loads(script.string)
-                # Handle both single objects and lists of objects
-                objs = data if isinstance(data, list) else [data]
-                for obj in objs:
-                    if not isinstance(obj, dict):
+                for node in _iter_jsonld_nodes(data):
+                    if not isinstance(node, dict) or not _is_product(node):
                         continue
-                    if obj.get("@type") != "Product":
-                        continue
-                    if not title and obj.get("name"):
-                        title = str(obj.get("name")).strip()
+                    if not title and node.get("name"):
+                        title = str(node.get("name")).strip()
                     if not product_id:
-                        product_id = obj.get("sku") or obj.get("productID") or obj.get("mpn")
-                    offers = obj.get("offers")
+                        product_id = node.get("sku") or node.get("productID") or node.get("mpn")
+                    offers = node.get("offers")
                     if isinstance(offers, dict):
                         if price is None:
                             price = offers.get("price")
                         if currency is None:
                             currency = offers.get("priceCurrency")
-                    elif isinstance(offers, list) and offers:
-                        o0 = offers[0] if isinstance(offers[0], dict) else {}
-                        if price is None:
-                            price = o0.get("price")
-                        if currency is None:
-                            currency = o0.get("priceCurrency")
-                    if title and price:
+                    elif isinstance(offers, list):
+                        for o in offers:
+                            if not isinstance(o, dict):
+                                continue
+                            if price is None:
+                                price = o.get("price")
+                            if currency is None:
+                                currency = o.get("priceCurrency")
+                            if price is not None:
+                                break
+                    if title and price is not None:
                         break
-                if title and price:
+                if title and price is not None:
                     break
             except (json.JSONDecodeError, TypeError):
                 continue
@@ -371,6 +388,35 @@ async def get_amazon_product(url):
             "meta", attrs={"property": "og:price:currency"}
         )
         currency = cur_meta.get("content", "").strip() if cur_meta else None
+
+    # ATTRIBUTE FALLBACK: internal tracking attributes (rarely blocked)
+    if not price:
+        try:
+            attr_el = soup.find(attrs={"data-asin-price": True}) or soup.find(attrs={"data-price": True})
+            if attr_el:
+                price = attr_el.get("data-asin-price") or attr_el.get("data-price")
+        except Exception:
+            pass
+
+    # CLEANING LOGIC: strip everything except digits and decimals
+    def _clean_price(x):
+        s = str(x or "").strip()
+        if not s:
+            return None
+        s = re.sub(r"[^\d.]", "", s)
+        if not s:
+            return None
+        try:
+            v = float(s)
+            if v <= 0:
+                return None
+            return str(v)
+        except Exception:
+            return None
+
+    cleaned = _clean_price(price)
+    if cleaned:
+        price = cleaned
 
     # DISCARD if no specific price found (stealth precision)
     if not price:

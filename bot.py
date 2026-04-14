@@ -211,7 +211,6 @@ class AffiliateLinkGenerator:
             src_l = (source or "").lower()
             if "flipkart" in src_l or "coupon" in src_l or "couponami" in src_l or "coupondunia" in src_l:
                 print("[CRITICAL ERROR] EARNKARO KEY NOT FOUND IN GITHUB SECRETS", flush=True)
-                raise SystemExit(2)
             print(f"[MONEY_LOSS] Failed to monetize link for {raw} (missing EARNKARO_API_KEY)", flush=True)
             return raw
 
