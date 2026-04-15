@@ -2465,6 +2465,9 @@ async def deal_engine(single_run=False):
 
 if __name__ == "__main__":
     try:
-        asyncio.run(deal_engine())
+        # Pass SINGLE_RUN flag from config to the engine
+        asyncio.run(deal_engine(single_run=config.SINGLE_RUN))
     except KeyboardInterrupt:
         logging.info("Bot stopped by user.")
+    except Exception as e:
+        logging.critical(f"FATAL: Bot crashed on startup: {e}")
