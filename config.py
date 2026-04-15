@@ -89,7 +89,8 @@ POST_WITH_IMAGE = False
 REQUEST_TIMEOUT = 5
 ENABLED_SOURCES = ['amazon', 'flipkart', 'couponami', 'earnkaro']
 
-TEST_MODE = True
+# Production: real Telegram + SendGrid sends. Use DRY_RUN=true only to suppress outbound APIs.
+TEST_MODE = False
 # Force-loot threshold for production verification runs.
 LOOT_THRESHOLD = 5.0
 DRY_RUN = env_bool("DRY_RUN", False)

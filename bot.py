@@ -217,8 +217,9 @@ class AffiliateLinkGenerator:
         api = f"https://earnkaro.com/api/v1/generate_link?api_key={quote(key)}&url={quote(raw, safe='')}"
         try:
             headers = {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0",
                 "Referer": "https://earnkaro.com/",
+                "Accept": "application/json",
                 "Accept-Language": "en-US,en;q=0.9",
             }
             async with session.get(api, headers=headers, timeout=15) as resp:
@@ -229,8 +230,8 @@ class AffiliateLinkGenerator:
                     pubid = (os.getenv("EARNKARO_PUBID") or os.getenv("EARNKARO_PUBLISHER_ID") or "").strip()
                     if not pubid:
                         pubid = "unknown"
-                    fallback = f"https://topdeal.app.link/?pubid={quote(pubid)}&url={quote(raw, safe='')}"
-                    print(f"[MONEY_LOSS] EarnKaro 403; using fallback wrapper for {raw}", flush=True)
+                    fallback = f"https://earnkaro.com/convert?url={quote(raw, safe='')}&pub_id={quote(pubid)}"
+                    print(f"[MONEY_LOSS] EarnKaro 403; using fallback convert wrapper for {raw}", flush=True)
                     return fallback
                 if resp.status != 200:
                     if resp.status in (401, 403):
@@ -1580,9 +1581,11 @@ async def post_to_telegram(bot: Bot, chat_id: int, caption: str, affiliate_url: 
     # Log caption for verification
     logging.info(f"Preparing to post to Telegram: {caption} | url={affiliate_url}")
 
-    if TEST_MODE:
+    # Only DRY_RUN blocks real Telegram API calls (TEST_MODE must not silence production sends).
+    if DRY_RUN:
+        print("[TELEGRAM_DEBUG] DRY_RUN=True — skipping real send", flush=True)
         return None, "Fail"
-        
+
     # Guardrail: Block localhost redirects
     if "localhost" in caption or "localhost" in affiliate_url:
         logging.error("Blocking post: localhost redirect detected in caption")
@@ -1669,17 +1672,35 @@ def _affiliate_is_monetized(url: str, source: str) -> bool:
     s = (source or "").lower()
     if "amazon" in s:
         return "tag=" in u
-    # EarnKaro enforcement for non-Amazon channels
-    if "flipkart" in s or "coupon" in s or "couponami" in s or "coupondunia" in s:
+    # Flipkart: native affiliate (affid) OR EarnKaro / convert wrapper
+    if "flipkart" in s:
         try:
             host = (urlparse(u).netloc or "").lower()
         except Exception:
             host = ""
-        return ("earnkaro" in host) or ("topdeal.app.link" in host)
+        q = (urlparse(u).query or "").lower()
+        return (
+            "affid=" in u.lower()
+            or "earnkaro" in host
+            or "earnkaro.com" in u.lower()
+            or "topdeal.app.link" in host
+        )
+    # Coupon aggregators: profit/convert links preferred; http product/deal URL as last resort
+    if "coupon" in s or "couponami" in s or "coupondunia" in s:
+        try:
+            host = (urlparse(u).netloc or "").lower()
+        except Exception:
+            host = ""
+        return (
+            ("earnkaro" in host)
+            or ("earnkaro.com" in u.lower())
+            or ("topdeal.app.link" in host)
+            or (u.startswith("http") and len(u) > 12)
+        )
     return u.startswith("http")
 
 
-async def dispatch_all(
+async def atomic_broadcast(
     *,
     telegram_bot: Bot,
     chat_id: int,
@@ -1689,9 +1710,9 @@ async def dispatch_all(
     deal_id: str,
 ) -> tuple[str, int]:
     """
-    STRICT OVERRIDE: global broadcaster.
-    MUST call SendGrid + Telegram simultaneously via asyncio.gather.
-    If one fails, the other must still proceed.
+    SYNC MANDATE (Non-Negotiable):
+    MUST execute Telegram + SendGrid at the same time via asyncio.gather().
+    If one fails, the other must NOT be blocked.
     """
     title = str(deal.get("title") or "").strip()
     print(f"[SYNC:START] Dispatching to Email + Telegram for {title}", flush=True)
@@ -1725,11 +1746,16 @@ async def dispatch_all(
             print(f"[EMAIL_ERROR] {e!r}", flush=True)
             return e
 
-    tg_res, em_res = await asyncio.gather(_tg(), _email(), return_exceptions=False)
-    tg_status = tg_res if isinstance(tg_res, str) else "Fail"
+    tg_res, em_res = await asyncio.gather(_tg(), _email(), return_exceptions=True)
+    tg_status = "Fail"
+    if isinstance(tg_res, Exception):
+        print(f"[TELEGRAM_ERROR] {tg_res!r}", flush=True)
+    elif isinstance(tg_res, str):
+        tg_status = tg_res
+
     sent_n = 0
     if isinstance(em_res, Exception):
-        sent_n = 0
+        print(f"[EMAIL_ERROR] {em_res!r}", flush=True)
     else:
         try:
             sent_n = int(em_res or 0)
@@ -2267,8 +2293,10 @@ async def deal_engine(single_run=False):
                             tg_status = "Fail"
                             wa_status = "Fail"
                             final_result = "fail"
-    
-                            if not TEST_MODE:
+                            sent_n = 0
+
+                            # Live dispatch: gated by DRY_RUN only (TEST_MODE no longer blocks Telegram/email).
+                            if not DRY_RUN:
                                 # Channel Routing
                                 post_cat = deal.get("category", "general")
                                 chat_id = config.CHANNELS["main"]["chat_id"] # Default
@@ -2284,12 +2312,12 @@ async def deal_engine(single_run=False):
                                 stats["telegram_attempts"] += 1
                                 deal_id = asin if asin else raw_url[-12:] if raw_url else "unknown"
                                 
-                                # ATOMIC SYNC: global broadcaster (Email + Telegram simultaneously).
-                                if discount_percentage > loot_gate and not DRY_RUN:
+                                # ATOMIC SYNC: Email + Telegram simultaneously when above loot threshold.
+                                if discount_percentage > loot_gate:
                                     try:
-                                        tg_status, sent_n = await dispatch_all(
+                                        tg_status, sent_n = await atomic_broadcast(
                                             telegram_bot=telegram_bot,
-                                            chat_id=chat_id,
+                                            chat_id=int(chat_id) if str(chat_id).lstrip("-").isdigit() else chat_id,
                                             deal=deal,
                                             caption=caption,
                                             discount_pct=discount_percentage,
@@ -2305,8 +2333,14 @@ async def deal_engine(single_run=False):
                                     except Exception as b_exc:
                                         print(f"[BROADCAST:FAIL] {b_exc!r}", flush=True)
                                         tg_status = "Fail"
+                                        sent_n = 0
                                 else:
-                                    msg, tg_status = await post_to_telegram(telegram_bot, chat_id, caption, final_url)
+                                    msg, tg_status = await post_to_telegram(
+                                        telegram_bot,
+                                        int(chat_id) if str(chat_id).lstrip("-").isdigit() else chat_id,
+                                        caption,
+                                        final_url,
+                                    )
                                 
                                 # Telegram Analytics: Track success/failure
                                 if tg_status == "Success":
@@ -2325,10 +2359,11 @@ async def deal_engine(single_run=False):
                                     stats["whatsapp_sent"] += 1
                                 elif WHATSAPP_ENABLED:
                                     stats["whatsapp_failed"] += 1
+                                channels_ok = (tg_status == "Success") or (sent_n > 0)
                                 final_result = (
                                     "success"
                                     if tg_status == "Success" and wa_ok
-                                    else ("partial_success" if wa_ok else "fail")
+                                    else ("partial_success" if wa_ok or channels_ok else "fail")
                                 )
                                 append_delivery_audit_bundle(
                                     deal_id=str(deal_id),
@@ -2343,8 +2378,8 @@ async def deal_engine(single_run=False):
                                 except Exception as e:
                                     logging.warning(f"Discord cross-post skipped due to error: {e}")
                             
-                                # SQLite Persistent Deduplication
-                                if msg or final_result == "partial_success":
+                                # SQLite Persistent Deduplication (atomic path has msg=None)
+                                if msg or tg_status == "Success" or sent_n > 0 or final_result == "partial_success":
                                      mark_deal_sent(deal_id)
                                      log_post(deal.get("url", "unknown"), deal.get("category", "general"))
                                      
@@ -2381,7 +2416,7 @@ async def deal_engine(single_run=False):
                                     logging.error(f"Waitlist alert processing failed: {e}")
                             
                             processed_count += 1
-                            if msg or final_result == "partial_success":
+                            if msg or tg_status == "Success" or sent_n > 0 or final_result == "partial_success":
                                 stats["sent"] += 1
                             await asyncio.sleep(ANTI_SPAM_DELAY)
                     
