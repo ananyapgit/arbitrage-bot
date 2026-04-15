@@ -477,7 +477,7 @@ async def get_amazon_product(url):
     if not price:
         print("[SKIP] Price hidden in JS or missing metadata", flush=True)
         print(f"Amazon missing price: {url}")
-        return None
+        return {}
 
     # DISCARD if no proper title (likely category page)
     if not title or len(title) < 3:

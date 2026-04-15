@@ -236,8 +236,10 @@ class AffiliateLinkGenerator:
                 if resp.status != 200:
                     if resp.status in (401, 403):
                         print("[SKIP] API Auth Failure", flush=True)
-                    print(f"[MONEY_LOSS] Failed to monetize link for {raw} (status={resp.status})", flush=True)
-                    return raw
+                    pubid = (os.getenv("EARNKARO_PUBID") or os.getenv("EARNKARO_PUBLISHER_ID") or "").strip() or "unknown"
+                    fallback = f"https://earnkaro.com/convert?url={quote(raw, safe='')}&pub_id={quote(pubid)}"
+                    print(f"[MONEY_LOSS] EarnKaro API status={resp.status}; using fallback convert wrapper for {raw}", flush=True)
+                    return fallback
                 try:
                     payload = json.loads(body)
                 except Exception:
@@ -257,7 +259,10 @@ class AffiliateLinkGenerator:
                     print(f"[REVENUE:SUCCESS] EarnKaro Profit Link generated for {dom}.", flush=True)
                     return profit
         except Exception:
-            pass
+            pubid = (os.getenv("EARNKARO_PUBID") or os.getenv("EARNKARO_PUBLISHER_ID") or "").strip() or "unknown"
+            fallback = f"https://earnkaro.com/convert?url={quote(raw, safe='')}&pub_id={quote(pubid)}"
+            print(f"[MONEY_LOSS] EarnKaro request failed; using fallback convert wrapper for {raw}", flush=True)
+            return fallback
 
         print(f"[MONEY_LOSS] Failed to monetize link for {raw}", flush=True)
         return raw
@@ -376,6 +381,14 @@ def init_db():
     conn.close()
 
 def is_deal_sent(product_id):
+    # 24-hour in-process memory guard (in addition to SQLite)
+    now = datetime.now()
+    for k, ts in list(processed_cache.items()):
+        if isinstance(ts, datetime) and now - ts > timedelta(hours=24):
+            processed_cache.pop(k, None)
+    if product_id in processed_cache:
+        return True
+
     conn = sqlite3.connect("sent_deals.db")
     c = conn.cursor()
     # Check if deal was sent in the last 24 hours
@@ -386,6 +399,9 @@ def is_deal_sent(product_id):
     return res is not None
 
 def mark_deal_sent(product_id):
+    # Keep in-process 24h memory cache hot to block same-session duplicates.
+    processed_cache[product_id] = datetime.now()
+
     conn = sqlite3.connect("sent_deals.db")
     c = conn.cursor()
     c.execute("INSERT OR REPLACE INTO sent_deals (product_id, timestamp) VALUES (?, ?)",
@@ -1520,8 +1536,6 @@ def format_telegram_message(deal: dict) -> tuple[str, str]:
     """
     title = deal.get("title") or ""
     price = deal.get("new_price") or deal.get("price")
-    source = deal.get("source") or deal.get("marketplace") or "unknown"
-    original_price = deal.get("old_price") or deal.get("original_price")
     
     # Currency formatting
     def format_currency(val):
@@ -1536,16 +1550,13 @@ def format_telegram_message(deal: dict) -> tuple[str, str]:
     # deal["url"] should already have anany-21 from scrapers or add_affiliate_tag
     final_url = ensure_affiliate_url(deal.get("affiliate_url") or deal.get("url", ""), str(source))
 
-    lines = [
-        f"🛍️ <b>{title}</b>",
-        f"💰 Price: <b>{price_str}</b>",
-        f"🏷️ Source: <b>{str(source).title()}</b>",
-    ]
-    if original_price:
-        lines.append(f"📉 Was: <b>{format_currency(original_price)}</b>")
-    discount = deal.get("discount_percentage") or deal.get("discount_percent")
+    lines = [f"<b>{title}</b>", f"Price: <b>{price_str}</b>"]
+    discount = deal.get("discount_percentage") or deal.get("discount_percent") or deal.get("discount")
     if discount:
-        lines.append(f"🔥 Discount: <b>{discount}%</b>")
+        disc = str(discount).strip()
+        if "%" not in disc:
+            disc = f"{disc}%"
+        lines.append(f"Discount: <b>{disc}</b>")
     msg = "\n".join(lines)
     
     return msg, "A"
@@ -1685,7 +1696,7 @@ def _affiliate_is_monetized(url: str, source: str) -> bool:
             or "earnkaro.com" in u.lower()
             or "topdeal.app.link" in host
         )
-    # Coupon aggregators: profit/convert links preferred; http product/deal URL as last resort
+    # Coupon aggregators: must be monetized via EarnKaro/profit wrapper.
     if "coupon" in s or "couponami" in s or "coupondunia" in s:
         try:
             host = (urlparse(u).netloc or "").lower()
@@ -1695,7 +1706,6 @@ def _affiliate_is_monetized(url: str, source: str) -> bool:
             ("earnkaro" in host)
             or ("earnkaro.com" in u.lower())
             or ("topdeal.app.link" in host)
-            or (u.startswith("http") and len(u) > 12)
         )
     return u.startswith("http")
 
@@ -1964,8 +1974,8 @@ async def deal_engine(single_run=False):
                 except Exception:
                     pass
 
-                # Seed Amazon deals are additive and never block.
-                if "amazon" in enabled:
+                # Optional seed deals (disabled by default to avoid stale repeats like old AirPods links).
+                if "amazon" in enabled and str(os.getenv("USE_SEED_AMAZON", "false")).lower() in {"1", "true", "yes"}:
                     try:
                         seed = load_seed_amazon_deals()
                         if seed:
@@ -2265,16 +2275,13 @@ async def deal_engine(single_run=False):
                                 logging.warning(f"Error calculating discount for {deal.get('title')}: {e}")
                                 discount_percentage = _extract_discount_pct_from_text(deal.get("title") or "")
 
-                            # Validation relaxation (TEST_MODE contingency):
-                            # allow URL+title posts even when price/discount can't be computed.
-                            if _to_float_price(new_price) is None and discount_percentage <= 0 and not TEST_MODE:
+                            # STRICT TELEGRAM QUALITY LOCKDOWN: numeric new_price is mandatory.
+                            if _to_float_price(new_price) is None:
                                 stats["invalid"] += 1
                                 stats["rejected_missing_price"] += 1
-                                print(f"[SKIP] Missing Price Data from Source: {deal.get('title')}", flush=True)
-                                log_rejection(raw_url, {"stage": "Schema", "detail": "missing_price_and_discount"})
+                                print("[SKIP] No numeric price found", flush=True)
+                                log_rejection(raw_url, {"stage": "Schema", "detail": "no_numeric_new_price"})
                                 continue
-                            if _to_float_price(new_price) is None and discount_percentage <= 0 and TEST_MODE:
-                                deal["title"] = f"🔥 Hot Deal: Check Price {deal.get('title') or ''}".strip()
     
                             if discount_percentage < MIN_DISCOUNT_THRESHOLD:
                                 stats["low_disc"] += 1
@@ -2312,35 +2319,29 @@ async def deal_engine(single_run=False):
                                 stats["telegram_attempts"] += 1
                                 deal_id = asin if asin else raw_url[-12:] if raw_url else "unknown"
                                 
-                                # ATOMIC SYNC: Email + Telegram simultaneously when above loot threshold.
-                                if discount_percentage > loot_gate:
-                                    try:
-                                        tg_status, sent_n = await atomic_broadcast(
-                                            telegram_bot=telegram_bot,
-                                            chat_id=int(chat_id) if str(chat_id).lstrip("-").isdigit() else chat_id,
-                                            deal=deal,
-                                            caption=caption,
-                                            discount_pct=discount_percentage,
-                                            deal_id=str(deal_id),
-                                        )
-                                        stats["loot_emails"] = stats.get("loot_emails", 0) + int(sent_n or 0)
-                                        if sent_n:
-                                            log_delivery_audit("email", True, deal_id, f"Sent to {sent_n} subscribers")
-                                            append_delivery_audit_row("loot_emails", str(sent_n), str(deal_id))
-                                        else:
-                                            log_delivery_audit("email", False, deal_id, "Sent to 0 subscribers")
-                                            append_delivery_audit_row("loot_emails", "0", str(deal_id))
-                                    except Exception as b_exc:
-                                        print(f"[BROADCAST:FAIL] {b_exc!r}", flush=True)
-                                        tg_status = "Fail"
-                                        sent_n = 0
-                                else:
-                                    msg, tg_status = await post_to_telegram(
-                                        telegram_bot,
-                                        int(chat_id) if str(chat_id).lstrip("-").isdigit() else chat_id,
-                                        caption,
-                                        final_url,
+                                # ATOMIC SYNC: same deal must hit Email + Telegram together.
+                                try:
+                                    # DEDUP LOCK: mark right before dispatch so parallel channels cannot re-post same deal.
+                                    mark_deal_sent(deal_id)
+                                    tg_status, sent_n = await atomic_broadcast(
+                                        telegram_bot=telegram_bot,
+                                        chat_id=int(chat_id) if str(chat_id).lstrip("-").isdigit() else chat_id,
+                                        deal=deal,
+                                        caption=caption,
+                                        discount_pct=discount_percentage,
+                                        deal_id=str(deal_id),
                                     )
+                                    stats["loot_emails"] = stats.get("loot_emails", 0) + int(sent_n or 0)
+                                    if sent_n:
+                                        log_delivery_audit("email", True, deal_id, f"Sent to {sent_n} subscribers")
+                                        append_delivery_audit_row("loot_emails", str(sent_n), str(deal_id))
+                                    else:
+                                        log_delivery_audit("email", False, deal_id, "Sent to 0 subscribers")
+                                        append_delivery_audit_row("loot_emails", "0", str(deal_id))
+                                except Exception as b_exc:
+                                    print(f"[BROADCAST:FAIL] {b_exc!r}", flush=True)
+                                    tg_status = "Fail"
+                                    sent_n = 0
                                 
                                 # Telegram Analytics: Track success/failure
                                 if tg_status == "Success":
