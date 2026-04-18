@@ -698,9 +698,12 @@ export function KineticCommandCenter() {
              </Card>
            </BentoGrid>
          )
-       default:
-
-  return (
+        default:
+          return null
+      }
+    }
+  
+    return (
     <div className="flex h-screen bg-[#0A0A0B] text-[#F8F9FA] overflow-hidden font-sans selection:bg-[#FFD700] selection:text-[#0A0A0B]">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
