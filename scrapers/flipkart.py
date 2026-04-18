@@ -111,6 +111,16 @@ async def get_flipkart_product(url):
     if not price:
         price = soup.select_one("._30jeq3")
 
+    # --- BUYABILITY VALIDATION ---
+    text_lower = html.lower()
+    buy_markers = [
+        "add to cart", "buy now", "proceed to buy", 
+        "add_to_cart", "buy_now"
+    ]
+    has_buy_button = any(marker in text_lower for marker in buy_markers)
+    if not has_buy_button:
+        return None
+
     if not title:
         return None
     

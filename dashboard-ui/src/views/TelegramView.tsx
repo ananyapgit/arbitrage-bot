@@ -47,7 +47,7 @@ export function TelegramView() {
           <div className="text-xs font-semibold uppercase tracking-wide text-[#6B6B6B]">Channel posture</div>
           <div className="mt-1 text-lg font-semibold tracking-tight">Telegram vs WhatsApp vs scrape health</div>
           <div className="mt-4 h-[220px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={220}>
               <BarChart data={chartData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6B6B6B' }} axisLine={{ stroke: '#E3E3E0' }} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#6B6B6B' }} width={32} />

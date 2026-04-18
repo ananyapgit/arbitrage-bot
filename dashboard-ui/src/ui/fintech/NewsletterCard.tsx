@@ -2,32 +2,35 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
 
 const LS_KEY = 'arb_newsletter_queue'
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function NewsletterCard({ variant = 'light' }: { variant?: 'light' | 'dark' }) {
-  const formId = (import.meta.env.VITE_FORMSPREE_ID as string | undefined)?.trim()
+  const apiBase = (import.meta.env.VITE_API_BASE as string | undefined)?.trim() || 'http://localhost:8001'
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'ok' | 'err'>('idle')
-  const action = formId ? `https://formspree.io/f/${formId}` : ''
 
   const dark = variant === 'dark'
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!action) {
+    const clean = email.trim().toLowerCase()
+    if (!EMAIL_RE.test(clean)) {
       setStatus('err')
       return
     }
     setStatus('loading')
     try {
-      const fd = new FormData()
-      fd.append('email', email)
-      const res = await fetch(action, { method: 'POST', body: fd, headers: { Accept: 'application/json' } })
-      const j = (await res.json().catch(() => ({}))) as { ok?: boolean }
-      if (res.ok || j.ok) {
+      const res = await fetch(`${apiBase}/api/subscribers/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: clean }),
+      })
+      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; duplicate?: boolean }
+      if (res.ok && (j.ok || j.duplicate)) {
         setStatus('ok')
         try {
           const prev = JSON.parse(localStorage.getItem(LS_KEY) || '[]') as string[]
-          prev.push(email.trim())
+          prev.push(clean)
           localStorage.setItem(LS_KEY, JSON.stringify(prev))
         } catch {
           /* ignore */
@@ -76,7 +79,6 @@ export function NewsletterCard({ variant = 'light' }: { variant?: 'light' | 'dar
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@domain.com"
-          disabled={!action}
           className={
             dark
               ? 'w-full rounded-lg border border-white/15 bg-black/30 px-2 py-2 text-sm text-white placeholder:text-white/35'
@@ -85,16 +87,14 @@ export function NewsletterCard({ variant = 'light' }: { variant?: 'light' | 'dar
         />
         <button
           type="submit"
-          disabled={!action || status === 'loading'}
+          disabled={status === 'loading'}
           className="w-full rounded-lg bg-[#FFD700] px-3 py-2 text-xs font-bold text-black disabled:opacity-40"
         >
           {status === 'loading' ? 'Sending…' : 'Subscribe'}
         </button>
       </form>
 
-      {!formId ? (
-        <p className={`mt-2 text-[10px] ${dark ? 'text-amber-200/90' : 'text-amber-800'}`}>Set VITE_FORMSPREE_ID in .env</p>
-      ) : null}
+      <p className={`mt-2 text-[10px] ${dark ? 'text-white/60' : 'text-slate-500'}`}>Connected to subscribers.txt via API</p>
 
       <AnimatePresence mode="wait">
         {status === 'ok' ? (
@@ -116,7 +116,7 @@ export function NewsletterCard({ variant = 'light' }: { variant?: 'light' | 'dar
             animate={{ opacity: 1 }}
             className={`mt-2 text-center text-[11px] ${dark ? 'text-rose-300' : 'text-rose-700'}`}
           >
-            Could not submit. Check Formspree id / network.
+            Invalid email or API unavailable.
           </motion.div>
         ) : null}
       </AnimatePresence>

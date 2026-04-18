@@ -398,6 +398,22 @@ async def get_amazon_product(url):
         except Exception:
             pass
 
+    # --- BUYABILITY VALIDATION ---
+    # To prevent deals without a "Buy Now" or "Add to Cart" button from being sent.
+    buy_markers = [
+        "add to cart", "buy now", "proceed to buy", 
+        "add-to-cart-button", "buy-now-button"
+    ]
+    has_buy_button = any(marker in text_lower for marker in buy_markers)
+    if not has_buy_button:
+        print(f"Amazon rejected deal with no buy button: {url}")
+        return None
+
+    # Stock Check (Basic keyword matching)
+    if "currently unavailable" in text_lower or "out of stock" in text_lower or "sold out" in text_lower:
+        print(f"Amazon rejected out-of-stock deal: {url}")
+        return None
+
     # GHOST PRICE FIX: Amazon internal twister/cart data in JS
     if not price:
         try:

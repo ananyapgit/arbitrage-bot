@@ -84,6 +84,22 @@ SPAM_PAUSE_FILE = "spam_pause.json"
 # T-046: Memory Leak Prevention via SQLite Deduplication
 processed_cache = {}
 
+KNOWN_BAD_AMAZON_ASINS = {"B0BDKD8DVD", "B09JR8X4N6", "B089MWT1L2"}
+KNOWN_BAD_TITLE_SNIPPETS = {
+    "apple airpods pro (2nd generation)", "apple airpods pro", 
+    "apple airpods", "airpods pro", "airpods", "earpods",
+    "iphone 15 pro max", "iphone 14 pro max" # Common fake bait
+}
+
+
+def is_known_bad_deal(url: str, title: str = "") -> bool:
+    raw = str(url or "").lower()
+    ttl = str(title or "").strip().lower()
+    for asin in KNOWN_BAD_AMAZON_ASINS:
+        if f"/dp/{asin.lower()}" in raw:
+            return True
+    return any(snippet in ttl for snippet in KNOWN_BAD_TITLE_SNIPPETS)
+
 
 def normalize_price(value):
     if value is None:
@@ -644,6 +660,8 @@ def load_seed_amazon_deals():
                     continue
                 if "/dp/example" in raw.lower():
                     continue
+                if is_known_bad_deal(raw, str(item.get("title", ""))):
+                    continue
                 affiliate_url = ensure_affiliate_url(raw, "amazon")
                 if affiliate_url in seen:
                     continue
@@ -805,6 +823,13 @@ async def enrich_deal(session, deal: dict) -> dict:
     
     source = str(deal.get("source") or deal.get("marketplace") or "").lower()
 
+    if is_known_bad_deal(url, str(deal.get("title") or "")):
+        deal["valid"] = False
+        deal["enrich_error"] = "known_bad_deal"
+        print(f"[SKIP] Known bad deal blocked: {deal.get('title') or url}", flush=True)
+        log_rejection(url, {"stage": "Schema", "detail": "known_bad_deal"})
+        return deal
+
     # Allow coupon/deal aggregator items to pass through without product URL heuristics.
     if "coupon" not in source and not is_individual_product_url(url):
         deal["valid"] = False
@@ -821,9 +846,28 @@ async def enrich_deal(session, deal: dict) -> dict:
          elif "laptop" in title_lower: deal["category"] = "laptop"
          else: deal["category"] = "general"
 
-    # Permanent fix: do NOT scrape individual Amazon/Flipkart product pages for price.
-    # Only verify URL availability (404 check) and rely on feed/listing fields.
-    if "amazon" in url or "amzn" in url or "flipkart.com" in url:
+    # STRICT buyability validation for Amazon:
+    # require real product extraction so blocked/ghost pages never pass to Telegram/Email.
+    if "amazon" in url or "amzn" in url:
+        try:
+            amz = await get_amazon_product(url)
+        except Exception as e:
+            amz = None
+            logging.warning("Amazon product validation failed for %s: %r", url, e)
+        if not amz:
+            deal["valid"] = False
+            deal["enrich_error"] = "amazon_validation_failed"
+            print(f"[SKIP] Amazon product not buyable/price missing: {url}", flush=True)
+            log_rejection(url, {"stage": "Buyability", "detail": "amazon_validation_failed"})
+            return deal
+        deal.update(amz)
+        deal["new_price"] = amz.get("price") or deal.get("new_price")
+        deal["title"] = amz.get("title") or deal.get("title")
+        deal["affiliate_url"] = amz.get("affiliate_url") or deal.get("affiliate_url")
+        deal["valid"] = True
+        return deal
+
+    if "flipkart.com" in url:
         try:
             async with session.get(url, headers={"User-Agent": random.choice(USER_AGENTS)}, allow_redirects=True, timeout=10) as resp:
                 if resp.status == 404:
@@ -832,7 +876,6 @@ async def enrich_deal(session, deal: dict) -> dict:
                     log_rejection(url, {"stage": "Network", "detail": "404"})
                     return deal
         except Exception:
-            # If we cannot verify, do not mark invalid here; downstream validation decides.
             pass
         deal["valid"] = True
         return deal
@@ -898,13 +941,22 @@ async def enrich_deal(session, deal: dict) -> dict:
                 #     except:
                 #         pass
 
-                # LEVEL 4: Buyability Failures - MODIFIED FOR REVENUE PRIORITY
-                # Strict buyability check is removed. If a URL is found, it is considered buyable.
-                buy_markers = ["add to cart", "buy now", "proceed to buy"]
-                has_buy_button = any(x in text_lower for x in buy_markers)
+                # LEVEL 4: Buyability Failures - MANDATORY BUY BUTTON
+                # To prevent "AirPods" deals that redirect but have no buy button.
+                buy_markers = [
+                    "add to cart", "buy now", "proceed to buy", 
+                    "get this deal", "go to deal", "grab deal",
+                    "activate deal", "claim deal", "shop now",
+                    "buy it now", "enroll now" # Added for courses
+                ]
+                has_buy_button = any(marker in text_lower for marker in buy_markers)
 
-                if has_buy_button:
-                    deal["valid"] = True  # If a buy button is found, the deal is valid.
+                if not has_buy_button:
+                    deal["valid"] = False
+                    deal["enrich_error"] = "No Buy Button Found"
+                    print(f"[SKIP] No Buy Button found on landing page: {url}", flush=True)
+                    log_rejection(url, {"stage": "Buyability", "detail": "no_buy_button"})
+                    return deal
 
                 # Fallback for messy or missing title/price
                 if not deal.get("title") or not str(deal.get("title")).strip():
@@ -913,7 +965,8 @@ async def enrich_deal(session, deal: dict) -> dict:
                 price = deal.get("new_price")
                 try:
                     # A simple check to see if price is a reasonable number
-                    float(str(price).replace(",", "").replace("₹", ""))
+                    if price and str(price).lower() not in ["free", "0", "check link"]:
+                        float(str(price).replace(",", "").replace("₹", ""))
                 except (ValueError, TypeError, AttributeError):
                     deal["new_price"] = 'Check Link'
 
@@ -2275,13 +2328,21 @@ async def deal_engine(single_run=False):
                                 logging.warning(f"Error calculating discount for {deal.get('title')}: {e}")
                                 discount_percentage = _extract_discount_pct_from_text(deal.get("title") or "")
 
-                            # STRICT TELEGRAM QUALITY LOCKDOWN: numeric new_price is mandatory.
-                            if _to_float_price(new_price) is None:
+                            # REVENUE PRIORITY: Allow 100% OFF deals (like Couponami) to pass even if price is missing or 'FREE'
+                            is_100_off = discount_percentage >= 99.0
+                            numeric_price = _to_float_price(new_price)
+                            
+                            if numeric_price is None and not is_100_off:
                                 stats["invalid"] += 1
                                 stats["rejected_missing_price"] += 1
-                                print("[SKIP] No numeric price found", flush=True)
+                                print(f"[SKIP] No numeric price found for non-100% deal: {deal.get('title')}", flush=True)
                                 log_rejection(raw_url, {"stage": "Schema", "detail": "no_numeric_new_price"})
                                 continue
+                            
+                            if numeric_price == 0 and not is_100_off:
+                                # If it's 0 but not 100% off, something is wrong
+                                discount_percentage = 100.0
+                                is_100_off = True
     
                             if discount_percentage < MIN_DISCOUNT_THRESHOLD:
                                 stats["low_disc"] += 1

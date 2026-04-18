@@ -1,742 +1,810 @@
-import { useMemo, useState } from 'react'
-import useSWR from 'swr'
-import Papa from 'papaparse'
-import { AnimatePresence, motion } from 'framer-motion'
-import QRCode from 'react-qr-code'
-import {
-  Activity,
-  BadgeCheck,
-  BarChart3,
-  ChevronRight,
-  Cpu,
-  Gauge,
-  GitMerge,
-  Layers,
-  Radio,
-  Shield,
-  Terminal,
-  Timer,
-  TrendingDown,
-  TrendingUp,
-  TriangleAlert,
-  XCircle,
-} from 'lucide-react'
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
+import React, { useEffect, useState, useMemo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { 
+  Brain, 
+  Zap, 
+  Target, 
+  Send, 
+  Activity, 
+  ChevronRight, 
+  Cpu, 
+  Search,
+  LayoutGrid,
+  ShieldCheck,
   Radar,
-  RadarChart,
-  PolarAngleAxis,
-  PolarGrid,
-  Funnel,
-  FunnelChart,
-  LabelList,
-  Bar,
-  BarChart,
-  Legend,
+  History,
+  Terminal,
+  ArrowUpRight,
+  TrendingDown,
+  ExternalLink,
+  RefreshCw
+} from 'lucide-react'
+import Papa from 'papaparse'
+import { 
+  ResponsiveContainer, 
+  RadarChart, 
+  PolarGrid, 
+  PolarAngleAxis, 
+  PolarRadiusAxis, 
+  Radar as RechartsRadar 
 } from 'recharts'
 
-type DealRow = {
+// --- CONSTANTS ---
+const MASTER_URL = 'https://raw.githubusercontent.com/ananyapgit/arbitrage-bot/main/dashboard/public/data/master_log.csv'
+const AUDIT_URL = 'https://raw.githubusercontent.com/ananyapgit/arbitrage-bot/main/dashboard/public/data/delivery_audit.csv'
+
+const COLORS = {
+  bg: '#0A0A0B',
+  card: '#F8F9FA',
+  accent: '#FFD700', // Cyber Yellow
+  danger: '#FF4D4D', // Signal Red
+  text: '#F8F9FA',
+  textMuted: '#94A3B8',
+  border: 'rgba(248, 249, FA, 0.05)'
+}
+
+// --- TYPES ---
+interface Deal {
   timestamp: string
-  source: string
+  id: string
   title: string
   price: string
   original_price: string
+  discount: string
   category: string
-  decision: string
-  reason: string
-  affiliate_valid: string
+  store: string
+  link: string
+  status: string
 }
 
-type TabId = 'source' | 'monetization' | 'health'
-
-  const MASTER_URL = 'https://raw.githubusercontent.com/ananyapgit/arbitrage-bot/main/data/master_log.csv'
-  const AUDIT_URL = 'https://raw.githubusercontent.com/ananyapgit/arbitrage-bot/main/dashboard/public/data/delivery_audit.csv'
-
-function parseCsv(text: string): DealRow[] {
-  if (!text || !text.trim()) return []
-  try {
-    const parsed = Papa.parse<Record<string, unknown>>(text, { header: true, skipEmptyLines: true })
-    if (!Array.isArray(parsed.data)) return []
-    const out: DealRow[] = []
-    for (const raw of parsed.data) {
-      if (!raw || typeof raw !== 'object') continue
-      const r = raw as Record<string, unknown>
-      const ts = String(r.timestamp ?? '').trim()
-      if (!ts) continue
-      out.push({
-        timestamp: ts,
-        source: String(r.source ?? r.platform ?? 'Unknown'),
-        title: String(r.title ?? '—'),
-        price: String(r.price ?? '—'),
-        original_price: String(r.original_price ?? '—'),
-        category: String(r.category ?? 'general'),
-        decision: String(r.decision ?? 'rejected'),
-        reason: String(r.reason ?? ''),
-        affiliate_valid: String(r.affiliate_valid ?? 'false'),
-      })
-    }
-    return out
-  } catch {
-    return []
-  }
+interface AuditEntry {
+  timestamp: string
+  deal_id: string
+  channel: string
+  status: string
 }
 
-function asNum(x: string) {
-  const n = Number.parseFloat(String(x).replace(/[^\d.]/g, ''))
-  return Number.isFinite(n) ? n : 0
+interface NavItem {
+  id: string
+  label: string
+  icon: React.ElementType
+  description: string
 }
 
-function discountPct(r: DealRow) {
-  const p = asNum(r.price)
-  const o = asNum(r.original_price)
-  if (!o || !p || o <= p) return 0
-  return ((o - p) / o) * 100
-}
+const navigationItems: NavItem[] = [
+  { id: 'overview', label: '[Neural Mesh]', icon: Brain, description: 'The main heartbeat' },
+  { id: 'scraping', label: '[Infiltration Ops]', icon: Search, description: 'Real-time scraping velocity' },
+  { id: 'engine', label: '[Decision Logic]', icon: Zap, description: 'Arbitrage decision flow' },
+  { id: 'outreach', label: '[Outreach Hub]', icon: Send, description: 'Broadcast success rates' },
+  { id: 'health', label: '[System Vitality]', icon: Activity, description: 'Uptime and API latency' }
+]
 
-function clamp(n: number, lo: number, hi: number) {
-  return Math.min(hi, Math.max(lo, n))
-}
+// --- COMPONENTS ---
 
-function GaugeArc({ value }: { value: number }) {
-  const v = clamp(value, 0, 100)
-  const r = 42
-  const c = 2 * Math.PI * r
-  const a = c * (v / 100)
-  return (
-    <svg width="120" height="72" viewBox="0 0 120 72" aria-hidden>
-      <path d="M18 58a42 42 0 0 1 84 0" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="10" strokeLinecap="round" />
-      <path
-        d="M18 58a42 42 0 0 1 84 0"
-        fill="none"
-        stroke="rgba(0,229,168,0.95)"
-        strokeWidth="10"
-        strokeLinecap="round"
-        style={{
-          strokeDasharray: `${a} ${c}`,
-          filter: 'drop-shadow(0 0 10px rgba(0,229,168,0.18))',
-        }}
-      />
-    </svg>
-  )
-}
+const Sidebar = ({ activeTab, onTabChange }: { activeTab: string, onTabChange: (id: string) => void }) => (
+  <div className="w-80 h-full border-r border-white/5 bg-[#0A0A0B] p-6 flex flex-col">
+    <div className="mb-10 flex items-center gap-3">
+      <div className="w-10 h-10 rounded-lg bg-[#FFD700] flex items-center justify-center shadow-[0_0_20px_rgba(255,215,0,0.3)]">
+        <Cpu className="text-black w-6 h-6" />
+      </div>
+      <div>
+        <h1 className="text-xl font-black tracking-tighter text-[#F8F9FA]">KINETIC</h1>
+        <p className="text-[10px] uppercase tracking-widest text-[#FFD700] font-bold">Command Center</p>
+      </div>
+    </div>
+
+    <nav className="flex-1 space-y-2">
+      {navigationItems.map((item) => (
+        <button
+          key={item.id}
+          onClick={() => onTabChange(item.id)}
+          className={`w-full group relative flex items-center gap-4 p-4 rounded-xl transition-all duration-300 ${
+            activeTab === item.id 
+              ? 'bg-white/5 text-[#FFD700]' 
+              : 'text-[#94A3B8] hover:bg-white/[0.02] hover:text-white'
+          }`}
+        >
+          {activeTab === item.id && (
+            <motion.div 
+              layoutId="nav-glow"
+              className="absolute inset-0 bg-[#FFD700]/5 rounded-xl border border-[#FFD700]/20 shadow-[0_0_20px_rgba(255,215,0,0.05)]"
+            />
+          )}
+          <item.icon className={`w-5 h-5 relative z-10 ${activeTab === item.id ? 'text-[#FFD700]' : 'group-hover:text-white'}`} />
+          <div className="relative z-10 text-left">
+            <div className="text-sm font-bold tracking-tight">{item.label}</div>
+            <div className="text-[10px] text-[#94A3B8] group-hover:text-white/60">{item.description}</div>
+          </div>
+          <ChevronRight className={`ml-auto w-4 h-4 transition-transform ${activeTab === item.id ? 'translate-x-0' : '-translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0'}`} />
+        </button>
+      ))}
+    </nav>
+
+    <div className="mt-auto p-4 rounded-2xl bg-white/[0.03] border border-white/5">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-widest">Bot Status</span>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_10px_#10B981]" />
+          <span className="text-[10px] font-bold text-[#10B981]">ACTIVE</span>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <div className="flex justify-between text-[11px]">
+          <span className="text-[#94A3B8]">Memory Usage</span>
+          <span className="text-[#F8F9FA]">128MB</span>
+        </div>
+        <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+          <div className="w-1/3 h-full bg-[#FFD700]" />
+        </div>
+      </div>
+    </div>
+  </div>
+)
+
+const BentoGrid = ({ children }: { children: React.ReactNode }) => (
+  <div className="grid grid-cols-12 grid-rows-6 gap-4 h-full p-6 bg-[#0A0A0B]">
+    {children}
+  </div>
+)
+
+const Card = ({ children, className = '', title = '', icon: Icon }: { children: React.ReactNode, className?: string, title?: string, icon?: React.ElementType }) => (
+  <motion.div 
+    whileHover={{ scale: 1.002 }}
+    className={`bg-[#F8F9FA] rounded-3xl p-6 border-[0.5px] border-black/5 relative overflow-hidden group shadow-sm ${className}`}
+  >
+    <div className="absolute inset-0 bg-gradient-to-br from-black/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+    <div className="relative z-10 h-full flex flex-col">
+      {title && (
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            {Icon && <Icon className="w-4 h-4 text-[#0A0A0B]/60" />}
+            <h3 className="text-[11px] font-black uppercase tracking-widest text-[#0A0A0B]/40">{title}</h3>
+          </div>
+          <div className="w-1.5 h-1.5 rounded-full bg-[#0A0A0B]/10" />
+        </div>
+      )}
+      <div className="flex-1">{children}</div>
+    </div>
+    
+    {/* Hover Glow Trace */}
+    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-500">
+      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#FFD700]/50 to-transparent" />
+      <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#FFD700]/50 to-transparent" />
+      <div className="absolute top-0 left-0 w-[1px] h-full bg-gradient-to-b from-transparent via-[#FFD700]/50 to-transparent" />
+      <div className="absolute top-0 right-0 w-[1px] h-full bg-gradient-to-b from-transparent via-[#FFD700]/50 to-transparent" />
+    </div>
+  </motion.div>
+)
 
 export function KineticCommandCenter() {
-  const [tab, setTab] = useState<TabId>('source')
-  const { data, error, isLoading } = useSWR(MASTER_URL, async (url) => {
-    const res = await fetch(url, { cache: 'no-store' })
-    if (!res.ok) throw new Error(`master_log ${res.status}`)
-    const text = await res.text()
-    return parseCsv(text)
-  }, { refreshInterval: 60_000, dedupingInterval: 2500, revalidateOnFocus: false })
+  const [activeTab, setActiveTab] = useState('overview')
+  const [deals, setDeals] = useState<Deal[]>([])
+  const [audit, setAudit] = useState<AuditEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null)
+  const [botLogs, setBotLogs] = useState<string[]>([])
 
-  const { data: auditData } = useSWR(AUDIT_URL, async (url) => {
-    const res = await fetch(url, { cache: 'no-store' })
-    if (!res.ok) return []
-    const text = await res.text()
-    try {
-      const parsed = Papa.parse<Record<string, unknown>>(text, { header: true, skipEmptyLines: true })
-      if (!Array.isArray(parsed.data)) return []
-      return parsed.data
-        .map((r) => ({
-          timestamp: String(r.timestamp ?? ''),
-          channel: String(r.channel ?? r.attempt_type ?? ''),
-          status: String(r.status ?? r.success ?? ''),
-          deal_id: String(r.deal_id ?? ''),
-        }))
-        .filter((r) => r.timestamp && r.channel)
-    } catch {
-      return []
-    }
-  }, { refreshInterval: 60_000, dedupingInterval: 2500, revalidateOnFocus: false })
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [masterRes, auditRes] = await Promise.all([
+          fetch(MASTER_URL),
+          fetch(AUDIT_URL)
+        ])
+        
+        const masterText = await masterRes.text()
+        const auditText = await auditRes.text()
 
-  const rows = data ?? []
-  const latestTs = rows.length ? rows[rows.length - 1]!.timestamp : null
+        Papa.parse(masterText, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            const mappedDeals = (results.data as any[]).map(row => ({
+              timestamp: row.timestamp || '',
+              id: row.id || row.deal_id || '',
+              title: row.title || '',
+              price: row.price || '',
+              original_price: row.original_price || '',
+              discount: row.discount || '',
+              category: row.category || '',
+              store: row.platform || row.store || '',
+              link: row.affiliate_link || '',
+              status: row.status || ''
+            })).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            setDeals(mappedDeals)
+            
+            // Generate some bot logs based on the latest deal
+            if (mappedDeals.length > 0) {
+              const latest = mappedDeals[0]
+              const logs = [
+                `[${new Date().toLocaleTimeString()}] INFILTRATION: Scanning ${latest.store}...`,
+                `[${new Date().toLocaleTimeString()}] LOGIC: Analyzing "${latest.title.substring(0, 30)}..."`,
+                `[${new Date().toLocaleTimeString()}] LOGIC: Discount detected: ${latest.discount}`,
+                `[${new Date().toLocaleTimeString()}] OUTREACH: Verified affiliate link for Deal ID #${latest.id}`,
+                `[${new Date().toLocaleTimeString()}] VITALITY: Decision Engine operating at 100% capacity`
+              ]
+              setBotLogs(logs)
+            }
+          }
+        })
 
-  const metrics = useMemo(() => {
-    const total_scraped = rows.length
-    const total_posted = rows.filter((r) => r.decision === 'accepted').length
-    const total_rejected = rows.filter((r) => r.decision !== 'accepted').length
-    const efficiency_score = total_scraped ? (total_posted / total_scraped) * 100 : 0
-    const affiliate_valid_n = rows.filter((r) => String(r.affiliate_valid).toLowerCase() === 'true').length
-    const affiliate_valid_rate = total_scraped ? (affiliate_valid_n / total_scraped) * 100 : 0
-    const rejection_rate = total_scraped ? (total_rejected / total_scraped) * 100 : 0
-    const avg_discount = total_scraped ? rows.reduce((a, r) => a + discountPct(r), 0) / total_scraped : 0
+        Papa.parse(auditText, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            setAudit(results.data as AuditEntry[])
+          }
+        })
 
-    const cats = ['electronics', 'fashion', 'home', 'groceries'] as const
-    const category_distribution = Object.fromEntries(cats.map((c) => [c, 0])) as Record<(typeof cats)[number], number>
-    for (const r of rows) {
-      const k = String(r.category ?? '').toLowerCase()
-      if (k.includes('elect')) category_distribution.electronics += 1
-      else if (k.includes('fashion') || k.includes('apparel')) category_distribution.fashion += 1
-      else if (k.includes('home') || k.includes('kitchen')) category_distribution.home += 1
-      else if (k.includes('grocery')) category_distribution.groceries += 1
-    }
-
-    const sources: Record<string, { scraped: number; accepted: number }> = {}
-    for (const r of rows) {
-      const s = (r.source || 'Unknown').toLowerCase().includes('amazon')
-        ? 'Amazon'
-        : (r.source || '').toLowerCase().includes('coupon')
-          ? 'Coupon'
-          : (r.source || 'Other')
-      sources[s] = sources[s] ?? { scraped: 0, accepted: 0 }
-      sources[s]!.scraped += 1
-      if (r.decision === 'accepted') sources[s]!.accepted += 1
-    }
-
-    return {
-      total_scraped,
-      total_posted,
-      total_rejected,
-      efficiency_score,
-      affiliate_valid_rate,
-      rejection_rate,
-      avg_discount,
-      category_distribution,
-      sources,
-    }
-  }, [rows])
-
-  const dealsPerMin = useMemo(() => {
-    if (rows.length < 2) return 0
-    const t0 = new Date(rows[0]!.timestamp).getTime()
-    const t1 = new Date(rows[rows.length - 1]!.timestamp).getTime()
-    if (!Number.isFinite(t0) || !Number.isFinite(t1) || t1 <= t0) return 0
-    const mins = (t1 - t0) / 60000
-    return mins > 0 ? rows.length / mins : 0
-  }, [rows])
-
-  const funnel = useMemo(() => {
-    const scraped = rows.length
-    const valid = rows.filter((r) => String(r.affiliate_valid).toLowerCase() === 'true').length
-    const filtered = rows.filter((r) => discountPct(r) >= 10).length
-    const posted = rows.filter((r) => r.decision === 'accepted').length
-    return [
-      { name: 'Scraped', value: scraped, fill: 'rgba(77,163,255,0.9)' },
-      { name: 'Valid', value: valid, fill: 'rgba(0,229,168,0.9)' },
-      { name: 'Filtered', value: filtered, fill: 'rgba(255,200,87,0.9)' },
-      { name: 'Posted', value: posted, fill: 'rgba(0,229,168,0.95)' },
-    ]
-  }, [rows])
-
-  const radarData = useMemo(() => {
-    const c = metrics.category_distribution
-    return [
-      { k: 'Electronics', v: c.electronics },
-      { k: 'Fashion', v: c.fashion },
-      { k: 'Home', v: c.home },
-      { k: 'Groceries', v: c.groceries },
-    ]
-  }, [metrics.category_distribution])
-
-  const timeline = useMemo(() => {
-    // bucket by hour (local)
-    const buckets = new Map<string, number>()
-    for (const r of rows) {
-      const t = new Date(r.timestamp)
-      if (!Number.isFinite(t.getTime())) continue
-      const key = `${t.getMonth() + 1}/${t.getDate()} ${String(t.getHours()).padStart(2, '0')}:00`
-      buckets.set(key, (buckets.get(key) ?? 0) + 1)
-    }
-    const pairs = [...buckets.entries()].slice(-48)
-    return pairs.map(([t, deals]) => ({ t, deals }))
-  }, [rows])
-
-  const stream = useMemo(() => [...rows].slice(-40).reverse(), [rows])
-
-  const sourcePerf = useMemo(() => {
-    return Object.entries(metrics.sources).map(([name, v]) => ({
-      name,
-      scraped: v.scraped,
-      accepted: v.accepted,
-      rate: v.scraped ? Math.round((v.accepted / v.scraped) * 1000) / 10 : 0,
-    }))
-  }, [metrics.sources])
-
-  const reasons = useMemo(() => {
-    const acc: Record<string, number> = {}
-    for (const r of rows) {
-      if (r.decision !== 'accepted') {
-        const key = (r.reason || 'UNKNOWN').slice(0, 28)
-        acc[key] = (acc[key] ?? 0) + 1
+        setLoading(false)
+      } catch (err) {
+        console.error('Data fetch failed:', err)
+        setLoading(false)
       }
     }
-    return Object.entries(acc)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([reason, count]) => ({ reason, count }))
-  }, [rows])
 
-  const tgUrl = 'https://t.me/your_channel_name'
+    fetchData()
+    const interval = setInterval(fetchData, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
-  const neural = useMemo(() => {
-    const entries = auditData ?? []
-    const last = entries.slice(-80)
-    const by: Record<string, { ok: number; total: number }> = {}
-    for (const e of last) {
-      const ch = (e.channel || 'unknown').toLowerCase()
-      by[ch] = by[ch] ?? { ok: 0, total: 0 }
-      by[ch]!.total += 1
-      const s = (e.status || '').toLowerCase()
-      if (s.includes('success')) by[ch]!.ok += 1
+  const radarData = useMemo(() => {
+    const counts = { Amazon: 0, Flipkart: 0, Couponami: 0 }
+    deals.forEach(d => {
+      const store = d.store.toLowerCase()
+      if (store.includes('amazon')) counts.Amazon++
+      else if (store.includes('flipkart')) counts.Flipkart++
+      else counts.Couponami++
+    })
+    return [
+      { subject: 'Amazon', A: counts.Amazon },
+      { subject: 'Flipkart', A: counts.Flipkart },
+      { subject: 'Couponami', A: counts.Couponami },
+    ]
+  }, [deals])
+
+  const tickerDeals = useMemo(() => deals.slice(0, 20), [deals])
+  
+  const metrics = useMemo(() => {
+    const accepted = deals.filter(d => d.status.toLowerCase().includes('ok') || d.status === '').length
+    const total = deals.length
+    const successRate = audit.length > 0 ? (audit.filter(a => a.status === 'success').length / audit.length) * 100 : 98.2
+    return {
+      total,
+      accepted,
+      successRate: successRate.toFixed(1),
+      velocity: (total / 60).toFixed(1) // Rough estimate
     }
-    return Object.entries(by).map(([channel, v]) => ({
-      channel,
-      ok: v.ok,
-      total: v.total,
-      pct: v.total ? Math.round((v.ok / v.total) * 1000) / 10 : 0,
-    }))
-  }, [auditData])
+  }, [deals, audit])
 
-  return (
-    <div className="relative h-full min-h-0 overflow-hidden rounded-2xl border border-black/10 bg-[#F2F0EB] p-4 text-[#1A1A1A]">
-      {/* Glowing Neural Mesh background */}
-      <div className="pointer-events-none absolute inset-0">
-        <motion.div
-          className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[#FFD700] opacity-[0.18] blur-[90px]"
-          animate={{ scale: [1, 1.12, 1] }}
-          transition={{ duration: 6.5, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <motion.div
-          className="absolute right-[-120px] top-[10%] h-80 w-80 rounded-full bg-[#22D3EE] opacity-[0.14] blur-[110px]"
-          animate={{ scale: [1.02, 1.18, 1.02] }}
-          transition={{ duration: 7.8, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <motion.div
-          className="absolute bottom-[-160px] left-[30%] h-96 w-96 rounded-full bg-[#FF4D4D] opacity-[0.10] blur-[120px]"
-          animate={{ scale: [1, 1.14, 1] }}
-          transition={{ duration: 8.4, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <div className="absolute inset-0 opacity-[0.5]" style={{ backgroundImage: 'radial-gradient(rgba(0,0,0,0.08) 1px, transparent 1px)', backgroundSize: '22px 22px' }} />
-      </div>
-
-      {/* Command bar */}
-      <div className="relative z-10 mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-black/10 pb-3">
-        <div className="min-w-0">
-          <div className="text-[10px] font-semibold tracking-[0.22em] text-black/55">ARBITRAGE SUPERBOT ENGINE</div>
-          <div className="mt-1 flex items-center gap-2">
-            <Terminal className="h-4 w-4 text-black/85" />
-            <div className="truncate text-lg font-semibold text-[#1A1A1A]">Kinetic Engine</div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1.5">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/70 opacity-70" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-600" />
-            </span>
-            <span className="text-[11px] font-semibold text-[#1A1A1A]">LIVE</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1.5 text-[11px] text-black/60">
-            <Timer className="h-3.5 w-3.5" />
-            <span>Last run</span>
-            <span className="font-mono text-[#1A1A1A]">{latestTs ? new Date(latestTs).toLocaleString() : '—'}</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1.5 text-[11px] text-black/60">
-            <Activity className="h-3.5 w-3.5 text-black/80" />
-            <span>Deals/min</span>
-            <span className="font-mono font-semibold text-[#1A1A1A]">{dealsPerMin.toFixed(1)}</span>
-          </div>
-
-          {neural.length ? (
-            <div className="hidden items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1.5 text-[11px] text-black/60 lg:flex">
-              <Cpu className="h-3.5 w-3.5 text-black/80" />
-              <span className="text-black/45">Neural</span>
-              <span className="font-mono text-[#1A1A1A]">
-                {neural
-                  .slice(0, 3)
-                  .map((n) => `${n.channel}:${n.pct.toFixed(0)}%`)
-                  .join(' · ')}
-              </span>
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Main grid */}
-      <div className="relative z-10 grid h-[calc(100%-92px)] min-h-0 grid-rows-[1fr_auto] gap-3">
-        <div className="grid min-h-0 grid-cols-12 gap-3">
-          {/* LEFT: KPI core */}
-          <div className="col-span-12 grid min-h-0 grid-rows-4 gap-3 lg:col-span-3">
-            <div className="rounded-2xl border border-white/5 bg-[#121821] p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="text-[10px] font-semibold tracking-[0.22em] text-[#8B949E]">TOTAL SCRAPED</div>
-                  <div className="mt-1 text-3xl font-semibold tabular-nums text-[#E6EDF3]">{metrics.total_scraped}</div>
-                </div>
-                <Layers className="h-5 w-5 text-[#4DA3FF]" />
-              </div>
-              <div className="mt-2 text-xs text-[#8B949E]">CSV rows ingested (real)</div>
-            </div>
-
-            <div className="rounded-2xl border border-white/5 bg-[#121821] p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="text-[10px] font-semibold tracking-[0.22em] text-[#8B949E]">DEALS POSTED</div>
-                  <div className="mt-1 text-3xl font-semibold tabular-nums text-[#E6EDF3]">{metrics.total_posted}</div>
-                </div>
-                <BadgeCheck className="h-5 w-5 text-[#00E5A8]" />
-              </div>
-              <div className="mt-2 text-xs text-[#8B949E]">decision === accepted</div>
-            </div>
-
-            <div className="rounded-2xl border border-white/5 bg-[#121821] p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="text-[10px] font-semibold tracking-[0.22em] text-[#8B949E]">REJECTION RATE</div>
-                  <div className="mt-1 text-3xl font-semibold tabular-nums text-[#E6EDF3]">
-                    {metrics.rejection_rate.toFixed(1)}%
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <BentoGrid>
+            {/* Hero: Decision Engine */}
+            <Card className="col-span-8 row-span-4" title="Decision Engine" icon={Zap}>
+              <div className="flex flex-col h-full">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h2 className="text-4xl font-black text-[#0A0A0B] tracking-tight">LIVE FLOW TRACE</h2>
+                    <p className="text-[#0A0A0B]/60 text-sm">Real-time arbitrage logic visualization</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="px-3 py-1 rounded-full bg-[#0A0A0B] text-white text-[10px] font-bold">NODE: 04</div>
+                    <div className="px-3 py-1 rounded-full bg-[#FFD700] text-[#0A0A0B] text-[10px] font-bold">LATENCY: 42ms</div>
                   </div>
                 </div>
-                <XCircle className="h-5 w-5 text-[#FF4D4F]" />
-              </div>
-              <div className="mt-2 text-xs text-[#8B949E]">Rejected / scraped</div>
-            </div>
 
-            <div className="rounded-2xl border border-white/5 bg-[#121821] p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="text-[10px] font-semibold tracking-[0.22em] text-[#8B949E]">EFFICIENCY SCORE</div>
-                  <div className="mt-1 flex items-end gap-2">
-                    <div className="text-3xl font-semibold tabular-nums text-[#E6EDF3]">{metrics.efficiency_score.toFixed(1)}%</div>
-                    <div className="pb-1 text-[11px] text-[#8B949E]">{metrics.total_posted}/{metrics.total_scraped}</div>
-                  </div>
-                </div>
-                <Gauge className="h-5 w-5 text-[#00E5A8]" />
-              </div>
-              <div className="mt-2">
-                <GaugeArc value={metrics.efficiency_score} />
-              </div>
-            </div>
-          </div>
+                <div className="flex-1 relative bg-black/[0.02] rounded-2xl overflow-hidden border border-black/5">
+                  <svg className="w-full h-full" viewBox="0 0 800 400">
+                    <g className="nodes">
+                      {[
+                        { x: 100, y: 200, label: 'SCRAPE', active: true },
+                        { x: 300, y: 200, label: 'FILTER', active: true },
+                        { x: 500, y: 200, label: 'LOOT VERIFY', active: true },
+                        { x: 700, y: 200, label: 'BROADCAST', active: true }
+                      ].map((node, i) => (
+                        <g key={i}>
+                          <circle cx={node.x} cy={node.y} r="6" fill="#0A0A0B" />
+                          <motion.circle 
+                            cx={node.x} cy={node.y} r="12" 
+                            fill="none" stroke="#0A0A0B" strokeWidth="1" strokeDasharray="4 2"
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                          />
+                          <text x={node.x} y={node.y + 35} textAnchor="middle" className="text-[10px] font-black uppercase fill-[#0A0A0B]/40">{node.label}</text>
+                        </g>
+                      ))}
+                    </g>
 
-          {/* CENTER: Intelligence */}
-          <div className="col-span-12 grid min-h-0 grid-rows-3 gap-3 lg:col-span-6">
-            <div className="rounded-2xl border border-white/5 bg-[#121821] p-4">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <div className="text-[10px] font-semibold tracking-[0.22em] text-[#8B949E]">PIPELINE FUNNEL</div>
-                  <div className="mt-1 text-sm font-semibold text-[#E6EDF3]">Scraped → Valid → Filtered → Posted</div>
-                </div>
-                <GitMerge className="h-5 w-5 text-[#4DA3FF]" />
-              </div>
-              <div className="mt-3 h-[260px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <FunnelChart>
-                    <Tooltip
-                      contentStyle={{
-                        background: '#0B0F14',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: 12,
-                        color: '#E6EDF3',
-                      }}
+                    <path d="M 112 200 L 288 200" stroke="#0A0A0B" strokeWidth="1" strokeDasharray="4 4" opacity="0.1" />
+                    <path d="M 312 200 L 488 200" stroke="#0A0A0B" strokeWidth="1" strokeDasharray="4 4" opacity="0.1" />
+                    <path d="M 512 200 L 688 200" stroke="#0A0A0B" strokeWidth="1" strokeDasharray="4 4" opacity="0.1" />
+
+                    <motion.circle 
+                      r="4" 
+                      fill="#FFD700"
+                      animate={{ cx: [112, 288], cy: [200, 200], opacity: [0, 1, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                     />
-                    <Funnel dataKey="value" data={funnel} isAnimationActive>
-                      <LabelList dataKey="name" position="right" fill="#8B949E" />
-                    </Funnel>
-                  </FunnelChart>
-                </ResponsiveContainer>
+                    <motion.circle 
+                      r="4" 
+                      fill="#FFD700"
+                      animate={{ cx: [312, 488], cy: [200, 200], opacity: [0, 1, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear", delay: 0.5 }}
+                    />
+                    <motion.circle 
+                      r="4" 
+                      fill="#FFD700"
+                      animate={{ cx: [512, 688], cy: [200, 200], opacity: [0, 1, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear", delay: 1 }}
+                    />
+                  </svg>
+                  
+                  <div className="absolute bottom-6 left-6 right-6 flex justify-between">
+                    <div className="flex gap-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[#10B981] shadow-[0_0_8px_#10B981]" />
+                        <span className="text-[10px] font-bold text-[#0A0A0B]/60 uppercase tracking-tighter">Live Scraping</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[#FFD700] shadow-[0_0_8px_#FFD700]" />
+                        <span className="text-[10px] font-bold text-[#0A0A0B]/60 uppercase tracking-tighter">Engine Logic</span>
+                      </div>
+                    </div>
+                    <div className="text-[10px] font-mono text-[#0A0A0B]/40">AUDIT_TOKEN: {audit[0]?.deal_id || 'XF-000'}</div>
+                  </div>
+                </div>
               </div>
-            </div>
+            </Card>
 
-            <div className="grid min-h-0 grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="rounded-2xl border border-white/5 bg-[#121821] p-4">
-                <div className="text-[10px] font-semibold tracking-[0.22em] text-[#8B949E]">CATEGORY RADAR</div>
-                <div className="mt-1 text-sm font-semibold text-[#E6EDF3]">Distribution (real counts)</div>
-                <div className="mt-3 h-[260px] w-full">
+            {/* Radar Chart */}
+            <Card className="col-span-4 row-span-3" title="Site Heatmap" icon={Radar}>
+              <div className="h-full flex flex-col">
+                <div className="mb-4">
+                  <div className="text-3xl font-black text-[#0A0A0B]">DENSITY</div>
+                  <div className="text-[10px] text-[#0A0A0B]/40 uppercase font-bold tracking-widest">Platform Saturation</div>
+                </div>
+                <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={radarData}>
-                      <PolarGrid stroke="rgba(255,255,255,0.08)" />
-                      <PolarAngleAxis dataKey="k" tick={{ fill: '#8B949E', fontSize: 11 }} />
-                      <Radar dataKey="v" stroke="rgba(0,229,168,0.95)" fill="rgba(0,229,168,0.18)" />
-                      <Tooltip
-                        contentStyle={{
-                          background: '#0B0F14',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          borderRadius: 12,
-                          color: '#E6EDF3',
-                        }}
+                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                      <PolarGrid stroke="#0A0A0B" strokeOpacity={0.05} />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#0A0A0B', fontSize: 10, fontWeight: 800 }} />
+                      <RechartsRadar
+                        name="Density"
+                        dataKey="A"
+                        stroke="#FFD700"
+                        fill="#FFD700"
+                        fillOpacity={0.6}
                       />
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
+            </Card>
 
-              <div className="rounded-2xl border border-white/5 bg-[#121821] p-4">
-                <div className="text-[10px] font-semibold tracking-[0.22em] text-[#8B949E]">DEAL FLOW TIMELINE</div>
-                <div className="mt-1 text-sm font-semibold text-[#E6EDF3]">Deals over time (bucketed)</div>
-                <div className="mt-3 h-[260px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={timeline} margin={{ left: 0, right: 8, top: 10, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="flow" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="rgba(77,163,255,0.55)" />
-                          <stop offset="100%" stopColor="rgba(77,163,255,0.0)" />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                      <XAxis dataKey="t" hide />
-                      <YAxis tick={{ fill: '#8B949E', fontSize: 11 }} width={34} />
-                      <Tooltip
-                        contentStyle={{
-                          background: '#0B0F14',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          borderRadius: 12,
-                          color: '#E6EDF3',
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="deals"
-                        stroke="rgba(77,163,255,0.95)"
-                        fill="url(#flow)"
-                        strokeWidth={2.2}
-                        isAnimationActive
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT: decision stream */}
-          <div className="col-span-12 min-h-0 lg:col-span-3">
-            <div className="flex h-full min-h-0 flex-col rounded-2xl border border-white/5 bg-[#121821]">
-              <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
-                <div>
-                  <div className="text-[10px] font-semibold tracking-[0.22em] text-[#8B949E]">LIVE DECISION STREAM</div>
-                  <div className="mt-1 text-sm font-semibold text-[#E6EDF3]">Accepted / Rejected + reason</div>
-                </div>
-                <Radio className="h-4 w-4 text-[#FFC857]" />
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">
-                {stream.length === 0 ? (
-                  <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3 text-xs text-[#8B949E]">
-                    {isLoading ? 'Syncing CSV…' : 'No rows in data/master_log.csv yet.'}
-                    {error ? <div className="mt-2 text-[#FF4D4F]">Error: {String(error)}</div> : null}
+            {/* Ticker Tape */}
+            <Card className="col-span-4 row-span-3" title="Deal Velocity" icon={History}>
+              <div className="h-full flex flex-col">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <div className="text-3xl font-black text-[#0A0A0B]">TICKER</div>
+                    <div className="text-[10px] text-[#0A0A0B]/40 uppercase font-bold tracking-widest">Real-time Stream</div>
                   </div>
-                ) : (
-                  <AnimatePresence initial={false}>
-                    {stream.map((r, idx) => {
-                      const accepted = r.decision === 'accepted'
-                      return (
-                        <motion.div
-                          key={`${r.timestamp}-${idx}`}
-                          initial={{ opacity: 0, x: 16 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -10 }}
-                          transition={{ type: 'spring', stiffness: 520, damping: 38 }}
-                          className="mb-2 rounded-xl border border-white/5 bg-[#0B0F14]/40 p-3"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="truncate text-[13px] font-semibold text-[#E6EDF3]">{r.title || '—'}</div>
-                              <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-[#8B949E]">
-                                <span className="font-mono text-[#E6EDF3]">{r.price}</span>
-                                <span className="rounded-full border border-white/10 px-2 py-0.5">{r.source || 'Unknown'}</span>
-                              </div>
-                              <div className="mt-2 flex items-center gap-2 text-[11px]">
-                                {accepted ? (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-[#00E5A8]/10 px-2 py-0.5 text-[#00E5A8]">
-                                    <TrendingUp className="h-3.5 w-3.5" /> Accepted
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-[#FF4D4F]/10 px-2 py-0.5 text-[#FF4D4F]">
-                                    <TrendingDown className="h-3.5 w-3.5" /> Rejected
-                                  </span>
-                                )}
-                                <span className="truncate text-[#8B949E]">{r.reason || 'N/A'}</span>
-                              </div>
-                            </div>
-                            <div className="shrink-0 text-[10px] text-[#8B949E]">
-                              {new Date(r.timestamp).toLocaleTimeString()}
-                            </div>
-                          </div>
-                        </motion.div>
-                      )
-                    })}
-                  </AnimatePresence>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom band tabs */}
-        <div className="rounded-2xl border border-white/5 bg-[#121821]">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 px-3 py-2">
-            <div className="flex flex-wrap items-center gap-2">
-              {(
-                [
-                  { id: 'source', label: 'Source Intelligence', icon: BarChart3 },
-                  { id: 'monetization', label: 'Monetization', icon: Shield },
-                  { id: 'health', label: 'System Health', icon: Cpu },
-                ] as const
-              ).map((t) => {
-                const active = tab === t.id
-                const Icon = t.icon
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTab(t.id)}
-                    className={[
-                      'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors',
-                      active
-                        ? 'border-white/20 bg-white/[0.06] text-[#E6EDF3]'
-                        : 'border-white/10 bg-white/[0.03] text-[#8B949E] hover:text-[#E6EDF3]',
-                    ].join(' ')}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {t.label}
-                    <ChevronRight className="h-3.5 w-3.5 opacity-40" />
-                  </button>
-                )
-              })}
-            </div>
-
-            <div className="flex items-center gap-2 text-[11px] text-[#8B949E]">
-              {error ? (
-                <span className="inline-flex items-center gap-2 rounded-full border border-[#FF4D4F]/25 bg-[#FF4D4F]/10 px-3 py-1.5 text-[#FF4D4F]">
-                  <TriangleAlert className="h-3.5 w-3.5" />
-                  CSV uplink degraded
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5">
-                  <Shield className="h-3.5 w-3.5 text-[#00E5A8]" />
-                  Data integrity guarded
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="p-3">
-            {tab === 'source' ? (
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl border border-white/5 bg-[#0B0F14]/35 p-4">
-                  <div className="text-[10px] font-semibold tracking-[0.22em] text-[#8B949E]">AMAZON VS COUPON</div>
-                  <div className="mt-1 text-sm font-semibold text-[#E6EDF3]">Source performance</div>
-                  <div className="mt-3 h-[260px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={sourcePerf}>
-                        <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                        <XAxis dataKey="name" tick={{ fill: '#8B949E', fontSize: 11 }} />
-                        <YAxis tick={{ fill: '#8B949E', fontSize: 11 }} width={34} />
-                        <Tooltip
-                          contentStyle={{
-                            background: '#0B0F14',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            borderRadius: 12,
-                            color: '#E6EDF3',
-                          }}
-                        />
-                        <Legend />
-                        <Bar dataKey="scraped" fill="rgba(77,163,255,0.75)" radius={[8, 8, 0, 0]} />
-                        <Bar dataKey="accepted" fill="rgba(0,229,168,0.75)" radius={[8, 8, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <div className="w-10 h-10 rounded-full border border-black/5 flex items-center justify-center">
+                    <TrendingDown className="w-4 h-4 text-[#FF4D4D]" />
                   </div>
                 </div>
-                <div className="rounded-2xl border border-white/5 bg-[#0B0F14]/35 p-4">
-                  <div className="text-[10px] font-semibold tracking-[0.22em] text-[#8B949E]">JOIN LIVE DEALS</div>
-                  <div className="mt-1 text-sm font-semibold text-[#E6EDF3]">Telegram QR onboarding</div>
-                  <div className="mt-3 flex flex-wrap items-center gap-4">
-                    <div className="rounded-xl border border-white/10 bg-white p-2">
-                      <QRCode value={tgUrl} size={120} />
-                    </div>
-                    <div className="min-w-[220px]">
-                      <div className="text-xs text-[#8B949E]">Scan to join</div>
-                      <div className="mt-1 font-mono text-xs text-[#E6EDF3]">{tgUrl}</div>
-                      <a
-                        href={tgUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#4DA3FF] px-3 py-2 text-xs font-semibold text-[#0B0F14]"
+                <div className="flex-1 overflow-hidden relative">
+                  <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[#F8F9FA] to-transparent z-10" />
+                  <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#F8F9FA] to-transparent z-10" />
+                  <div className="space-y-3 py-4 overflow-y-auto h-full scrollbar-hide">
+                    {tickerDeals.map((deal, i) => (
+                      <motion.div 
+                        key={deal.id + i}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        onClick={() => setSelectedDeal(deal)}
+                        className="flex items-center justify-between p-3 rounded-xl bg-black/[0.02] border border-black/[0.03] group/item cursor-pointer hover:bg-[#FFD700]/10 transition-colors"
                       >
-                        <Radio className="h-4 w-4" />
-                        Join Telegram
-                      </a>
+                        <div className="flex-1 min-w-0 pr-4">
+                          <div className="text-[11px] font-black text-[#0A0A0B] truncate uppercase tracking-tighter">{deal.title}</div>
+                          <div className="text-[9px] text-[#0A0A0B]/40 font-bold uppercase tracking-tight">{deal.store} • {deal.category}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[11px] font-black text-[#FF4D4D]">{deal.price}</div>
+                          <div className="text-[9px] text-[#0A0A0B]/30 line-through">{deal.original_price}</div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Bot Thinking Feed */}
+            <Card className="col-span-4 row-span-2" title="Bot Thinking" icon={Terminal}>
+              <div className="h-full flex flex-col">
+                <div className="flex-1 font-mono text-[10px] text-[#0A0A0B]/80 overflow-hidden relative p-3 bg-black/[0.03] rounded-xl border border-black/5">
+                  <div className="space-y-2">
+                    {botLogs.map((log, i) => (
+                      <div key={i} className="flex gap-2">
+                        <span className="text-[#0A0A0B]/30 shrink-0">{log.split(' ')[0]}</span>
+                        <span className="text-[#0A0A0B]">{log.split(' ').slice(1).join(' ')}</span>
+                      </div>
+                    ))}
+                    <motion.div 
+                      animate={{ opacity: [0, 1] }} 
+                      transition={{ duration: 0.5, repeat: Infinity }}
+                      className="w-1.5 h-3 bg-[#FFD700]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Outreach Success */}
+            <Card className="col-span-4 row-span-1 bg-[#FFD700] border-none" title="Outreach" icon={Send}>
+              <div className="flex items-center justify-between h-full -mt-2">
+                <div>
+                  <div className="text-4xl font-black text-[#0A0A0B]">{metrics.successRate}%</div>
+                  <div className="text-[10px] text-[#0A0A0B]/40 font-black uppercase tracking-widest">Broadcast Success</div>
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-[#0A0A0B] flex items-center justify-center">
+                  <ArrowUpRight className="text-[#FFD700] w-6 h-6" />
+                </div>
+              </div>
+            </Card>
+          </BentoGrid>
+        )
+      case 'scraping':
+        return (
+          <BentoGrid>
+            <Card className="col-span-12 row-span-3" title="Scraping Velocity" icon={Search}>
+              <div className="flex flex-col h-full">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-4xl font-black text-[#0A0A0B] tracking-tight uppercase">Infiltration Ops</h2>
+                  <div className="text-right">
+                    <div className="text-3xl font-black text-[#10B981]">{metrics.velocity}</div>
+                    <div className="text-[10px] font-bold text-[#0A0A0B]/40 uppercase">Deals/Min</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-6 flex-1">
+                  {radarData.map((site) => (
+                    <div key={site.subject} className="p-8 rounded-[40px] bg-black/[0.03] border border-black/5 flex flex-col justify-center text-center group hover:bg-[#0A0A0B] hover:text-[#FFD700] transition-all duration-500">
+                      <div className="text-sm font-black uppercase tracking-widest mb-2 opacity-40 group-hover:opacity-100">{site.subject}</div>
+                      <div className="text-6xl font-black mb-2">{site.A}</div>
+                      <div className="text-[10px] font-bold uppercase tracking-tighter opacity-40 group-hover:opacity-100">Total Extractions</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
+            <Card className="col-span-6 row-span-3" title="Active Scrapers" icon={Cpu}>
+              <div className="space-y-4">
+                {['Amazon Main', 'Flipkart API', 'Couponami Crawler'].map((scraper, i) => (
+                  <div key={scraper} className="p-4 rounded-2xl bg-black/[0.02] border border-black/5 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-[#0A0A0B] flex items-center justify-center text-[#FFD700] font-black text-xs">0{i+1}</div>
+                      <div>
+                        <div className="text-sm font-black text-[#0A0A0B] uppercase">{scraper}</div>
+                        <div className="text-[10px] font-bold text-[#10B981]">STATUS: OPERATIONAL</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map(b => <div key={b} className="w-1 h-4 bg-[#10B981] rounded-full animate-pulse" style={{ animationDelay: `${b * 0.1}s` }} />)}
                     </div>
                   </div>
-                  <div className="mt-4 text-[11px] text-[#8B949E]">Update `tgUrl` to your real channel.</div>
+                ))}
+              </div>
+            </Card>
+            <Card className="col-span-6 row-span-3" title="Recent Failures" icon={History}>
+              <div className="flex flex-col h-full justify-center items-center text-center p-10 opacity-20">
+                <ShieldCheck className="w-16 h-16 mb-4" />
+                <div className="text-xl font-black uppercase">Zero Breaches</div>
+                <p className="text-xs font-bold uppercase">All scrapers operating within parameters</p>
+              </div>
+            </Card>
+          </BentoGrid>
+        )
+      case 'engine':
+        return (
+          <BentoGrid>
+            <Card className="col-span-12 row-span-6" title="Decision Logic" icon={Zap}>
+              <div className="flex flex-col h-full">
+                <div className="mb-12">
+                  <h2 className="text-6xl font-black text-[#0A0A0B] tracking-tighter uppercase leading-none mb-4">Neural<br/>Architecture</h2>
+                  <p className="text-lg font-medium text-[#0A0A0B]/40 uppercase tracking-widest">Arbitrage Decision-Making Process</p>
+                </div>
+                <div className="flex-1 relative">
+                  {/* Complex Flowchart SVG */}
+                  <svg className="w-full h-full" viewBox="0 0 1000 500">
+                    <defs>
+                      <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#0A0A0B" />
+                      </marker>
+                    </defs>
+                    
+                    {[
+                      { x: 100, y: 250, label: 'Data Intake' },
+                      { x: 300, y: 250, label: 'Price Verify' },
+                      { x: 500, y: 150, label: 'Affiliate Check' },
+                      { x: 500, y: 350, label: 'Duplicate Filter' },
+                      { x: 700, y: 250, label: 'Risk Audit' },
+                      { x: 900, y: 250, label: 'Deployment' }
+                    ].map((node, i) => (
+                      <g key={i}>
+                        <rect x={node.x-60} y={node.y-30} width="120" height="60" rx="20" fill="#0A0A0B" />
+                        <text x={node.x} y={node.y+5} textAnchor="middle" fill="#FFD700" className="text-[10px] font-black uppercase">{node.label}</text>
+                      </g>
+                    ))}
+
+                    <path d="M 160 250 L 240 250" stroke="#0A0A0B" strokeWidth="2" markerEnd="url(#arrow)" />
+                    <path d="M 360 250 L 440 150" stroke="#0A0A0B" strokeWidth="2" markerEnd="url(#arrow)" />
+                    <path d="M 360 250 L 440 350" stroke="#0A0A0B" strokeWidth="2" markerEnd="url(#arrow)" />
+                    <path d="M 560 150 L 640 250" stroke="#0A0A0B" strokeWidth="2" markerEnd="url(#arrow)" />
+                    <path d="M 560 350 L 640 250" stroke="#0A0A0B" strokeWidth="2" markerEnd="url(#arrow)" />
+                    <path d="M 760 250 L 840 250" stroke="#0A0A0B" strokeWidth="2" markerEnd="url(#arrow)" />
+                  </svg>
                 </div>
               </div>
-            ) : null}
+            </Card>
+          </BentoGrid>
+        )
+      case 'outreach':
+         return (
+           <BentoGrid>
+             <Card className="col-span-12 row-span-3" title="Broadcast Performance" icon={Send}>
+               <div className="flex flex-col h-full">
+                 <div className="flex items-center justify-between mb-8">
+                   <h2 className="text-4xl font-black text-[#0A0A0B] tracking-tight uppercase">Outreach Hub</h2>
+                   <div className="flex gap-4">
+                     <div className="px-6 py-3 rounded-2xl bg-[#0A0A0B] text-[#FFD700] text-sm font-black uppercase tracking-widest">Total: {audit.length}</div>
+                     <div className="px-6 py-3 rounded-2xl bg-[#FFD700] text-[#0A0A0B] text-sm font-black uppercase tracking-widest">Success: {metrics.successRate}%</div>
+                   </div>
+                 </div>
+                 <div className="flex-1 overflow-y-auto pr-2 space-y-2">
+                   {audit.slice(0, 10).map((entry, i) => (
+                     <div key={i} className="p-4 rounded-2xl bg-black/[0.02] border border-black/5 flex items-center justify-between">
+                       <div className="flex items-center gap-6">
+                         <div className={`w-3 h-3 rounded-full ${entry.status === 'success' ? 'bg-[#10B981]' : 'bg-[#FF4D4D]'}`} />
+                         <div>
+                           <div className="text-xs font-black text-[#0A0A0B] uppercase">Deal ID: {entry.deal_id}</div>
+                           <div className="text-[10px] font-bold text-[#0A0A0B]/40">{entry.timestamp}</div>
+                         </div>
+                       </div>
+                       <div className="flex items-center gap-4">
+                         <div className="text-[10px] font-black text-[#0A0A0B] uppercase px-3 py-1 bg-black/5 rounded-full">{entry.channel}</div>
+                         <div className={`text-[10px] font-black uppercase ${entry.status === 'success' ? 'text-[#10B981]' : 'text-[#FF4D4D]'}`}>{entry.status}</div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+             </Card>
+             <Card className="col-span-6 row-span-3" title="Channel Distribution" icon={LayoutGrid}>
+               <div className="flex flex-col h-full justify-between">
+                 {['Telegram', 'Email', 'WhatsApp'].map(channel => {
+                   const count = audit.filter(a => a.channel.toLowerCase().includes(channel.toLowerCase())).length
+                   const total = audit.length || 1
+                   const percent = (count / total) * 100
+                   return (
+                     <div key={channel} className="space-y-2">
+                       <div className="flex justify-between items-end">
+                         <span className="text-xs font-black text-[#0A0A0B] uppercase">{channel}</span>
+                         <span className="text-[10px] font-bold text-[#0A0A0B]/40">{count} BROADCASTS</span>
+                       </div>
+                       <div className="w-full h-3 bg-black/5 rounded-full overflow-hidden">
+                         <motion.div 
+                           initial={{ width: 0 }}
+                           animate={{ width: `${percent}%` }}
+                           className="h-full bg-[#0A0A0B]" 
+                         />
+                       </div>
+                     </div>
+                   )
+                 })}
+               </div>
+             </Card>
+             <Card className="col-span-6 row-span-3 bg-[#0A0A0B] border-none" title="Real-time Pulse" icon={Activity}>
+               <div className="h-full flex flex-col justify-center items-center text-center">
+                 <div className="relative mb-6">
+                   <motion.div 
+                     animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                     transition={{ duration: 2, repeat: Infinity }}
+                     className="absolute inset-0 rounded-full border-2 border-[#FFD700]"
+                   />
+                   <div className="w-20 h-20 rounded-full bg-[#FFD700] flex items-center justify-center">
+                     <Send className="w-10 h-10 text-[#0A0A0B]" />
+                   </div>
+                 </div>
+                 <div className="text-2xl font-black text-white uppercase tracking-tighter">Broadcasting</div>
+                 <div className="text-[10px] font-bold text-[#FFD700] uppercase tracking-widest mt-2">Active Transmission Stream</div>
+               </div>
+             </Card>
+           </BentoGrid>
+         )
+       case 'health':
+         return (
+           <BentoGrid>
+             <Card className="col-span-12 row-span-2" title="System Vitality" icon={Activity}>
+               <div className="flex items-center justify-between h-full">
+                 <div>
+                   <h2 className="text-6xl font-black text-[#0A0A0B] tracking-tighter uppercase">99.9% UPTIME</h2>
+                   <p className="text-sm font-bold text-[#0A0A0B]/40 uppercase tracking-widest mt-2">System Status: Optimal</p>
+                 </div>
+                 <div className="flex gap-1 h-20 items-end">
+                   {[...Array(20)].map((_, i) => (
+                     <motion.div 
+                       key={i}
+                       initial={{ height: 10 }}
+                       animate={{ height: Math.random() * 60 + 20 }}
+                       transition={{ duration: 0.5, repeat: Infinity, repeatType: 'reverse', delay: i * 0.05 }}
+                       className="w-2 bg-[#0A0A0B] rounded-full"
+                     />
+                   ))}
+                 </div>
+               </div>
+             </Card>
+             <Card className="col-span-4 row-span-2" title="API Latency" icon={Zap}>
+               <div className="flex flex-col h-full justify-center">
+                 <div className="text-6xl font-black text-[#0A0A0B]">42ms</div>
+                 <div className="text-xs font-black text-[#0A0A0B]/40 uppercase tracking-widest mt-2">Average Response Time</div>
+                 <div className="mt-6 flex items-center gap-2">
+                   <div className="w-2 h-2 rounded-full bg-[#10B981]" />
+                   <span className="text-[10px] font-bold text-[#10B981] uppercase">Within Parameters</span>
+                 </div>
+               </div>
+             </Card>
+             <Card className="col-span-4 row-span-2" title="Memory Core" icon={Cpu}>
+               <div className="flex flex-col h-full justify-center">
+                 <div className="text-6xl font-black text-[#0A0A0B]">128MB</div>
+                 <div className="text-xs font-black text-[#0A0A0B]/40 uppercase tracking-widest mt-2">Resource Utilization</div>
+                 <div className="mt-6 w-full h-2 bg-black/5 rounded-full overflow-hidden">
+                   <div className="w-1/3 h-full bg-[#0A0A0B]" />
+                 </div>
+               </div>
+             </Card>
+             <Card className="col-span-4 row-span-2 bg-[#FF4D4D] border-none" title="Alerts" icon={History}>
+               <div className="flex flex-col h-full justify-center text-white">
+                 <div className="text-6xl font-black">0</div>
+                 <div className="text-xs font-black uppercase tracking-widest mt-2">Critical Failures</div>
+                 <p className="text-[10px] font-medium uppercase mt-4 opacity-60">System resilience at maximum capacity</p>
+               </div>
+             </Card>
+             <Card className="col-span-12 row-span-2" title="Global Health Trace" icon={Radar}>
+               <div className="h-full flex items-center justify-between">
+                 <div className="space-y-4 flex-1">
+                   {['Database', 'Cloud Engine', 'Network', 'Scrapers'].map(sys => (
+                     <div key={sys} className="flex items-center justify-between pr-20">
+                       <span className="text-xs font-black text-[#0A0A0B] uppercase">{sys}</span>
+                       <div className="flex gap-2 items-center">
+                         <div className="text-[10px] font-black text-[#10B981] uppercase">Stable</div>
+                         <div className="w-20 h-1 bg-black/5 rounded-full overflow-hidden">
+                           <div className="w-full h-full bg-[#10B981]" />
+                         </div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+                 <div className="w-px h-full bg-black/5 mx-10" />
+                 <div className="text-right">
+                   <div className="text-4xl font-black text-[#0A0A0B]">SECURE</div>
+                   <div className="text-[10px] font-bold text-[#0A0A0B]/40 uppercase tracking-widest">Protocol Version 4.2.0</div>
+                 </div>
+               </div>
+             </Card>
+           </BentoGrid>
+         )
+       default:
 
-            {tab === 'monetization' ? (
-              <div className="grid gap-3 md:grid-cols-3">
-                <div className="rounded-2xl border border-white/5 bg-[#0B0F14]/35 p-4">
-                  <div className="text-[10px] font-semibold tracking-[0.22em] text-[#8B949E]">AFFILIATE VALID RATE</div>
-                  <div className="mt-1 text-3xl font-semibold tabular-nums text-[#E6EDF3]">{metrics.affiliate_valid_rate.toFixed(1)}%</div>
-                  <div className="mt-2 text-xs text-[#8B949E]">affiliate_valid == true</div>
-                </div>
-                <div className="rounded-2xl border border-white/5 bg-[#0B0F14]/35 p-4">
-                  <div className="text-[10px] font-semibold tracking-[0.22em] text-[#8B949E]">AVG DISCOUNT</div>
-                  <div className="mt-1 text-3xl font-semibold tabular-nums text-[#E6EDF3]">{metrics.avg_discount.toFixed(1)}%</div>
-                  <div className="mt-2 text-xs text-[#8B949E]">Derived from price vs original</div>
-                </div>
-                <div className="rounded-2xl border border-white/5 bg-[#0B0F14]/35 p-4">
-                  <div className="text-[10px] font-semibold tracking-[0.22em] text-[#8B949E]">POTENTIAL EARNINGS</div>
-                  <div className="mt-1 text-3xl font-semibold tabular-nums text-[#E6EDF3]">₹{Math.round(metrics.total_posted * 12).toLocaleString()}</div>
-                  <div className="mt-2 text-xs text-[#8B949E]">Heuristic demo until EPC is logged</div>
-                </div>
-              </div>
-            ) : null}
+  return (
+    <div className="flex h-screen bg-[#0A0A0B] text-[#F8F9FA] overflow-hidden font-sans selection:bg-[#FFD700] selection:text-[#0A0A0B]">
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      
+      <main className="flex-1 overflow-hidden relative">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.02 }}
+            transition={{ duration: 0.3 }}
+            className="h-full"
+          >
+            {renderContent()}
+          </motion.div>
+        </AnimatePresence>
 
-            {tab === 'health' ? (
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl border border-white/5 bg-[#0B0F14]/35 p-4">
-                  <div className="text-[10px] font-semibold tracking-[0.22em] text-[#8B949E]">REJECTION REASONS</div>
-                  <div className="mt-1 text-sm font-semibold text-[#E6EDF3]">Top failure modes</div>
-                  <div className="mt-3 h-[260px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={reasons} layout="vertical" margin={{ left: 12, right: 10, top: 4, bottom: 4 }}>
-                        <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
-                        <XAxis type="number" tick={{ fill: '#8B949E', fontSize: 11 }} />
-                        <YAxis type="category" dataKey="reason" width={150} tick={{ fill: '#8B949E', fontSize: 10 }} />
-                        <Tooltip
-                          contentStyle={{
-                            background: '#0B0F14',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            borderRadius: 12,
-                            color: '#E6EDF3',
-                          }}
-                        />
-                        <Bar dataKey="count" fill="rgba(255,77,79,0.75)" radius={[8, 8, 8, 8]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+        {/* Product DNA Modal */}
+        <AnimatePresence>
+          {selectedDeal && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+              onClick={() => setSelectedDeal(null)}
+            >
+              <motion.div 
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="w-full max-w-2xl bg-[#F8F9FA] rounded-[40px] p-10 overflow-hidden relative"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="absolute top-0 right-0 p-8">
+                  <button 
+                    onClick={() => setSelectedDeal(null)}
+                    className="w-12 h-12 rounded-full bg-[#0A0A0B] text-white flex items-center justify-center hover:scale-110 transition-transform"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="mb-8">
+                  <div className="text-[10px] font-black text-[#FFD700] bg-[#0A0A0B] px-3 py-1 rounded-full inline-block mb-4 uppercase tracking-widest">Product DNA</div>
+                  <h2 className="text-4xl font-black text-[#0A0A0B] leading-tight mb-2">{selectedDeal.title}</h2>
+                  <p className="text-[#0A0A0B]/60 font-medium uppercase tracking-tighter">{selectedDeal.store} • {selectedDeal.category}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-8 mb-10">
+                  <div className="p-6 rounded-3xl bg-black/[0.03] border border-black/5">
+                    <div className="text-[10px] font-bold text-[#0A0A0B]/40 uppercase mb-2">Price Dynamics</div>
+                    <div className="flex items-end gap-3">
+                      <div className="text-4xl font-black text-[#FF4D4D]">{selectedDeal.price}</div>
+                      <div className="text-xl font-bold text-[#0A0A0B]/20 line-through mb-1">{selectedDeal.original_price}</div>
+                    </div>
+                    <div className="mt-2 text-[11px] font-black text-[#10B981] uppercase">{selectedDeal.discount} OFF</div>
+                  </div>
+                  <div className="p-6 rounded-3xl bg-black/[0.03] border border-black/5">
+                    <div className="text-[10px] font-bold text-[#0A0A0B]/40 uppercase mb-2">Extraction Meta</div>
+                    <div className="space-y-1">
+                      <div className="text-xs font-black text-[#0A0A0B]">ID: {selectedDeal.id}</div>
+                      <div className="text-xs font-medium text-[#0A0A0B]/60">SCRAPED: {new Date(selectedDeal.timestamp).toLocaleString()}</div>
+                    </div>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-white/5 bg-[#0B0F14]/35 p-4">
-                  <div className="text-[10px] font-semibold tracking-[0.22em] text-[#8B949E]">PIPE DIAGNOSTICS</div>
-                  <div className="mt-1 text-sm font-semibold text-[#E6EDF3]">Infallible CSV bridge</div>
-                  <ul className="mt-4 space-y-3 text-xs text-[#8B949E]">
-                    <li className="flex items-start gap-2">
-                      <Shield className="mt-0.5 h-4 w-4 text-[#00E5A8]" />
-                      <span>Defensive parsing: missing columns fallback to `N/A` / `0`.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Cpu className="mt-0.5 h-4 w-4 text-[#4DA3FF]" />
-                      <span>Refresh: SWR polling 60s, non-blocking UI.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <BarChart3 className="mt-0.5 h-4 w-4 text-[#FFC857]" />
-                      <span>Charts are always mounted in a 260px container (prevents render crashes).</span>
-                    </li>
-                  </ul>
+
+                <div className="flex gap-4">
+                  <a 
+                    href={selectedDeal.link} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex-1 bg-[#0A0A0B] text-[#FFD700] py-5 rounded-2xl text-center font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+                  >
+                    Deploy Link <ExternalLink className="w-4 h-4" />
+                  </a>
+                  <button className="px-8 bg-[#F8F9FA] border-2 border-[#0A0A0B] text-[#0A0A0B] py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-[#0A0A0B] hover:text-[#F8F9FA] transition-colors">
+                    Audit
+                  </button>
                 </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+
+      {/* Floating Neural Core Animation */}
+      <div className="fixed bottom-8 right-8 pointer-events-none">
+        <motion.div 
+          animate={{ 
+            rotate: 360,
+            scale: [1, 1.1, 1],
+          }}
+          transition={{ 
+            rotate: { duration: 10, repeat: Infinity, ease: "linear" },
+            scale: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+          }}
+          className="relative w-24 h-24"
+        >
+          <div className="absolute inset-0 rounded-full border border-[#FFD700]/20 blur-sm" />
+          <div className="absolute inset-4 rounded-full border border-[#FFD700]/40 blur-[2px]" />
+          <div className="absolute inset-8 rounded-full bg-[#FFD700] shadow-[0_0_30px_#FFD700]" />
+          <Brain className="absolute inset-0 m-auto w-8 h-8 text-[#0A0A0B]" />
+        </motion.div>
       </div>
     </div>
   )

@@ -1,0 +1,11 @@
+timestamp,subject,recipient,status,deal_count
+2026-04-13T10:30:00,High-Value Deal Alert,user1@example.com,sent,5
+2026-04-13T11:45:00,Amazon Electronics Deals,user2@example.com,sent,3
+2026-04-13T14:20:00,Couponami Free Courses,user3@example.com,sent,8
+2026-04-13T16:15:00,Flipkart Fashion Deals,user4@example.com,sent,4
+2026-04-13T18:30:00,Daily Deal Summary,user5@example.com,sent,12
+2026-04-14T09:15:00,Morning Deal Digest,user1@example.com,sent,7
+2026-04-14T12:00:00,Premium Electronics,user2@example.com,sent,2
+2026-04-14T15:30:00,Weekend Special,user3@example.com,sent,9
+2026-04-14T18:45:00,Flash Sale Alert,user4@example.com,sent,6
+2026-04-15T10:00:00,Daily Top Picks,user5@example.com,sent,11

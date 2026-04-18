@@ -1,10 +1,14 @@
 import { clsx } from 'clsx'
-import { Activity, Zap } from 'lucide-react'
+import { Activity, BookOpen, LayoutDashboard, PieChart, Zap } from 'lucide-react'
 
-export type ThesisTabId = 'elite'
+export type ThesisTabId = 'elite' | 'decision' | 'matrix' | 'uptime' | 'blueprint'
 
 const NAV: Array<{ id: ThesisTabId; label: string; icon: typeof Activity }> = [
-  { id: 'elite', label: 'Kinetic Command', icon: Zap },
+  { id: 'elite', label: 'Kinetic Command', icon: LayoutDashboard },
+  { id: 'decision', label: 'Decision Lab', icon: Zap },
+  { id: 'matrix', label: 'Category Matrix', icon: PieChart },
+  { id: 'uptime', label: 'Uptime Pulse', icon: Activity },
+  { id: 'blueprint', label: 'Bot Blueprint', icon: BookOpen },
 ]
 
 export function SidebarNav({

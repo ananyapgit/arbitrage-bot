@@ -91,3 +91,585 @@ timestamp,deal_identifier,reason,source,line_of_code
     self._context.run(self._callback, *self._args)
 2026-04-10T21:31:10.234997,https://www.couponami.com//ai-for-all-r,Duplicate Failure | duplicate,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
     self._context.run(self._callback, *self._args)
+2026-04-15T19:13:22.382020,https://www.amazon.in/INDUS-VALLEY-Gel-Hair-Color/dp/B01JLERQY8/ref=zg_bsms_g_beauty_d_sccl_28/524-3503662-0874134,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:13:23.028859,https://www.amazon.in/Minimalist-Moisturizer-Lightweight-Fast-Absorbing-Fragrance-Free/dp/B0F6Y86BSD/ref=zg_bsms_g_beauty_d_sccl_24/524-3503662-0874134,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:13:23.356706,https://www.amazon.in/Ponds-Moisturizer-Cera-Hyamino-Ultimate-Smooth/dp/B0DFWPG1RM/ref=zg_bsms_g_beauty_d_sccl_10/524-3503662-0874134,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:13:23.754108,https://www.amazon.in/PONDS-White-Pollution-Activated-Charcoal/dp/B08PQ6VWPT/ref=zg_bsms_g_beauty_d_sccl_27/524-3503662-0874134,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:13:24.163198,https://www.amazon.in/Dettol-Original-Protection-Bathing-99-99/dp/B0CP9NMV6P/ref=zg_bsms_g_beauty_d_sccl_2/524-3503662-0874134,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:13:24.597238,https://www.amazon.in/Himalaya-Clearing-Turmeric-Niacinamide-Organically/dp/B0DCW2JN4H/ref=zg_bsms_g_beauty_d_sccl_17/524-3503662-0874134,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:13:25.066783,https://www.amazon.in/WishCare-Ceramide-Lip-Balm-SPF50/dp/B0CND4C95T/ref=zg_bsms_g_beauty_d_sccl_1/524-3503662-0874134,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:13:25.536070,https://www.amazon.in/LAKM%C3%89-Sunscreen-niacinamide-ceramide-combination/dp/B0DSHTZFTP/ref=zg_bsms_g_beauty_d_sccl_12/524-3503662-0874134,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:13:25.963596,https://www.amazon.in/Reginald-Men-Protection-Brightening-Lightweight/dp/B0GP6NTDRN/ref=zg_bsms_g_beauty_d_sccl_26/524-3503662-0874134,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:13:26.291954,https://www.amazon.in/MARS-Non-Sticky-Lightweight-Comfortable-Flattering/dp/B0DQNP2PRG/ref=zg_bsms_g_beauty_d_sccl_6/524-3503662-0874134,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:13:26.617154,https://www.amazon.in/RIXTEC-Toiletries-Organizer-Cosmetic-Multi-Colors/dp/B0DW9B8QL7/ref=zg_bsms_g_beauty_d_sccl_29/524-3503662-0874134,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:13:26.927366,https://www.amazon.in/Maybelline-Matte-Poreless-Liquid-Foundation/dp/B07PMCNNPY/ref=zg_bsms_g_beauty_d_sccl_20/524-3503662-0874134,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:13:27.279449,https://www.amazon.in/Sanfe-Instant-Removal-Exfoliating-Exfoliation/dp/B0CJ5KRQ2D/ref=zg_bsms_g_beauty_d_sccl_22/524-3503662-0874134,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:13:27.699203,https://www.amazon.in/Minimalist-Sunscreen-Clinically-Lightweight-Multi-Vitamins/dp/B0CW5BK193/ref=zg_bsms_g_beauty_d_sccl_13/524-3503662-0874134,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:13:28.002567,https://www.amazon.in/O3-Bridal-Facial-Radiant-Glowing/dp/B07SJTBLKR/ref=zg_bsms_g_beauty_d_sccl_16/524-3503662-0874134,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:18:58.108080,https://www.amazon.in/Amazon-Brand-Lightweight-Suitable-Certified/dp/B0CNRLTLKJ/ref=zg_bsms_g_toys_d_sccl_26/523-7250305-3132749,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:18:58.411248,https://www.amazon.in/Wembley-Construction-Montessori-Birthday-Activity/dp/B0GLGZ3G9Z/ref=zg_bsms_g_toys_d_sccl_4/523-7250305-3132749,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:18:58.833842,https://www.amazon.in/Chanak-Creative-Playdough-Foldable-Sculpting/dp/B0FPFYBM24/ref=zg_bsms_g_toys_d_sccl_16/523-7250305-3132749,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:18:59.181903,https://www.amazon.in/TOYTASTIC-Duck-Track-Toys-Kids/dp/B0DGLFCH8D/ref=zg_bsms_g_toys_d_sccl_29/523-7250305-3132749,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:18:59.560380,https://www.amazon.in/TurtleBee-Montessori-Stacking-Activity-Development/dp/B0DBJ5FSL6/ref=zg_bsms_g_toys_d_sccl_25/523-7250305-3132749,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:18:59.855418,https://www.amazon.in/Bop-Wireless-Game-Stick-Controllers/dp/B0GVHYVNGX/ref=zg_bsms_g_toys_d_sccl_8/523-7250305-3132749,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:19:00.320317,https://www.amazon.in/Toyzone-Frozen-Elegant-Battery-Operated/dp/B0FCC8C11C/ref=zg_bsms_g_toys_d_sccl_2/523-7250305-3132749,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:19:00.611188,https://www.amazon.in/Intex-Inflatable-Rectangular-Multi-Color/dp/B000OV0X48/ref=zg_bsms_g_toys_d_sccl_6/523-7250305-3132749,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:19:00.949998,https://www.amazon.in/Smart-Picks-Drop-Puzzle-Game/dp/B08G1VVQC2/ref=zg_bsms_g_toys_d_sccl_27/523-7250305-3132749,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:19:01.442814,https://www.amazon.in/Interactive-Operated-Birthday-Educational-Children/dp/B0GKY783YR/ref=zg_bsms_g_toys_d_sccl_7/523-7250305-3132749,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:19:01.898436,https://www.amazon.in/Toy-Imagine-Colourful-Wooden-Blocks/dp/B09Y23QLNR/ref=zg_bsms_g_toys_d_sccl_22/523-7250305-3132749,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:19:02.336946,https://www.amazon.in/Storio-Front-Rear-Comfortable-Anti-Skid-Certified/dp/B0G1C2DR4Q/ref=zg_bsms_g_toys_d_sccl_3/523-7250305-3132749,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:19:02.636866,https://www.amazon.in/Imagimake-Mapology-India-State-Capitals/dp/B076WQ3M5X/ref=zg_bsms_g_toys_d_sccl_11/523-7250305-3132749,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:19:03.040800,https://www.amazon.in/VGRASSP-Electric-Walking-Bone-Dog/dp/B0F6Y8WGZC/ref=zg_bsms_g_toys_d_sccl_24/523-7250305-3132749,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:19:03.420030,https://www.amazon.in/Storio-Building-Construction-Educational-Learning/dp/B0G1HMBQ85/ref=zg_bsms_g_toys_d_sccl_17/523-7250305-3132749,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:34:55.319997,https://www.amazon.in/Waiting-Visa-Autobiography-B-Ambedkar/dp/936259675X/ref=zg_bsms_g_books_d_sccl_3/523-2333338-8900103,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:34:56.054198,https://www.amazon.in/Blackbook-English-vocabulary-2026-Bilingual/dp/8195645798/ref=zg_bsms_g_books_d_sccl_2/523-2333338-8900103,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:34:56.959253,https://www.amazon.in/Waiting-Babasaheb-Ambedkar-%E0%A4%AA%E0%A5%8D%E0%A4%B0%E0%A4%A4%E0%A5%80%E0%A4%95%E0%A5%8D%E0%A4%B7%E0%A4%BE-%E0%A4%AC%E0%A4%BE%E0%A4%AC%E0%A4%BE%E0%A4%B8%E0%A4%BE%E0%A4%B9%E0%A5%87%E0%A4%AC/dp/9371185732/ref=zg_bsms_g_books_d_sccl_1/523-2333338-8900103,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:40:10.726626,https://www.amazon.in/Sports-Cricket-Offiicial-8-9Years-Multicolour/dp/B0GWCY3K5P/ref=zg_bsms_g_sports_d_sccl_2/522-7994128-4970860,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:40:11.223557,https://www.amazon.in/RockinRetailz-Virat-Cricket-Jersey-XSmall/dp/B0GTWW4GTC/ref=zg_bsms_g_sports_d_sccl_3/522-7994128-4970860,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:40:11.633611,https://www.amazon.in/PRO365-Counter-Exercise-Equipment-Resistance/dp/B0D3LRCVRC/ref=zg_bsms_g_sports_d_sccl_1/522-7994128-4970860,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:50:23.592040,https://www.amazon.in/Waiting-Babasaheb-Ambedkar-%E0%A4%AA%E0%A5%8D%E0%A4%B0%E0%A4%A4%E0%A5%80%E0%A4%95%E0%A5%8D%E0%A4%B7%E0%A4%BE-%E0%A4%AC%E0%A4%BE%E0%A4%AC%E0%A4%BE%E0%A4%B8%E0%A4%BE%E0%A4%B9%E0%A5%87%E0%A4%AC/dp/9371185732/ref=zg_bsms_g_books_d_sccl_1/523-7926840-1811501,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:50:24.027170,https://www.amazon.in/Blackbook-English-vocabulary-2026-Bilingual/dp/8195645798/ref=zg_bsms_g_books_d_sccl_2/523-7926840-1811501,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:50:24.488424,https://www.amazon.in/Waiting-Visa-Autobiography-B-Ambedkar/dp/936259675X/ref=zg_bsms_g_books_d_sccl_3/523-7926840-1811501,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:55:01.977244,https://www.amazon.in/Dettol-Bathing-Menthol-400gm-100gm/dp/B0CP9Q58TK/ref=zg_bsms_g_beauty_d_sccl_3/524-1525380-8195668,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:55:02.437604,https://www.amazon.in/Dettol-Original-Protection-Bathing-99-99/dp/B0CP9NMV6P/ref=zg_bsms_g_beauty_d_sccl_2/524-1525380-8195668,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T19:55:02.857041,https://www.amazon.in/WishCare-Ceramide-Lip-Balm-SPF50/dp/B0CND4C95T/ref=zg_bsms_g_beauty_d_sccl_1/524-1525380-8195668,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:01:00.611331,https://www.amazon.in/SupCares-CMF-Phone-Installation-Smartphone/dp/B0DB5GB5ZW/ref=zg_bsms_g_electronics_d_sccl_1/524-9278389-3515856,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:01:01.199405,https://www.amazon.in/remote-control-EN2A27-Hisense-50H7GB/dp/B01N0CH8LV/ref=zg_bsms_g_electronics_d_sccl_3/524-9278389-3515856,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:01:01.641557,https://www.amazon.in/DR-Original-Type-Cable-Adapter/dp/B0CNM4V6Q5/ref=zg_bsms_g_electronics_d_sccl_2/524-9278389-3515856,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:05:49.292688,https://www.amazon.in/DR-Original-Type-Cable-Adapter/dp/B0CNM4V6Q5/ref=zg_bsms_g_electronics_d_sccl_2/523-7446072-4571610,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:05:49.762103,https://www.amazon.in/remote-control-EN2A27-Hisense-50H7GB/dp/B01N0CH8LV/ref=zg_bsms_g_electronics_d_sccl_3/523-7446072-4571610,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:05:50.136727,https://www.amazon.in/SupCares-CMF-Phone-Installation-Smartphone/dp/B0DB5GB5ZW/ref=zg_bsms_g_electronics_d_sccl_1/523-7446072-4571610,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:10:56.439827,https://www.amazon.in/Blackbook-English-vocabulary-2026-Bilingual/dp/8195645798/ref=zg_bsms_g_books_d_sccl_2/520-9233065-6255842,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:10:56.779587,https://www.amazon.in/Waiting-Babasaheb-Ambedkar-%E0%A4%AA%E0%A5%8D%E0%A4%B0%E0%A4%A4%E0%A5%80%E0%A4%95%E0%A5%8D%E0%A4%B7%E0%A4%BE-%E0%A4%AC%E0%A4%BE%E0%A4%AC%E0%A4%BE%E0%A4%B8%E0%A4%BE%E0%A4%B9%E0%A5%87%E0%A4%AC/dp/9371185732/ref=zg_bsms_g_books_d_sccl_1/520-9233065-6255842,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:10:57.127445,https://www.amazon.in/Waiting-Visa-Autobiography-B-Ambedkar/dp/936259675X/ref=zg_bsms_g_books_d_sccl_3/520-9233065-6255842,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:15:50.936914,https://www.amazon.in/Wembley-Construction-Montessori-Birthday-Activity/dp/B0GLGZ3G9Z/ref=zg_bsms_g_toys_d_sccl_3/525-3650113-1818831,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:15:51.168466,https://www.amazon.in/Toyzone-Frozen-Elegant-Battery-Operated/dp/B0FCC8C11C/ref=zg_bsms_g_toys_d_sccl_1/525-3650113-1818831,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:15:51.598567,https://www.amazon.in/Storio-Front-Rear-Comfortable-Anti-Skid-Certified/dp/B0G1C2DR4Q/ref=zg_bsms_g_toys_d_sccl_2/525-3650113-1818831,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:16:32.988056,https://www.amazon.in/Sports-Cricket-Offiicial-12-18Months-Multicolour/dp/B0GWCT9V82/ref=zg_bsms_g_sports_d_sccl_2/522-2534934-1329505,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:16:33.317339,https://www.amazon.in/RockinRetailz-Virat-Cricket-Jersey-XSmall/dp/B0GTWW4GTC/ref=zg_bsms_g_sports_d_sccl_3/522-2534934-1329505,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:16:33.652737,https://www.amazon.in/PRO365-Counter-Exercise-Equipment-Resistance/dp/B0D3LRCVRC/ref=zg_bsms_g_sports_d_sccl_1/522-2534934-1329505,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:27:05.828543,https://www.amazon.in/Blackbook-English-vocabulary-2026-Bilingual/dp/8195645798/ref=zg_bsms_g_books_d_sccl_2/525-0847770-3789525,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:27:06.346654,https://www.amazon.in/Waiting-Babasaheb-Ambedkar-%E0%A4%AA%E0%A5%8D%E0%A4%B0%E0%A4%A4%E0%A5%80%E0%A4%95%E0%A5%8D%E0%A4%B7%E0%A4%BE-%E0%A4%AC%E0%A4%BE%E0%A4%AC%E0%A4%BE%E0%A4%B8%E0%A4%BE%E0%A4%B9%E0%A5%87%E0%A4%AC/dp/9371185732/ref=zg_bsms_g_books_d_sccl_1/525-0847770-3789525,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:27:06.966156,https://www.amazon.in/Waiting-Visa-Autobiography-B-Ambedkar/dp/936259675X/ref=zg_bsms_g_books_d_sccl_3/525-0847770-3789525,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:45:45.286781,https://www.amazon.in/Wembley-Construction-Montessori-Birthday-Activity/dp/B0GLGZ3G9Z/ref=zg_bsms_g_toys_d_sccl_3/520-8726174-0880635,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:45:45.761941,https://www.amazon.in/Toyzone-Frozen-Elegant-Battery-Operated/dp/B0FCC8C11C/ref=zg_bsms_g_toys_d_sccl_1/520-8726174-0880635,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:45:46.192276,https://www.amazon.in/Storio-Front-Rear-Comfortable-Anti-Skid-Certified/dp/B0G1C2DR4Q/ref=zg_bsms_g_toys_d_sccl_2/520-8726174-0880635,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:46:09.435221,https://www.amazon.in/remote-control-EN2A27-Hisense-50H7GB/dp/B01N0CH8LV/ref=zg_bsms_g_electronics_d_sccl_3/525-6698826-8978665,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:46:09.958805,https://www.amazon.in/DR-Original-Type-Cable-Adapter/dp/B0CNM4V6Q5/ref=zg_bsms_g_electronics_d_sccl_2/525-6698826-8978665,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:46:10.405143,https://www.amazon.in/SupCares-CMF-Phone-Installation-Smartphone/dp/B0DB5GB5ZW/ref=zg_bsms_g_electronics_d_sccl_1/525-6698826-8978665,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:50:44.287674,https://www.amazon.in/Waiting-Babasaheb-Ambedkar-%E0%A4%AA%E0%A5%8D%E0%A4%B0%E0%A4%A4%E0%A5%80%E0%A4%95%E0%A5%8D%E0%A4%B7%E0%A4%BE-%E0%A4%AC%E0%A4%BE%E0%A4%AC%E0%A4%BE%E0%A4%B8%E0%A4%BE%E0%A4%B9%E0%A5%87%E0%A4%AC/dp/9371185732/ref=zg_bsms_g_books_d_sccl_1/523-4725771-2762102,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:50:44.713835,https://www.amazon.in/Blackbook-English-vocabulary-2026-Bilingual/dp/8195645798/ref=zg_bsms_g_books_d_sccl_2/523-4725771-2762102,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:50:45.191963,https://www.amazon.in/Waiting-Visa-Autobiography-B-Ambedkar/dp/936259675X/ref=zg_bsms_g_books_d_sccl_3/523-4725771-2762102,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:55:33.748652,https://www.amazon.in/SupCares-CMF-Phone-Installation-Smartphone/dp/B0DB5GB5ZW/ref=zg_bsms_g_electronics_d_sccl_1/525-1026490-9234703,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:55:34.180000,https://www.amazon.in/DR-Original-Type-Cable-Adapter/dp/B0CNM4V6Q5/ref=zg_bsms_g_electronics_d_sccl_2/525-1026490-9234703,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T20:55:34.762246,https://www.amazon.in/remote-control-EN2A27-Hisense-50H7GB/dp/B01N0CH8LV/ref=zg_bsms_g_electronics_d_sccl_3/525-1026490-9234703,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:00:06.963260,https://www.amazon.in/Blackbook-English-vocabulary-2026-Bilingual/dp/8195645798/ref=zg_bsms_g_books_d_sccl_2/524-6584018-0475813,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:00:07.448238,https://www.amazon.in/Waiting-Visa-Autobiography-B-Ambedkar/dp/936259675X/ref=zg_bsms_g_books_d_sccl_3/524-6584018-0475813,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:00:07.864108,https://www.amazon.in/Waiting-Babasaheb-Ambedkar-%E0%A4%AA%E0%A5%8D%E0%A4%B0%E0%A4%A4%E0%A5%80%E0%A4%95%E0%A5%8D%E0%A4%B7%E0%A4%BE-%E0%A4%AC%E0%A4%BE%E0%A4%AC%E0%A4%BE%E0%A4%B8%E0%A4%BE%E0%A4%B9%E0%A5%87%E0%A4%AC/dp/9371185732/ref=zg_bsms_g_books_d_sccl_1/524-6584018-0475813,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:02:09.053142,https://www.amazon.in/Wembley-Construction-Montessori-Birthday-Activity/dp/B0GLGZ3G9Z/ref=zg_bsms_g_toys_d_sccl_3/524-4932668-1878117,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:02:09.503293,https://www.amazon.in/Toyzone-Frozen-Elegant-Battery-Operated/dp/B0FCC8C11C/ref=zg_bsms_g_toys_d_sccl_1/524-4932668-1878117,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:02:09.953182,https://www.amazon.in/Storio-Front-Rear-Comfortable-Anti-Skid-Certified/dp/B0G1C2DR4Q/ref=zg_bsms_g_toys_d_sccl_2/524-4932668-1878117,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:04:38.350979,https://www.amazon.in/Waiting-Visa-Autobiography-B-Ambedkar/dp/936259675X/ref=zg_bsms_g_books_d_sccl_3/524-8933095-2225250,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:04:38.825231,https://www.amazon.in/Blackbook-English-vocabulary-2026-Bilingual/dp/8195645798/ref=zg_bsms_g_books_d_sccl_2/524-8933095-2225250,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:04:39.262484,https://www.amazon.in/Waiting-Babasaheb-Ambedkar-%E0%A4%AA%E0%A5%8D%E0%A4%B0%E0%A4%A4%E0%A5%80%E0%A4%95%E0%A5%8D%E0%A4%B7%E0%A4%BE-%E0%A4%AC%E0%A4%BE%E0%A4%AC%E0%A4%BE%E0%A4%B8%E0%A4%BE%E0%A4%B9%E0%A5%87%E0%A4%AC/dp/9371185732/ref=zg_bsms_g_books_d_sccl_1/524-8933095-2225250,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:14:21.342803,https://www.amazon.in/Sports-Cricket-Offiicial-12-18Months-Multicolour/dp/B0GWCT9V82/ref=zg_bsms_g_sports_d_sccl_2/523-7886457-9098947,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:14:21.793206,https://www.amazon.in/PRO365-Counter-Exercise-Equipment-Resistance/dp/B0D3LRCVRC/ref=zg_bsms_g_sports_d_sccl_1/523-7886457-9098947,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:14:22.267717,https://www.amazon.in/RockinRetailz-Virat-Cricket-Jersey-XSmall/dp/B0GTWW4GTC/ref=zg_bsms_g_sports_d_sccl_3/523-7886457-9098947,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:22:58.737469,https://www.amazon.in/SupCares-CMF-Phone-Installation-Smartphone/dp/B0DB5GB5ZW/ref=zg_bsms_g_electronics_d_sccl_1/520-4856525-9899867,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:22:59.185355,https://www.amazon.in/remote-control-EN2A27-Hisense-50H7GB/dp/B01N0CH8LV/ref=zg_bsms_g_electronics_d_sccl_3/520-4856525-9899867,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:22:59.611776,https://www.amazon.in/DR-Original-Type-Cable-Adapter/dp/B0CNM4V6Q5/ref=zg_bsms_g_electronics_d_sccl_2/520-4856525-9899867,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:24:40.662310,https://www.amazon.in/Dettol-Bathing-Menthol-400gm-100gm/dp/B0CP9Q58TK/ref=zg_bsms_g_beauty_d_sccl_3/522-1449190-7493360,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:24:41.094541,https://www.amazon.in/WishCare-Ceramide-Lip-Balm-SPF50/dp/B0CND4C95T/ref=zg_bsms_g_beauty_d_sccl_1/522-1449190-7493360,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:24:41.502734,https://www.amazon.in/Dettol-Original-Protection-Bathing-99-99/dp/B0CP9NMV6P/ref=zg_bsms_g_beauty_d_sccl_2/522-1449190-7493360,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:30:11.599589,https://www.amazon.in/Sports-Cricket-Offiicial-12-18Months-Multicolour/dp/B0GWCT9V82/ref=zg_bsms_g_sports_d_sccl_2/523-5076135-2806623,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:30:12.020313,https://www.amazon.in/PRO365-Counter-Exercise-Equipment-Resistance/dp/B0D3LRCVRC/ref=zg_bsms_g_sports_d_sccl_1/523-5076135-2806623,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:30:12.461792,https://www.amazon.in/RockinRetailz-Virat-Cricket-Jersey-XSmall/dp/B0GTWW4GTC/ref=zg_bsms_g_sports_d_sccl_3/523-5076135-2806623,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:32:38.978733,https://www.amazon.in/DR-Original-Type-Cable-Adapter/dp/B0CNM4V6Q5/ref=zg_bsms_g_electronics_d_sccl_3/522-7150192-8533452,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:32:39.397161,https://www.amazon.in/SupCares-CMF-Phone-Installation-Smartphone/dp/B0DB5GB5ZW/ref=zg_bsms_g_electronics_d_sccl_1/522-7150192-8533452,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:32:39.803792,https://www.amazon.in/One94Store-Portable-Bladeless-Neck-Fan/dp/B0GQV953S4/ref=zg_bsms_g_electronics_d_sccl_2/522-7150192-8533452,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:35:02.315518,https://www.amazon.in/Dettol-Original-Protection-Bathing-99-99/dp/B0CP9NMV6P/ref=zg_bsms_g_beauty_d_sccl_2/521-8003807-0832662,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:35:02.753693,https://www.amazon.in/WishCare-Ceramide-Lip-Balm-SPF50/dp/B0CND4C95T/ref=zg_bsms_g_beauty_d_sccl_1/521-8003807-0832662,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:35:03.265368,https://www.amazon.in/Dettol-Bathing-Menthol-400gm-100gm/dp/B0CP9Q58TK/ref=zg_bsms_g_beauty_d_sccl_3/521-8003807-0832662,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:37:01.221330,https://www.amazon.in/Toyzone-Frozen-Elegant-Battery-Operated/dp/B0FCC8C11C/ref=zg_bsms_g_toys_d_sccl_2/525-3951247-2877565,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:37:01.663029,https://www.amazon.in/Foldable-Gestures-Altitude-Landing-Adults/dp/B0GVY9T3CV/ref=zg_bsms_g_toys_d_sccl_1/525-3951247-2877565,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:37:02.074545,https://www.amazon.in/Mommers-Xylophone-Educational-Toddlers-Combined/dp/B0D8TJ7NW7/ref=zg_bsms_g_toys_d_sccl_3/525-3951247-2877565,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:40:20.951700,https://www.amazon.in/Dettol-Bathing-Menthol-400gm-100gm/dp/B0CP9Q58TK/ref=zg_bsms_g_beauty_d_sccl_3/525-0362550-6668220,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:40:21.196548,https://www.amazon.in/Dettol-Original-Protection-Bathing-99-99/dp/B0CP9NMV6P/ref=zg_bsms_g_beauty_d_sccl_2/525-0362550-6668220,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:40:21.531786,https://www.amazon.in/WishCare-Ceramide-Lip-Balm-SPF50/dp/B0CND4C95T/ref=zg_bsms_g_beauty_d_sccl_1/525-0362550-6668220,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:41:42.255184,https://www.amazon.in/Dettol-Bathing-Menthol-400gm-100gm/dp/B0CP9Q58TK/ref=zg_bsms_g_beauty_d_sccl_3/524-5606758-3992206,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:41:42.701754,https://www.amazon.in/WishCare-Ceramide-Lip-Balm-SPF50/dp/B0CND4C95T/ref=zg_bsms_g_beauty_d_sccl_1/524-5606758-3992206,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:41:43.127934,https://www.amazon.in/Dettol-Original-Protection-Bathing-99-99/dp/B0CP9NMV6P/ref=zg_bsms_g_beauty_d_sccl_2/524-5606758-3992206,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:46:03.346408,https://www.amazon.in/Sports-Cricket-Offiicial-12-18Months-Multicolour/dp/B0GWCT9V82/ref=zg_bsms_g_sports_d_sccl_2/524-1293891-8414557,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:46:03.768968,https://www.amazon.in/PRO365-Counter-Exercise-Equipment-Resistance/dp/B0D3LRCVRC/ref=zg_bsms_g_sports_d_sccl_1/524-1293891-8414557,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:46:04.228038,https://www.amazon.in/RockinRetailz-Virat-Cricket-Jersey-XSmall/dp/B0GTWW4GTC/ref=zg_bsms_g_sports_d_sccl_3/524-1293891-8414557,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:46:07.704328,https://www.amazon.in/WishCare-Ceramide-Lip-Balm-SPF50/dp/B0CND4C95T/ref=zg_bsms_g_beauty_d_sccl_1/521-2193566-8398060,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:46:08.146334,https://www.amazon.in/Dettol-Original-Protection-Bathing-99-99/dp/B0CP9NMV6P/ref=zg_bsms_g_beauty_d_sccl_2/521-2193566-8398060,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:46:08.649233,https://www.amazon.in/Dettol-Bathing-Menthol-400gm-100gm/dp/B0CP9Q58TK/ref=zg_bsms_g_beauty_d_sccl_3/521-2193566-8398060,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:51:56.864439,https://www.amazon.in/RockinRetailz-Virat-Cricket-Jersey-XSmall/dp/B0GTWW4GTC/ref=zg_bsms_g_sports_d_sccl_3/525-8252713-1700952,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:51:57.293986,https://www.amazon.in/Sports-Cricket-Offiicial-12-18Months-Multicolour/dp/B0GWCT9V82/ref=zg_bsms_g_sports_d_sccl_2/525-8252713-1700952,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:51:57.681225,https://www.amazon.in/PRO365-Counter-Exercise-Equipment-Resistance/dp/B0D3LRCVRC/ref=zg_bsms_g_sports_d_sccl_1/525-8252713-1700952,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:57:15.229523,https://www.amazon.in/Foldable-Gestures-Altitude-Landing-Adults/dp/B0GVY9T3CV/ref=zg_bsms_g_toys_d_sccl_1/520-4674365-7332061,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:57:15.678330,https://www.amazon.in/Toyzone-Frozen-Elegant-Battery-Operated/dp/B0FCC8C11C/ref=zg_bsms_g_toys_d_sccl_2/520-4674365-7332061,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T21:57:16.202141,https://www.amazon.in/Mommers-Xylophone-Educational-Toddlers-Combined/dp/B0D8TJ7NW7/ref=zg_bsms_g_toys_d_sccl_3/520-4674365-7332061,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:01:07.472611,https://www.amazon.in/PRO365-Counter-Exercise-Equipment-Resistance/dp/B0D3LRCVRC/ref=zg_bsms_g_sports_d_sccl_1/522-1692409-5569066,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:01:07.939139,https://www.amazon.in/RockinRetailz-Virat-Cricket-Jersey-XSmall/dp/B0GTWW4GTC/ref=zg_bsms_g_sports_d_sccl_3/522-1692409-5569066,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:01:08.358899,https://www.amazon.in/Sports-Cricket-Offiicial-12-18Months-Multicolour/dp/B0GWCT9V82/ref=zg_bsms_g_sports_d_sccl_2/522-1692409-5569066,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:06:40.656017,https://www.amazon.in/Waiting-Visa-Autobiography-B-Ambedkar/dp/936259675X/ref=zg_bsms_g_books_d_sccl_3/522-7528828-1186929,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:06:41.109581,https://www.amazon.in/Blackbook-English-vocabulary-2026-Bilingual/dp/8195645798/ref=zg_bsms_g_books_d_sccl_2/522-7528828-1186929,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:06:41.553834,https://www.amazon.in/Waiting-Babasaheb-Ambedkar-%E0%A4%AA%E0%A5%8D%E0%A4%B0%E0%A4%A4%E0%A5%80%E0%A4%95%E0%A5%8D%E0%A4%B7%E0%A4%BE-%E0%A4%AC%E0%A4%BE%E0%A4%AC%E0%A4%BE%E0%A4%B8%E0%A4%BE%E0%A4%B9%E0%A5%87%E0%A4%AC/dp/9371185732/ref=zg_bsms_g_books_d_sccl_1/522-7528828-1186929,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:07:38.923011,https://www.amazon.in/WishCare-Ceramide-Lip-Balm-SPF50/dp/B0CND4C95T/ref=zg_bsms_g_beauty_d_sccl_1/523-7653701-5293431,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:07:39.146457,https://www.amazon.in/Dettol-Bathing-Menthol-400gm-100gm/dp/B0CP9Q58TK/ref=zg_bsms_g_beauty_d_sccl_3/523-7653701-5293431,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:07:39.511261,https://www.amazon.in/Dettol-Original-Protection-Bathing-99-99/dp/B0CP9NMV6P/ref=zg_bsms_g_beauty_d_sccl_2/523-7653701-5293431,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:12:04.510743,https://www.amazon.in/Foldable-Gestures-Altitude-Landing-Adults/dp/B0GVY9T3CV/ref=zg_bsms_g_toys_d_sccl_1/521-3981059-1550226,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:12:04.946228,https://www.amazon.in/Toyzone-Frozen-Elegant-Battery-Operated/dp/B0FCC8C11C/ref=zg_bsms_g_toys_d_sccl_2/521-3981059-1550226,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:12:05.378510,https://www.amazon.in/Mommers-Xylophone-Educational-Toddlers-Combined/dp/B0D8TJ7NW7/ref=zg_bsms_g_toys_d_sccl_3/521-3981059-1550226,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:16:53.097432,https://www.amazon.in/PRO365-Counter-Exercise-Equipment-Resistance/dp/B0D3LRCVRC/ref=zg_bsms_g_sports_d_sccl_1/521-9991073-5900100,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:16:53.637609,https://www.amazon.in/RockinRetailz-Virat-Cricket-Jersey-XSmall/dp/B0GTWW4GTC/ref=zg_bsms_g_sports_d_sccl_3/521-9991073-5900100,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:16:54.046266,https://www.amazon.in/Sports-Cricket-Offiicial-12-18Months-Multicolour/dp/B0GWCT9V82/ref=zg_bsms_g_sports_d_sccl_2/521-9991073-5900100,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:18:09.517651,https://www.amazon.in/Toyzone-Frozen-Elegant-Battery-Operated/dp/B0FCC8C11C/ref=zg_bsms_g_toys_d_sccl_2/520-3719551-3754039,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:18:09.964107,https://www.amazon.in/Mommers-Xylophone-Educational-Toddlers-Combined/dp/B0D8TJ7NW7/ref=zg_bsms_g_toys_d_sccl_3/520-3719551-3754039,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:18:10.413134,https://www.amazon.in/Foldable-Gestures-Altitude-Landing-Adults/dp/B0GVY9T3CV/ref=zg_bsms_g_toys_d_sccl_1/520-3719551-3754039,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:21:55.634369,https://www.amazon.in/PRO365-Counter-Exercise-Equipment-Resistance/dp/B0D3LRCVRC/ref=zg_bsms_g_sports_d_sccl_1/523-3957811-4675235,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:21:56.084541,https://www.amazon.in/Sports-Cricket-Offiicial-12-18Months-Multicolour/dp/B0GWCT9V82/ref=zg_bsms_g_sports_d_sccl_2/523-3957811-4675235,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:21:56.534565,https://www.amazon.in/RockinRetailz-Virat-Cricket-Jersey-XSmall/dp/B0GTWW4GTC/ref=zg_bsms_g_sports_d_sccl_3/523-3957811-4675235,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:33:13.059254,https://www.amazon.in/Foldable-Gestures-Altitude-Landing-Adults/dp/B0GVY9T3CV/ref=zg_bsms_g_toys_d_sccl_1/524-3192309-4549734,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:33:13.480738,https://www.amazon.in/Mommers-Xylophone-Educational-Toddlers-Combined/dp/B0D8TJ7NW7/ref=zg_bsms_g_toys_d_sccl_3/524-3192309-4549734,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:33:13.896578,https://www.amazon.in/Toyzone-Frozen-Elegant-Battery-Operated/dp/B0FCC8C11C/ref=zg_bsms_g_toys_d_sccl_2/524-3192309-4549734,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:37:41.861140,https://www.amazon.in/Foldable-Gestures-Altitude-Landing-Adults/dp/B0GVY9T3CV/ref=zg_bsms_g_toys_d_sccl_1/521-3041958-4738339,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:37:42.199005,https://www.amazon.in/Toyzone-Frozen-Elegant-Battery-Operated/dp/B0FCC8C11C/ref=zg_bsms_g_toys_d_sccl_2/521-3041958-4738339,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:37:42.675616,https://www.amazon.in/Mommers-Xylophone-Educational-Toddlers-Combined/dp/B0D8TJ7NW7/ref=zg_bsms_g_toys_d_sccl_3/521-3041958-4738339,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:38:31.134390,https://www.amazon.in/PRO365-Counter-Exercise-Equipment-Resistance/dp/B0D3LRCVRC/ref=zg_bsms_g_sports_d_sccl_1/525-5801867-0997522,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:38:31.561700,https://www.amazon.in/Sports-Cricket-Offiicial-12-18Months-Multicolour/dp/B0GWCT9V82/ref=zg_bsms_g_sports_d_sccl_2/525-5801867-0997522,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-15T22:38:32.109675,https://www.amazon.in/RockinRetailz-Virat-Cricket-Jersey-XSmall/dp/B0GTWW4GTC/ref=zg_bsms_g_sports_d_sccl_3/525-5801867-0997522,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:13:55.489638,https://www.amazon.in/Jaspo-Slog-Synthetic-Cricket-Balls/dp/B0DY7RGZTN/ref=zg_bsms_g_sports_d_sccl_1/521-3518918-9927158,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:13:56.075500,https://www.amazon.in/Rcbb-Jersey-Virat-12-18Months-Multicolor-1/dp/B0GX5YZ7K4/ref=zg_bsms_g_sports_d_sccl_3/521-3518918-9927158,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:13:56.501461,https://www.amazon.in/Boldfit-Workout-Weightlifting-Comfortable-Handgloves/dp/B0FLPWFPW6/ref=zg_bsms_g_sports_d_sccl_2/521-3518918-9927158,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:18:21.286653,https://www.amazon.in/Jaspo-Slog-Synthetic-Cricket-Balls/dp/B0DY7RGZTN/ref=zg_bsms_g_sports_d_sccl_1/525-0095722-5007200,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:18:21.737937,https://www.amazon.in/Boldfit-Workout-Weightlifting-Comfortable-Handgloves/dp/B0FLPWFPW6/ref=zg_bsms_g_sports_d_sccl_2/525-0095722-5007200,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:18:22.254807,https://www.amazon.in/Rcbb-Jersey-Virat-12-18Months-Multicolor-1/dp/B0GX5YZ7K4/ref=zg_bsms_g_sports_d_sccl_3/525-0095722-5007200,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:19:42.250895,https://www.amazon.in/SupCares-CMF-Phone-Installation-Smartphone/dp/B0DB5GB5ZW/ref=zg_bsms_g_electronics_d_sccl_1/520-4590199-4629159,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:19:42.742627,https://www.amazon.in/Kratos-Magnetic-Aluminum-Rotation-Vlogging/dp/B0G1MWVQFR/ref=zg_bsms_g_electronics_d_sccl_2/520-4590199-4629159,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:19:43.212973,https://www.amazon.in/Type-Lightning-Charging-Compatible-iPhone/dp/B0DHW7ZG5X/ref=zg_bsms_g_electronics_d_sccl_3/520-4590199-4629159,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:22:56.461105,https://www.amazon.in/Boldfit-Workout-Weightlifting-Comfortable-Handgloves/dp/B0FLPWFPW6/ref=zg_bsms_g_sports_d_sccl_2/524-1347238-8863720,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:22:56.968007,https://www.amazon.in/Rcbb-Jersey-Virat-12-18Months-Multicolor-1/dp/B0GX5YZ7K4/ref=zg_bsms_g_sports_d_sccl_3/524-1347238-8863720,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:22:57.498828,https://www.amazon.in/Jaspo-Slog-Synthetic-Cricket-Balls/dp/B0DY7RGZTN/ref=zg_bsms_g_sports_d_sccl_1/524-1347238-8863720,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:24:24.938437,https://www.amazon.in/Cable-Portable-Cooking-Kitchen-Pretend/dp/B08MTW2TNC/ref=zg_bsms_g_toys_d_sccl_1/520-9424114-7266004,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:24:25.466755,https://www.amazon.in/Foldable-Gestures-Altitude-Landing-Adults/dp/B0GVY9T3CV/ref=zg_bsms_g_toys_d_sccl_2/520-9424114-7266004,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:24:25.978090,https://www.amazon.in/Mommers-Xylophone-Educational-Toddlers-Combined/dp/B0D8TJ7NW7/ref=zg_bsms_g_toys_d_sccl_3/520-9424114-7266004,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:33:00.678579,https://www.amazon.in/Bihar-Question-Nursing-Pharma-Engineering/dp/9347391689/ref=zg_bsms_g_books_d_sccl_3/520-7097828-4365408,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:33:01.161699,https://www.amazon.in/Buildit-Building-Blinkit-Evolving-India/dp/936989943X/ref=zg_bsms_g_books_d_sccl_1/520-7097828-4365408,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:33:01.738869,https://www.amazon.in/Big-Joke-Book-Singh-Khushwant/dp/0140298185/ref=zg_bsms_g_books_d_sccl_2/520-7097828-4365408,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:35:13.812701,https://www.amazon.in/Set-Wet-Deodorant-Perfume-Mischief/dp/B079QBB5YT/ref=zg_bsms_g_beauty_d_sccl_2/525-2512634-8764246,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:35:14.494925,https://www.amazon.in/Aroma-Magic-Bridal-Glow-Facial/dp/B08FCSBJPS/ref=zg_bsms_g_beauty_d_sccl_3/525-2512634-8764246,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:35:15.060547,https://www.amazon.in/Park-Avenue-Pure-Luxury-500gm/dp/B0B6ZXHMX7/ref=zg_bsms_g_beauty_d_sccl_1/525-2512634-8764246,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:41:02.535351,https://www.amazon.in/Big-Joke-Book-Singh-Khushwant/dp/0140298185/ref=zg_bsms_g_books_d_sccl_2/523-2389485-7034609,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:41:03.026979,https://www.amazon.in/Buildit-Building-Blinkit-Evolving-India/dp/936989943X/ref=zg_bsms_g_books_d_sccl_1/523-2389485-7034609,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:41:03.549102,https://www.amazon.in/Bihar-Question-Nursing-Pharma-Engineering/dp/9347391689/ref=zg_bsms_g_books_d_sccl_3/523-2389485-7034609,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:43:32.565067,https://www.amazon.in/Bihar-Question-Nursing-Pharma-Engineering/dp/9347391689/ref=zg_bsms_g_books_d_sccl_3/525-0317963-4139456,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:43:33.266001,https://www.amazon.in/Big-Joke-Book-Singh-Khushwant/dp/0140298185/ref=zg_bsms_g_books_d_sccl_2/525-0317963-4139456,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:43:33.820841,https://www.amazon.in/Buildit-Building-Blinkit-Evolving-India/dp/936989943X/ref=zg_bsms_g_books_d_sccl_1/525-0317963-4139456,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:45:32.842781,https://www.amazon.in/SupCares-CMF-Phone-Installation-Smartphone/dp/B0DB5GB5ZW/ref=zg_bsms_g_electronics_d_sccl_1/525-5351580-4496411,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:45:33.240299,https://www.amazon.in/Type-Lightning-Charging-Compatible-iPhone/dp/B0DHW7ZG5X/ref=zg_bsms_g_electronics_d_sccl_3/525-5351580-4496411,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:45:33.719924,https://www.amazon.in/Kratos-Magnetic-Aluminum-Rotation-Vlogging/dp/B0G1MWVQFR/ref=zg_bsms_g_electronics_d_sccl_2/525-5351580-4496411,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:48:59.595636,https://www.amazon.in/Big-Joke-Book-Singh-Khushwant/dp/0140298185/ref=zg_bsms_g_books_d_sccl_2/524-3031123-3192602,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:49:00.105570,https://www.amazon.in/Buildit-Building-Blinkit-Evolving-India/dp/936989943X/ref=zg_bsms_g_books_d_sccl_1/524-3031123-3192602,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:49:00.565640,https://www.amazon.in/Bihar-Question-Nursing-Pharma-Engineering/dp/9347391689/ref=zg_bsms_g_books_d_sccl_3/524-3031123-3192602,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:51:12.821478,https://www.amazon.in/Set-Wet-Deodorant-Perfume-Mischief/dp/B079QBB5YT/ref=zg_bsms_g_beauty_d_sccl_2/525-1514273-0441245,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:51:13.307772,https://www.amazon.in/Park-Avenue-Pure-Luxury-500gm/dp/B0B6ZXHMX7/ref=zg_bsms_g_beauty_d_sccl_1/525-1514273-0441245,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:51:13.871293,https://www.amazon.in/Aroma-Magic-Bridal-Glow-Facial/dp/B08FCSBJPS/ref=zg_bsms_g_beauty_d_sccl_3/525-1514273-0441245,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:53:25.743109,https://www.amazon.in/SupCares-CMF-Phone-Installation-Smartphone/dp/B0DB5GB5ZW/ref=zg_bsms_g_electronics_d_sccl_1/520-3507477-8727949,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:53:26.293194,https://www.amazon.in/Type-Lightning-Charging-Compatible-iPhone/dp/B0DHW7ZG5X/ref=zg_bsms_g_electronics_d_sccl_3/520-3507477-8727949,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:53:26.809319,https://www.amazon.in/Kratos-Magnetic-Aluminum-Rotation-Vlogging/dp/B0G1MWVQFR/ref=zg_bsms_g_electronics_d_sccl_2/520-3507477-8727949,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:56:19.703317,https://www.amazon.in/Kratos-Magnetic-Aluminum-Rotation-Vlogging/dp/B0G1MWVQFR/ref=zg_bsms_g_electronics_d_sccl_2/521-8165793-4889724,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:56:20.262105,https://www.amazon.in/SupCares-CMF-Phone-Installation-Smartphone/dp/B0DB5GB5ZW/ref=zg_bsms_g_electronics_d_sccl_1/521-8165793-4889724,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:56:20.699605,https://www.amazon.in/Type-Lightning-Charging-Compatible-iPhone/dp/B0DHW7ZG5X/ref=zg_bsms_g_electronics_d_sccl_3/521-8165793-4889724,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:59:01.827174,https://www.amazon.in/Bihar-Question-Nursing-Pharma-Engineering/dp/9347391689/ref=zg_bsms_g_books_d_sccl_3/521-6535468-6321007,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:59:02.256173,https://www.amazon.in/Buildit-Building-Blinkit-Evolving-India/dp/936989943X/ref=zg_bsms_g_books_d_sccl_1/521-6535468-6321007,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T11:59:02.707395,https://www.amazon.in/Big-Joke-Book-Singh-Khushwant/dp/0140298185/ref=zg_bsms_g_books_d_sccl_2/521-6535468-6321007,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:04:23.729687,https://www.amazon.in/Mommers-Xylophone-Educational-Toddlers-Combined/dp/B0D8TJ7NW7/ref=zg_bsms_g_toys_d_sccl_3/525-9478868-1915036,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:04:24.141942,https://www.amazon.in/Cable-Portable-Cooking-Kitchen-Pretend/dp/B08MTW2TNC/ref=zg_bsms_g_toys_d_sccl_1/525-9478868-1915036,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:04:24.549414,https://www.amazon.in/Foldable-Gestures-Altitude-Landing-Adults/dp/B0GVY9T3CV/ref=zg_bsms_g_toys_d_sccl_2/525-9478868-1915036,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:10:15.156529,https://www.amazon.in/Buildit-Building-Blinkit-Evolving-India/dp/936989943X/ref=zg_bsms_g_books_d_sccl_1/521-4315555-8026800,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:10:15.666330,https://www.amazon.in/Big-Joke-Book-Singh-Khushwant/dp/0140298185/ref=zg_bsms_g_books_d_sccl_2/521-4315555-8026800,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:10:16.232006,https://www.amazon.in/Bihar-Question-Nursing-Pharma-Engineering/dp/9347391689/ref=zg_bsms_g_books_d_sccl_3/521-4315555-8026800,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:14:26.010597,https://www.amazon.in/SupCares-CMF-Phone-Installation-Smartphone/dp/B0DB5GB5ZW/ref=zg_bsms_g_electronics_d_sccl_1/522-0234064-1969027,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:14:26.499979,https://www.amazon.in/Type-Lightning-Charging-Compatible-iPhone/dp/B0DHW7ZG5X/ref=zg_bsms_g_electronics_d_sccl_3/522-0234064-1969027,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:14:27.113508,https://www.amazon.in/Kratos-Magnetic-Aluminum-Rotation-Vlogging/dp/B0G1MWVQFR/ref=zg_bsms_g_electronics_d_sccl_2/522-0234064-1969027,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:15:31.722754,https://www.amazon.in/Type-Lightning-Charging-Compatible-iPhone/dp/B0DHW7ZG5X/ref=zg_bsms_g_electronics_d_sccl_3/523-5650033-3911711,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:15:32.223573,https://www.amazon.in/Kratos-Magnetic-Aluminum-Rotation-Vlogging/dp/B0G1MWVQFR/ref=zg_bsms_g_electronics_d_sccl_2/523-5650033-3911711,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:15:32.628770,https://www.amazon.in/SupCares-CMF-Phone-Installation-Smartphone/dp/B0DB5GB5ZW/ref=zg_bsms_g_electronics_d_sccl_1/523-5650033-3911711,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:19:48.799631,https://www.amazon.in/Rcbb-Jersey-Virat-12-18Months-Multicolor-1/dp/B0GX5YZ7K4/ref=zg_bsms_g_sports_d_sccl_3/525-4234367-5379927,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:19:49.263411,https://www.amazon.in/Boldfit-Workout-Weightlifting-Comfortable-Handgloves/dp/B0FLPWFPW6/ref=zg_bsms_g_sports_d_sccl_2/525-4234367-5379927,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:19:49.834257,https://www.amazon.in/Jaspo-Slog-Synthetic-Cricket-Balls/dp/B0DY7RGZTN/ref=zg_bsms_g_sports_d_sccl_1/525-4234367-5379927,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:20:17.205705,https://www.amazon.in/Big-Joke-Book-Singh-Khushwant/dp/0140298185/ref=zg_bsms_g_books_d_sccl_2/524-9426741-8762408,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:20:17.670601,https://www.amazon.in/Buildit-Building-Blinkit-Evolving-India/dp/936989943X/ref=zg_bsms_g_books_d_sccl_1/524-9426741-8762408,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:20:18.091584,https://www.amazon.in/Bihar-Question-Nursing-Pharma-Engineering/dp/9347391689/ref=zg_bsms_g_books_d_sccl_3/524-9426741-8762408,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:24:37.848012,https://www.amazon.in/Park-Avenue-Pure-Luxury-500gm/dp/B0B6ZXHMX7/ref=zg_bsms_g_beauty_d_sccl_1/520-2718024-8052932,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:24:38.257869,https://www.amazon.in/Aroma-Magic-Bridal-Glow-Facial/dp/B08FCSBJPS/ref=zg_bsms_g_beauty_d_sccl_3/520-2718024-8052932,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:24:38.674928,https://www.amazon.in/Set-Wet-Deodorant-Perfume-Mischief/dp/B079QBB5YT/ref=zg_bsms_g_beauty_d_sccl_2/520-2718024-8052932,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:25:56.122738,https://www.amazon.in/Mommers-Xylophone-Educational-Toddlers-Combined/dp/B0D8TJ7NW7/ref=zg_bsms_g_toys_d_sccl_3/520-5862310-3304823,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:25:56.647436,https://www.amazon.in/Foldable-Gestures-Altitude-Landing-Adults/dp/B0GVY9T3CV/ref=zg_bsms_g_toys_d_sccl_2/520-5862310-3304823,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:25:57.151750,https://www.amazon.in/Cable-Portable-Cooking-Kitchen-Pretend/dp/B08MTW2TNC/ref=zg_bsms_g_toys_d_sccl_1/520-5862310-3304823,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:30:25.203770,https://www.amazon.in/Boldfit-Workout-Weightlifting-Comfortable-Handgloves/dp/B0FLPWFPW6/ref=zg_bsms_g_sports_d_sccl_2/525-5608572-7335305,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:30:25.658159,https://www.amazon.in/Jaspo-Slog-Synthetic-Cricket-Balls/dp/B0DY7RGZTN/ref=zg_bsms_g_sports_d_sccl_1/525-5608572-7335305,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T12:30:26.167093,https://www.amazon.in/Rcbb-Jersey-Virat-12-18Months-Multicolor-1/dp/B0GX5YZ7K4/ref=zg_bsms_g_sports_d_sccl_3/525-5608572-7335305,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T13:06:30.955208,https://www.amazon.in/Set-Wet-Deodorant-Perfume-Mischief/dp/B079QBB5YT/ref=zg_bsms_g_beauty_d_sccl_2/523-4646391-8652407,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T13:06:31.438252,https://www.amazon.in/Park-Avenue-Pure-Luxury-500gm/dp/B0B6ZXHMX7/ref=zg_bsms_g_beauty_d_sccl_1/523-4646391-8652407,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T13:06:31.955953,https://www.amazon.in/Expert-Sunscreen-Niacinamide-Lightweight-Non-Sticky/dp/B06WRQQXF5/ref=zg_bsms_g_beauty_d_sccl_3/523-4646391-8652407,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:15:06.212818,https://www.amazon.in/Set-Wet-Deodorant-Perfume-Mischief/dp/B079QBB5YT/ref=zg_bsms_g_beauty_d_sccl_2/522-6481487-3679813,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:15:06.783673,https://www.amazon.in/Expert-Sunscreen-Niacinamide-Lightweight-Non-Sticky/dp/B06WRQQXF5/ref=zg_bsms_g_beauty_d_sccl_3/522-6481487-3679813,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:15:07.204878,https://www.amazon.in/Park-Avenue-Pure-Luxury-500gm/dp/B0B6ZXHMX7/ref=zg_bsms_g_beauty_d_sccl_1/522-6481487-3679813,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:20:36.054977,https://www.amazon.in/Kratos-Magnetic-Aluminum-Rotation-Vlogging/dp/B0G1MWVQFR/ref=zg_bsms_g_electronics_d_sccl_2/525-1561954-3084512,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:20:36.511078,https://www.amazon.in/Storage-Segments-Fastest-Processor-Smoothest/dp/B0GS5SM6JR/ref=zg_bsms_g_electronics_d_sccl_1/525-1561954-3084512,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:20:37.013327,https://www.amazon.in/Kratos-Multifunctional-Rechargeable-Brightness-Photoshoot/dp/B0FVG14W46/ref=zg_bsms_g_electronics_d_sccl_3/525-1561954-3084512,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:21:40.894190,https://www.amazon.in/Expert-Sunscreen-Niacinamide-Lightweight-Non-Sticky/dp/B06WRQQXF5/ref=zg_bsms_g_beauty_d_sccl_3/524-8071801-4939866,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:21:41.360194,https://www.amazon.in/Park-Avenue-Pure-Luxury-500gm/dp/B0B6ZXHMX7/ref=zg_bsms_g_beauty_d_sccl_1/524-8071801-4939866,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:21:41.916323,https://www.amazon.in/Set-Wet-Deodorant-Perfume-Mischief/dp/B079QBB5YT/ref=zg_bsms_g_beauty_d_sccl_2/524-8071801-4939866,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:26:04.042753,https://www.amazon.in/Park-Avenue-Pure-Luxury-500gm/dp/B0B6ZXHMX7/ref=zg_bsms_g_beauty_d_sccl_1/520-6373839-4604025,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:26:04.593427,https://www.amazon.in/Set-Wet-Deodorant-Perfume-Mischief/dp/B079QBB5YT/ref=zg_bsms_g_beauty_d_sccl_2/520-6373839-4604025,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:26:05.304779,https://www.amazon.in/Expert-Sunscreen-Niacinamide-Lightweight-Non-Sticky/dp/B06WRQQXF5/ref=zg_bsms_g_beauty_d_sccl_3/520-6373839-4604025,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:27:06.319872,https://www.amazon.in/Storage-Segments-Fastest-Processor-Smoothest/dp/B0GS5SM6JR/ref=zg_bsms_g_electronics_d_sccl_1/522-7752236-2652854,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:27:06.890044,https://www.amazon.in/Kratos-Magnetic-Aluminum-Rotation-Vlogging/dp/B0G1MWVQFR/ref=zg_bsms_g_electronics_d_sccl_2/522-7752236-2652854,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:27:07.487805,https://www.amazon.in/Kratos-Multifunctional-Rechargeable-Brightness-Photoshoot/dp/B0FVG14W46/ref=zg_bsms_g_electronics_d_sccl_3/522-7752236-2652854,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:32:36.076402,https://www.amazon.in/Jaspo-Slog-Synthetic-Cricket-Balls/dp/B0DY7RGZTN/ref=zg_bsms_g_sports_d_sccl_1/525-1687204-9975708,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:32:36.576788,https://www.amazon.in/Lifelong-Adjustable-Equipment-Strength-Training/dp/B0DMNQGRDW/ref=zg_bsms_g_sports_d_sccl_3/525-1687204-9975708,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:32:37.067733,https://www.amazon.in/Boldfit-Workout-Weightlifting-Comfortable-Handgloves/dp/B0FLPWFPW6/ref=zg_bsms_g_sports_d_sccl_2/525-1687204-9975708,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:36:16.389868,https://www.amazon.in/Kratos-Magnetic-Aluminum-Rotation-Vlogging/dp/B0G1MWVQFR/ref=zg_bsms_g_electronics_d_sccl_2/523-3804007-0724746,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:36:16.979614,https://www.amazon.in/Storage-Segments-Fastest-Processor-Smoothest/dp/B0GS5SM6JR/ref=zg_bsms_g_electronics_d_sccl_1/523-3804007-0724746,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:36:17.490062,https://www.amazon.in/Kratos-Multifunctional-Rechargeable-Brightness-Photoshoot/dp/B0FVG14W46/ref=zg_bsms_g_electronics_d_sccl_3/523-3804007-0724746,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:37:02.968505,https://www.amazon.in/Jaspo-Slog-Synthetic-Cricket-Balls/dp/B0DY7RGZTN/ref=zg_bsms_g_sports_d_sccl_1/520-5670590-4226040,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:37:03.480918,https://www.amazon.in/Boldfit-Workout-Weightlifting-Comfortable-Handgloves/dp/B0FLPWFPW6/ref=zg_bsms_g_sports_d_sccl_2/520-5670590-4226040,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:37:04.048731,https://www.amazon.in/Lifelong-Adjustable-Equipment-Strength-Training/dp/B0DMNQGRDW/ref=zg_bsms_g_sports_d_sccl_3/520-5670590-4226040,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:41:56.490513,https://www.amazon.in/Jaspo-Slog-Synthetic-Cricket-Balls/dp/B0DY7RGZTN/ref=zg_bsms_g_sports_d_sccl_1/525-4277527-8115335,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:41:56.953364,https://www.amazon.in/Boldfit-Workout-Weightlifting-Comfortable-Handgloves/dp/B0FLPWFPW6/ref=zg_bsms_g_sports_d_sccl_2/525-4277527-8115335,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:41:57.487758,https://www.amazon.in/Lifelong-Adjustable-Equipment-Strength-Training/dp/B0DMNQGRDW/ref=zg_bsms_g_sports_d_sccl_3/525-4277527-8115335,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:46:17.878953,https://www.amazon.in/Kratos-Magnetic-Aluminum-Rotation-Vlogging/dp/B0G1MWVQFR/ref=zg_bsms_g_electronics_d_sccl_2/520-8214374-0620137,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:46:18.292927,https://www.amazon.in/Kratos-Multifunctional-Rechargeable-Brightness-Photoshoot/dp/B0FVG14W46/ref=zg_bsms_g_electronics_d_sccl_3/520-8214374-0620137,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:46:18.711116,https://www.amazon.in/Storage-Segments-Fastest-Processor-Smoothest/dp/B0GS5SM6JR/ref=zg_bsms_g_electronics_d_sccl_1/520-8214374-0620137,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:56:47.043190,https://www.amazon.in/Buildit-Building-Blinkit-Evolving-India/dp/936989943X/ref=zg_bsms_g_books_d_sccl_2/525-7060967-1486365,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:56:47.670438,https://www.amazon.in/Bihar-Question-Nursing-Pharma-Engineering/dp/9347391689/ref=zg_bsms_g_books_d_sccl_3/525-7060967-1486365,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T20:56:48.247505,https://www.amazon.in/Library-Selling-Picture-Toddler-Learning/dp/B0DRCJ9QPF/ref=zg_bsms_g_books_d_sccl_1/525-7060967-1486365,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:02:07.843135,https://www.amazon.in/Foldable-Gestures-Altitude-Landing-Adults/dp/B0GVY9T3CV/ref=zg_bsms_g_toys_d_sccl_2/523-6192554-5249534,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:02:08.380049,https://www.amazon.in/Cable-Portable-Cooking-Kitchen-Pretend/dp/B08MTW2TNC/ref=zg_bsms_g_toys_d_sccl_1/523-6192554-5249534,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:02:08.886588,https://www.amazon.in/Mommers-Xylophone-Educational-Toddlers-Combined/dp/B0D1M7GJYX/ref=zg_bsms_g_toys_d_sccl_3/523-6192554-5249534,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:02:41.671159,https://www.amazon.in/Buildit-Building-Blinkit-Evolving-India/dp/936989943X/ref=zg_bsms_g_books_d_sccl_2/522-6669287-0242259,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:02:42.169434,https://www.amazon.in/Library-Selling-Picture-Toddler-Learning/dp/B0DRCJ9QPF/ref=zg_bsms_g_books_d_sccl_1/522-6669287-0242259,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:02:42.621875,https://www.amazon.in/Bihar-Question-Nursing-Pharma-Engineering/dp/9347391689/ref=zg_bsms_g_books_d_sccl_3/522-6669287-0242259,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:08:03.033530,https://www.amazon.in/Park-Avenue-Pure-Luxury-500gm/dp/B0B6ZXHMX7/ref=zg_bsms_g_beauty_d_sccl_1/520-8965497-1764501,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:08:03.611586,https://www.amazon.in/Expert-Sunscreen-Niacinamide-Lightweight-Non-Sticky/dp/B06WRQQXF5/ref=zg_bsms_g_beauty_d_sccl_3/520-8965497-1764501,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:08:04.208355,https://www.amazon.in/Set-Wet-Deodorant-Perfume-Mischief/dp/B079QBB5YT/ref=zg_bsms_g_beauty_d_sccl_2/520-8965497-1764501,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:12:05.939519,https://www.amazon.in/Cable-Portable-Cooking-Kitchen-Pretend/dp/B08MTW2TNC/ref=zg_bsms_g_toys_d_sccl_1/525-0314921-4988533,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:12:06.398766,https://www.amazon.in/Mommers-Xylophone-Educational-Toddlers-Combined/dp/B0D1M7GJYX/ref=zg_bsms_g_toys_d_sccl_3/525-0314921-4988533,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:12:06.881374,https://www.amazon.in/Foldable-Gestures-Altitude-Landing-Adults/dp/B0GVY9T3CV/ref=zg_bsms_g_toys_d_sccl_2/525-0314921-4988533,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:12:32.701787,https://www.amazon.in/Boldfit-Workout-Weightlifting-Comfortable-Handgloves/dp/B0FLPWFPW6/ref=zg_bsms_g_sports_d_sccl_2/520-4001447-5872624,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:12:33.217517,https://www.amazon.in/Lifelong-Adjustable-Equipment-Strength-Training/dp/B0DMNQGRDW/ref=zg_bsms_g_sports_d_sccl_3/520-4001447-5872624,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:12:33.820459,https://www.amazon.in/Jaspo-Slog-Synthetic-Cricket-Balls/dp/B0DY7RGZTN/ref=zg_bsms_g_sports_d_sccl_1/520-4001447-5872624,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-16T21:13:11.629726,https://www.amazon.in/Foldable-Gestures-Altitude-Landing-Adults/dp/B0GVY9T3CV/ref=zg_bsms_g_toys_d_sccl_2/521-9517307-1524064,Buyability Failure | amazon_validation_failed,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2280, in deal_engine
+    deal = await enrich_deal(session, deal)
+2026-04-16T21:13:16.459903,https://www.amazon.in/Mommers-Xylophone-Educational-Toddlers-Combined/dp/B0D1M7GJYX/ref=zg_bsms_g_toys_d_sccl_3/521-9517307-1524064,Buyability Failure | amazon_validation_failed,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2280, in deal_engine
+    deal = await enrich_deal(session, deal)
+2026-04-16T21:13:21.546901,https://www.amazon.in/Cable-Portable-Cooking-Kitchen-Pretend/dp/B08MTW2TNC/ref=zg_bsms_g_toys_d_sccl_1/521-9517307-1524064,Buyability Failure | amazon_validation_failed,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2280, in deal_engine
+    deal = await enrich_deal(session, deal)
+2026-04-16T21:18:08.914991,https://www.amazon.in/Library-Selling-Picture-Toddler-Learning/dp/B0DRCJ9QPF/ref=zg_bsms_g_books_d_sccl_1/523-2342635-6048417,Buyability Failure | amazon_validation_failed,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2280, in deal_engine
+    deal = await enrich_deal(session, deal)
+2026-04-16T21:18:15.757899,https://www.amazon.in/Buildit-Building-Blinkit-Evolving-India/dp/936989943X/ref=zg_bsms_g_books_d_sccl_2/523-2342635-6048417,Buyability Failure | amazon_validation_failed,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2280, in deal_engine
+    deal = await enrich_deal(session, deal)
+2026-04-16T21:18:21.982855,https://www.amazon.in/Bihar-Question-Nursing-Pharma-Engineering/dp/9347391689/ref=zg_bsms_g_books_d_sccl_3/523-2342635-6048417,Buyability Failure | amazon_validation_failed,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2280, in deal_engine
+    deal = await enrich_deal(session, deal)
+2026-04-18T13:03:23.467327,https://www.couponami.com/ux/uiux-design-masterclass-with-adobe-xd-from-beginner-to-pro,Buyability Failure | no_buy_button,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2294, in deal_engine
+    deal = await enrich_deal(session, deal)
+2026-04-18T13:03:23.930110,https://www.couponami.com/video-design/learn-filmora-video-editing-masterclass-from-beginner-to-pro,Buyability Failure | no_buy_button,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2294, in deal_engine
+    deal = await enrich_deal(session, deal)
+2026-04-18T13:03:24.212552,https://www.couponami.com/photoshop/ultimate-guide-to-canva-t-shirt-design-mastery-in-t-shirt,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-18T13:03:31.156363,https://www.amazon.in/Proberos%C2%AE-Gymnastic-Capacity-Heavy-Duty-Adjustable/dp/B0GDXTQ4BV/ref=zg_bsms_g_sports_d_sccl_3/520-8823963-7064331,Buyability Failure | amazon_validation_failed,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2294, in deal_engine
+    deal = await enrich_deal(session, deal)
+2026-04-18T13:03:37.621685,https://www.amazon.in/TEKCOOL-Wheels-Adjustable-Skating-Aluminium/dp/B0GNG8RZDC/ref=zg_bsms_g_sports_d_sccl_2/520-8823963-7064331,Buyability Failure | amazon_validation_failed,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2294, in deal_engine
+    deal = await enrich_deal(session, deal)
+2026-04-18T13:03:42.668207,https://www.amazon.in/Wiselife-Professional-Resistance-Stretching-Strength/dp/B09DYH5D4P/ref=zg_bsms_g_sports_d_sccl_1/520-8823963-7064331,Buyability Failure | amazon_validation_failed,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2294, in deal_engine
+    deal = await enrich_deal(session, deal)
+2026-04-18T13:08:01.928623,https://www.couponami.com/ux/uiux-design-masterclass-with-adobe-xd-from-beginner-to-pro,Buyability Failure | no_buy_button,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2294, in deal_engine
+    deal = await enrich_deal(session, deal)
+2026-04-18T13:08:02.225604,https://www.couponami.com/photoshop/ultimate-guide-to-canva-t-shirt-design-mastery-in-t-shirt,Schema Failure | no_numeric_new_price,scraper,LOC:File "C:\Users\anany\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+2026-04-18T13:08:02.654204,https://www.couponami.com/video-design/learn-filmora-video-editing-masterclass-from-beginner-to-pro,Buyability Failure | no_buy_button,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2294, in deal_engine
+    deal = await enrich_deal(session, deal)
+2026-04-18T13:08:10.015176,https://www.amazon.in/APFEN-Type-C-Charger-Adapter-Compitable/dp/B0F62W35NX/ref=zg_bsms_g_electronics_d_sccl_3/521-2389918-5809167,Buyability Failure | amazon_validation_failed,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2294, in deal_engine
+    deal = await enrich_deal(session, deal)
+2026-04-18T13:08:16.452383,https://www.amazon.in/Type-Lightning-Charging-Compatible-iPhone/dp/B0DHW7ZG5X/ref=zg_bsms_g_electronics_d_sccl_2/521-2389918-5809167,Buyability Failure | amazon_validation_failed,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2294, in deal_engine
+    deal = await enrich_deal(session, deal)
+2026-04-18T13:08:23.400098,https://www.amazon.in/Kratos-Magnetic-Aluminum-Rotation-Vlogging/dp/B0G1MWVQFR/ref=zg_bsms_g_electronics_d_sccl_1/521-2389918-5809167,Buyability Failure | amazon_validation_failed,scraper,LOC:File "C:\Users\anany\OneDrive\Desktop\Arbitrage\bot.py", line 2294, in deal_engine
+    deal = await enrich_deal(session, deal)

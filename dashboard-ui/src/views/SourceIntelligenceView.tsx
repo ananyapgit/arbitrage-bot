@@ -37,7 +37,7 @@ export function SourceIntelligenceView() {
         <div className="text-xs font-semibold uppercase tracking-wide text-[#6B6B6B]">Deal density</div>
         <div className="mt-1 text-lg font-semibold tracking-tight">Amazon vs Flipkart vs Couponami</div>
         <div className="mt-4 h-[min(52vh,420px)] min-h-[280px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minHeight={280}>
             <ScatterChart margin={{ top: 24, right: 24, bottom: 24, left: 24 }}>
               <XAxis type="number" dataKey="x" domain={[0.5, 3.5]} tick={false} axisLine={false} tickLine={false}>
                 <Label value="Source lane" offset={-8} position="insideBottom" fill="#6B6B6B" fontSize={11} />

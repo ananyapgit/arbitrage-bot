@@ -1,15 +1,5 @@
 [
   {
-    "title": "Apple AirPods Pro (2nd Generation)",
-    "marketplace": "Amazon",
-    "old_price": 24900,
-    "new_price": 19999,
-    "url": "https://www.amazon.in/Apple-AirPods-Pro-2nd-Generation/dp/B0BDKD8DVD?tag=crawl0f-21",
-    "category": "audio",
-    "enrichment_status": "skipped",
-    "posted_at": "2026-01-09T18:40:57.801757+00:00"
-  },
-  {
     "title": "Nike Interact Run Running Shoes",
     "marketplace": "Flipkart",
     "old_price": 7095,
@@ -18,19 +8,5 @@
     "category": "general",
     "enrichment_status": "skipped",
     "posted_at": "2026-01-09T18:29:47.986485+00:00"
-  },
-  {
-    "title": "Apple AirPods Pro",
-    "old_price": "â‚¹24,900",
-    "new_price": "â‚¹18,999",
-    "url": "https://www.amazon.in/dp/EXAMPLE2?tag=crawl0f-21",
-    "posted_at": "2026-01-08T17:49:04.877871"
-  },
-  {
-    "title": "Logitech Mouse MX Master 3S",
-    "old_price": "â‚¹9,995",
-    "new_price": "â‚¹6,499",
-    "url": "https://www.amazon.in/dp/EXAMPLE?tag=crawl0f-21",
-    "posted_at": "2026-01-08T17:35:55.879236"
   }
 ]

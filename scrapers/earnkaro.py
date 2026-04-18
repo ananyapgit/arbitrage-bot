@@ -28,6 +28,9 @@ USER_AGENTS = [
 SEED_URLS = [
     "https://earnkaro.com/deals",
     "https://earnkaro.com/offers",
+    "https://earnkaro.com/stores/amazon-india-offers",
+    "https://earnkaro.com/stores/flipkart-offers",
+    "https://earnkaro.com/stores/myntra-offers"
 ]
 
 
@@ -57,20 +60,32 @@ async def get_earnkaro_deals(limit: int = 20) -> list[dict]:
                             continue
                         html = await resp.text()
                     soup = BeautifulSoup(html, "html.parser")
-                    for a in soup.select("a[href]"):
+                    # Broader link extraction for EarnKaro
+                    for a in soup.find_all("a", href=True):
                         href = (a.get("href") or "").strip()
-                        if not href:
+                        if not href or "#" in href:
                             continue
                         url = urljoin(base, href)
                         if url in seen:
                             continue
+                        
                         txt = _clean(a.get_text(" ", strip=True))
-                        if len(txt) < 6:
+                        # If title is empty, try to find one in siblings or parent
+                        if not txt or len(txt) < 4:
+                            parent = a.parent
+                            if parent:
+                                txt = _clean(parent.get_text(" ", strip=True))
+                        
+                        if not txt or len(txt) < 6:
                             continue
-                        # Prefer links that look like profit-link redirects or store links
-                        if "earnkaro.com" not in url:
+                        
+                        # Target profit-link redirects or store links
+                        url_low = url.lower()
+                        if "earnkaro.com" not in url_low:
                             continue
-                        if "/deal" not in url and "/offer" not in url and "/store" not in url and "/p/" not in url:
+                        
+                        is_deal = any(x in url_low for x in ["/deal", "/offer", "/store", "/p/", "/product"])
+                        if not is_deal:
                             continue
 
                         seen.add(url)
@@ -78,7 +93,7 @@ async def get_earnkaro_deals(limit: int = 20) -> list[dict]:
                             {
                                 "title": txt,
                                 "url": url,
-                                "affiliate_url": url,  # likely already monetized
+                                "affiliate_url": url,
                                 "source": "earnkaro",
                                 "marketplace": "EarnKaro",
                             }
