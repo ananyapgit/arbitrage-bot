@@ -219,7 +219,7 @@ class AffiliateLinkGenerator:
         - Others: tries EarnKaro API
         - Fail-safe: returns raw url instead of broken app links (user priority: no app install)
         """
-        raw = (url or "").strip()
+        raw = str(url or "").strip().rstrip(";")
         if not raw:
             return ""
 
@@ -232,7 +232,7 @@ class AffiliateLinkGenerator:
                     dest = params["url"][0]
                     if dest.startswith("http"):
                         print(f"[UX:FIX] Extracted destination from redirect link: {dest}", flush=True)
-                        raw = dest
+                        raw = dest.strip().rstrip(";")
             except Exception:
                 pass
 
@@ -1894,12 +1894,26 @@ async def send_pipeline_notice(bot: Bot, chat_id: int) -> str:
 
 
 def _affiliate_is_monetized(url: str, source: str) -> bool:
+    """
+    Validation check before broadcast: ensure we aren't sending raw non-monetized 
+    links to Telegram/Email unless it's a fallback for a 403 failure.
+    """
     u = str(url or "").lower()
-    try:
-        host = (urlparse(u).netloc or "").lower()
-    except Exception:
-        host = ""
-    return ("earnkaro" in host) or ("earnkaro.com" in u) or ("topdeal.app.link" in host)
+    src = str(source or "").lower()
+    
+    # EarnKaro / TopDeal
+    if "earnkaro.com" in u or "topdeal.app.link" in u:
+        return True
+        
+    # Amazon / Flipkart Native Tags
+    if "amazon" in src or "amazon." in u:
+        return "tag=" in u
+    if "flipkart" in src or "flipkart." in u:
+        return "affid=" in u
+        
+    # For others (Couponami, etc.), we allow direct links as fallback 
+    # if monetization failed (User priority: No broken app redirects)
+    return True
 
 
 async def atomic_broadcast(
@@ -2596,9 +2610,6 @@ async def deal_engine(single_run=False):
                                 continue
 
                             loot_gate = LOOT_THRESHOLD
-                            caption, variant = format_telegram_message(deal)
-                            if variant == "A": stats["variant_a"] += 1
-                            else: stats["variant_b"] += 1
 
                             # Global Broadcast Activation: all dispatch goes through atomic dispatcher.
 
@@ -2607,6 +2618,38 @@ async def deal_engine(single_run=False):
                             wa_status = "Fail"
                             final_result = "fail"
                             sent_n = 0
+
+                            # 1. Resolve and Validate Target
+                            ok_target, resolved_target, why_target = await validate_dispatch_target(session, deal)
+                            is_amazon = "amazon" in str(gen_source).lower() or "amzn" in str(deal.get("url", "")).lower()
+
+                            if not ok_target:
+                                print(f"[WARN] Dispatch target check failed ({why_target}): {resolved_target}", flush=True)
+                                
+                                # STRICT Buyability for Amazon
+                                if is_amazon:
+                                    logging.warning("Rejecting Amazon deal in dispatch phase due to mandatory buyability failure: %s", why_target)
+                                    log_rejection(raw_url, {"stage": "DispatchBuyability", "detail": f"dispatch_target_{why_target}"})
+                                    stats["enrich_fail"] += 1
+                                    continue
+
+                                # Relaxed for others: proceed with original or resolved URL if possible
+                                if not (deal.get("title") and (deal.get("affiliate_url") or resolved_target)):
+                                    log_rejection(raw_url, {"stage": "Buyability", "detail": f"dispatch_target_{why_target}"})
+                                    stats["enrich_fail"] += 1
+                                    continue
+                            
+                            # 2. Update Deal with Resolved/Monetized URL
+                            # UX MANDATE: Always prefer the resolved merchant URL over the aggregator landing page
+                            if resolved_target and resolved_target.startswith("http"):
+                                deal["url"] = resolved_target.strip().rstrip(";")
+                                # Re-generate affiliate link for the final resolved target
+                                deal["affiliate_url"] = await AffiliateLinkGenerator.generate(session, deal["url"], str(gen_source))
+                            
+                            # 3. Final Content Formatting (MUST happen after URL resolution)
+                            caption, variant = format_telegram_message(deal)
+                            if variant == "A": stats["variant_a"] += 1
+                            else: stats["variant_b"] += 1
 
                             # Live dispatch: gated by DRY_RUN only (TEST_MODE no longer blocks Telegram/email).
                             if not DRY_RUN:
@@ -2617,43 +2660,11 @@ async def deal_engine(single_run=False):
                                 if post_cat in ["course", "education", "book"]:
                                      chat_id = config.CHANNELS["education"]["chat_id"]
                                 
-                                final_url = deal.get("affiliate_url") or deal.get("url", "")
-                                if not final_url or not isinstance(final_url, str) or not final_url.startswith("http"):
-                                    logging.error(f"Posting deal without valid URL field: {deal.get('title')}")
-                                else:
-                                    ok_target, resolved_target, why_target = await validate_dispatch_target(session, deal)
-                                    is_amazon = "amazon" in str(gen_source).lower() or "amzn" in str(deal.get("url", "")).lower()
-
-                                    if not ok_target:
-                                        print(f"[WARN] Dispatch target check failed ({why_target}): {resolved_target}", flush=True)
-                                        
-                                        # STRICT Buyability for Amazon in Dispatch phase too
-                                        if is_amazon:
-                                            logging.warning("Rejecting Amazon deal in dispatch phase due to mandatory buyability failure: %s", why_target)
-                                            log_rejection(raw_url, {"stage": "DispatchBuyability", "detail": f"dispatch_target_{why_target}"})
-                                            stats["enrich_fail"] += 1
-                                            continue
-
-                                        # Relaxed for others
-                                        if not (deal.get("title") and deal.get("affiliate_url")):
-                                            log_rejection(raw_url, {"stage": "Buyability", "detail": f"dispatch_target_{why_target}"})
-                                            stats["enrich_fail"] += 1
-                                            continue
-                                    
-                                    # Update with resolved target only if it's valid
-                                    if ok_target:
-                                        deal["url"] = resolved_target
-                                        if not deal.get("affiliate_url") or not str(deal.get("affiliate_url")).startswith("http"):
-                                            deal["affiliate_url"] = resolved_target
-                                    final_url = deal.get("affiliate_url") or resolved_target
-                                
-                                # Telegram Analytics: Track attempt
+                                # 4. Broadcast
                                 stats["telegram_attempts"] += 1
                                 deal_id = asin if asin else raw_url[-12:] if raw_url else "unknown"
                                 
-                                # ATOMIC SYNC: same deal must hit Email + Telegram together.
                                 try:
-                                    # DEDUP LOCK: mark right before dispatch so parallel channels cannot re-post same deal.
                                     mark_deal_sent(deal_id)
                                     tg_status, sent_n = await atomic_broadcast(
                                         telegram_bot=telegram_bot,
