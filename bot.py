@@ -170,6 +170,18 @@ def ensure_affiliate_url(url: str, source: str) -> str:
     if not url:
         return ""
 
+    # UX GUARD: Extract destination from app-redirect links
+    if "topdeal.app.link" in url.lower() or "earnkaro.com" in url.lower():
+        try:
+            p = urlparse(url)
+            qs = parse_qs(p.query)
+            if "url" in qs and qs["url"]:
+                d = qs["url"][0]
+                if d.startswith("http"):
+                    url = d
+        except Exception:
+            pass
+
     parsed = urlparse(url)
     params = dict(parse_qs(parsed.query, keep_blank_values=True))
     source_l = (source or "").lower()
@@ -177,7 +189,7 @@ def ensure_affiliate_url(url: str, source: str) -> str:
     if "amazon" in source_l or "amazon." in parsed.netloc:
         params["tag"] = [config.AFFILIATE_TAGS.get("amazon.in") or "anany-21"]
     elif "flipkart" in source_l or "flipkart" in parsed.netloc:
-        params["affid"] = [config.AFFILIATE_TAGS.get("flipkart.com") or "anany"]
+        params["affid"] = [config.AFFILIATE_TAGS.get("flipkart.com") or "anany-flip"]
 
     return urlunparse(parsed._replace(query=urlencode(params, doseq=True)))
 
@@ -210,6 +222,19 @@ class AffiliateLinkGenerator:
         raw = (url or "").strip()
         if not raw:
             return ""
+
+        # UX GUARD: If the URL is already an app-redirect link, try to extract the destination
+        if "topdeal.app.link" in raw.lower() or "earnkaro.com" in raw.lower():
+            try:
+                parsed = urlparse(raw)
+                params = parse_qs(parsed.query)
+                if "url" in params and params["url"]:
+                    dest = params["url"][0]
+                    if dest.startswith("http"):
+                        print(f"[UX:FIX] Extracted destination from redirect link: {dest}", flush=True)
+                        raw = dest
+            except Exception:
+                pass
 
         source_l = (source or "").lower()
         
@@ -257,14 +282,15 @@ class AffiliateLinkGenerator:
                             or ""
                         )
                         profit = str(profit).strip()
-                        if profit and profit.startswith("http"):
+                        # UX GUARD: Ensure we don't return a link that leads to app install page
+                        if profit and profit.startswith("http") and "topdeal.app.link" not in profit:
                             dom = host.split(":")[0] if host else "unknown"
                             print(f"[REVENUE:SUCCESS] EarnKaro Profit Link generated for {dom}.", flush=True)
                             return profit
                     except Exception:
                         pass
                 
-                print(f"[MONEY_LOSS] EarnKaro API status {resp.status} for {raw}; returning raw URL to avoid app install redirect", flush=True)
+                print(f"[MONEY_LOSS] EarnKaro API status {resp.status} or bad link for {raw}; returning raw URL to avoid app install redirect", flush=True)
         except Exception as e:
             print(f"[MONEY_LOSS] EarnKaro request failed ({e}); returning raw URL for {raw}", flush=True)
 
@@ -2508,13 +2534,22 @@ async def deal_engine(single_run=False):
                                 is_buyability_fail = any(
                                     b in enrich_err.lower() for b in BUYABILITY_FAILURES
                                 )
-                                if deal.get("title") and deal.get("affiliate_url") and not is_buyability_fail:
+                                is_amazon = "amazon" in str(gen_source).lower() or "amzn" in raw_url.lower()
+
+                                # STRICT Buyability only for Amazon (User request)
+                                if is_amazon and is_buyability_fail:
+                                    logging.warning("Rejecting Amazon deal due to mandatory buyability failure: %s — %s", deal.get("title"), enrich_err)
+                                    if "blocked" in enrich_err.lower():
+                                        stats["rejected_blocked"] += 1
+                                    stats["enrich_fail"] += 1
+                                    continue
+                                
+                                # Relaxed acceptance for others (Couponami, etc.)
+                                if deal.get("title") and deal.get("affiliate_url"):
                                     deal["valid"] = True
                                     deal["new_price"] = deal.get("new_price") or deal.get("price") or "Check Price"
-                                    logging.info("Relaxed accept for deal without strict enrich pass: %s", deal.get("title"))
+                                    logging.info("Relaxed accept for non-Amazon deal: %s", deal.get("title"))
                                 else:
-                                    if is_buyability_fail:
-                                        logging.warning("Blocked relaxed accept for buyability failure: %s — %s", deal.get("title"), enrich_err)
                                     if "blocked" in enrich_err.lower():
                                         stats["rejected_blocked"] += 1
                                     if enrich_err:
@@ -2587,16 +2622,29 @@ async def deal_engine(single_run=False):
                                     logging.error(f"Posting deal without valid URL field: {deal.get('title')}")
                                 else:
                                     ok_target, resolved_target, why_target = await validate_dispatch_target(session, deal)
+                                    is_amazon = "amazon" in str(gen_source).lower() or "amzn" in str(deal.get("url", "")).lower()
+
                                     if not ok_target:
                                         print(f"[WARN] Dispatch target check failed ({why_target}): {resolved_target}", flush=True)
-                                        # Force flow in production mode when affiliate/title are present.
+                                        
+                                        # STRICT Buyability for Amazon in Dispatch phase too
+                                        if is_amazon:
+                                            logging.warning("Rejecting Amazon deal in dispatch phase due to mandatory buyability failure: %s", why_target)
+                                            log_rejection(raw_url, {"stage": "DispatchBuyability", "detail": f"dispatch_target_{why_target}"})
+                                            stats["enrich_fail"] += 1
+                                            continue
+
+                                        # Relaxed for others
                                         if not (deal.get("title") and deal.get("affiliate_url")):
                                             log_rejection(raw_url, {"stage": "Buyability", "detail": f"dispatch_target_{why_target}"})
                                             stats["enrich_fail"] += 1
                                             continue
-                                    deal["url"] = resolved_target
-                                    if not deal.get("affiliate_url") or not str(deal.get("affiliate_url")).startswith("http"):
-                                        deal["affiliate_url"] = resolved_target
+                                    
+                                    # Update with resolved target only if it's valid
+                                    if ok_target:
+                                        deal["url"] = resolved_target
+                                        if not deal.get("affiliate_url") or not str(deal.get("affiliate_url")).startswith("http"):
+                                            deal["affiliate_url"] = resolved_target
                                     final_url = deal.get("affiliate_url") or resolved_target
                                 
                                 # Telegram Analytics: Track attempt
