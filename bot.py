@@ -466,6 +466,9 @@ def init_db():
     c = conn.cursor()
     c.execute("""CREATE TABLE IF NOT EXISTS sent_deals
                  (product_id TEXT PRIMARY KEY, timestamp DATETIME)""")
+    # T-051: Track sent sequence for the 9-deal gap logic
+    c.execute("""CREATE TABLE IF NOT EXISTS sent_sequence
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id TEXT)""")
     conn.commit()
     conn.close()
 
@@ -480,6 +483,14 @@ def is_deal_sent(product_id):
 
     conn = sqlite3.connect("sent_deals.db")
     c = conn.cursor()
+
+    # T-051: Mandatory 9-deal gap check (Don't repeat until 9 other deals sent)
+    c.execute("SELECT product_id FROM sent_sequence ORDER BY id DESC LIMIT 9")
+    recent_ids = [row[0] for row in c.fetchall()]
+    if product_id in recent_ids:
+        conn.close()
+        return True
+
     # Check if deal was sent in the last 24 hours
     limit = (datetime.now() - timedelta(hours=24)).isoformat()
     c.execute("SELECT 1 FROM sent_deals WHERE product_id=? AND timestamp > ?", (product_id, limit))
@@ -493,8 +504,17 @@ def mark_deal_sent(product_id):
 
     conn = sqlite3.connect("sent_deals.db")
     c = conn.cursor()
+    
+    # 1. Update 24-hour master table
     c.execute("INSERT OR REPLACE INTO sent_deals (product_id, timestamp) VALUES (?, ?)",
               (product_id, datetime.now().isoformat()))
+    
+    # 2. Update sequence table for the 9-deal gap logic
+    c.execute("INSERT INTO sent_sequence (product_id) VALUES (?)", (product_id,))
+    
+    # 3. Cleanup sequence table (Keep only last 100 to prevent bloat)
+    c.execute("DELETE FROM sent_sequence WHERE id < (SELECT MAX(id) - 100 FROM sent_sequence)")
+    
     conn.commit()
     conn.close()
 
