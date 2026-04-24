@@ -1654,6 +1654,7 @@ MASTER_LOG_FIELDS = [
     "decision",
     "reason",
     "affiliate_valid",
+    "target",
 ]
 DELIVERY_AUDIT_FIELDS = ["timestamp", "channel", "status", "deal_id"]
 
@@ -1710,12 +1711,10 @@ def append_delivery_audit_bundle(
     append_delivery_audit_row("delivery", final_result, deal_id)
 
 
-def sync_to_dashboard(deal_data: dict, decision: str = "pending", reason: str = "") -> None:
+def sync_to_dashboard(deal_data: dict, decision: str = "pending", reason: str = "", target: str = "Telegram + Email") -> None:
     """
     Append an event row to data/master_log.csv for the production dashboard.
     Everything (deals, alerts, shadow runs) is treated as an event for visibility.
-    Expected CSV STRUCTURE:
-    timestamp,source,title,price,original_price,category,decision,reason,affiliate_valid
     """
     _ensure_superbot_master_dir()
     stats_file = SUPERBOT_MASTER_FILE
@@ -1745,24 +1744,37 @@ def sync_to_dashboard(deal_data: dict, decision: str = "pending", reason: str = 
         except Exception:
             pass
     
-    # 800+ Deals Sync: If the user requests 800 deals, we ensure this function is called 
-    # for every broadcast. Historical data can be recovered by running a one-time scan of bot.log.
-    
     price = deal_data.get("new_price", deal_data.get("price", "N/A"))
     original_price = deal_data.get("old_price", deal_data.get("original_price", "N/A"))
-    category = deal_data.get("category", "general")
-    source = str(deal_data.get("source") or deal_data.get("marketplace") or deal_data.get("platform") or "System")
+    category = str(deal_data.get("category", "general")).lower()
+    
+    # Clean Source Name
+    raw_source = str(deal_data.get("source") or deal_data.get("marketplace") or deal_data.get("platform") or "Bot")
+    source = "Bot"
+    if 'amazon' in raw_source.lower(): source = 'Amazon'
+    elif 'flipkart' in raw_source.lower(): source = 'Flipkart'
+    elif any(x in raw_source.lower() for x in ['couponami', 'coupondunia', 'coupon']): source = 'Couponami'
+    elif 'earnkaro' in raw_source.lower(): source = 'EarnKaro'
+    elif 'shadow' in raw_source.lower(): source = 'Shadow'
+    elif 'system' in raw_source.lower(): source = 'System'
+
     affiliate_link = str(deal_data.get("affiliate_url") or deal_data.get("url") or "")
 
     # Affiliate validation
     affiliate_valid = "true" if affiliate_link and affiliate_link.startswith("http") else "false"
     
     # Ensure system alerts are visible
-    if source == "System" or decision == "alert":
-        category = "system"
+    if source == "System" or decision == "alert" or category == "system":
+        category = "general"
         affiliate_valid = "n/a"
+        if target == "Telegram + Email": target = "System Alert"
 
-    row = [timestamp, source, title, price, original_price, category, decision, reason, affiliate_valid]
+    # Category Sanitization
+    VALID_CATEGORIES = ['audio', 'laptop', 'fashion', 'electronics', 'home', 'general', 'education', 'book', 'course', 'accessory']
+    if category not in VALID_CATEGORIES:
+        category = "general"
+
+    row = [timestamp, source, title, price, original_price, category, decision, reason, affiliate_valid, target]
 
     try:
         with open(stats_file, mode="a", newline="", encoding="utf-8") as f:
@@ -1904,7 +1916,7 @@ async def post_to_telegram(bot: Bot, chat_id: int, caption: str, affiliate_url: 
             "title": f"[SHADOW] {caption[:50]}",
             "url": affiliate_url,
             "source": "Shadow"
-        }, decision="shadow", reason="Redirected to shadow channel")
+        }, decision="shadow", reason="Redirected to shadow channel", target="Shadow Channel")
         
         if hasattr(config, "SHADOW_CHANNEL_ID") and config.SHADOW_CHANNEL_ID:
             chat_id = config.SHADOW_CHANNEL_ID
@@ -2851,10 +2863,10 @@ async def deal_engine(single_run=False):
                                      # STRICT VALIDATION: Only process if deal meets criteria
                                      if validate_deal(deal):
                                          append_to_master_log(deal, "accepted", "Valid deal with affiliate link")
-                                         sync_to_dashboard(deal, "accepted", "Valid deal with affiliate link")
+                                         sync_to_dashboard(deal, "accepted", "Valid deal with affiliate link", target="Telegram + Email")
                                      else:
                                          append_to_master_log(deal, "rejected", "Failed validation - missing required fields")
-                                         sync_to_dashboard(deal, "rejected", "Failed validation - missing required fields")
+                                         sync_to_dashboard(deal, "rejected", "Failed validation - missing required fields", target="N/A")
                                          logging.warning(f"Deal failed validation: {deal.get('title', 'Unknown')}")
                             
                                 # Add to Follow-up Cache
