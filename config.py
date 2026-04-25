@@ -92,7 +92,7 @@ ENABLED_SOURCES = ['amazon', 'flipkart', 'couponami', 'earnkaro']
 # Production: real Telegram + SendGrid sends. Use DRY_RUN=true only to suppress outbound APIs.
 TEST_MODE = False
 # Force-loot threshold for production verification runs.
-LOOT_THRESHOLD = 5.0
+LOOT_THRESHOLD = 0.0
 DRY_RUN = env_bool("DRY_RUN", False)
 SINGLE_RUN = env_bool("SINGLE_RUN", False) # Revenue Priority: Set to False for continuous run
 

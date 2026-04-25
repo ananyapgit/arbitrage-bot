@@ -1,4 +1,0 @@
-timestamp,deal_id,telegram_status,whatsapp_status,final_result
-2026-04-10T21:15:07.218657,https://www.amazon.in/dp/EXAMPLE2?tag=crawl0f-21,Success,Fail,fail
-2026-04-10T21:15:17.536251,https://www.amazon.in/dp/EXAMPLE?tag=crawl0f-21,Success,Fail,fail
-2026-04-10T21:15:24.747890,B0BDKD8DVD,Success,Fail,fail

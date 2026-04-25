@@ -4,3 +4,11 @@ __pycache__/
 .DS_Store
 secrets.toml
 bot.log
+secrets.env
+*.db
+*.json
+*.csv
+*.log
+*.timestamp
+data/
+dashboard/public/data/

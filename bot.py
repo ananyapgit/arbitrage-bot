@@ -2672,13 +2672,12 @@ async def deal_engine(single_run=False):
                                 )
                                 is_amazon = "amazon" in str(gen_source).lower() or "amzn" in raw_url.lower()
 
-                                # STRICT Buyability only for Amazon (User request)
+                                # RELAXED Buyability for Amazon (User request to ensure messages don't stop)
                                 if is_amazon and is_buyability_fail:
-                                    logging.warning("Rejecting Amazon deal due to mandatory buyability failure: %s — %s", deal.get("title"), enrich_err)
-                                    if "blocked" in enrich_err.lower():
-                                        stats["rejected_blocked"] += 1
-                                    stats["enrich_fail"] += 1
-                                    continue
+                                    logging.info("Relaxed acceptance for Amazon deal despite buyability failure: %s — %s", deal.get("title"), enrich_err)
+                                    deal["valid"] = True
+                                    deal["new_price"] = deal.get("new_price") or deal.get("price") or "Check Price"
+                                    # Continue to allow the deal through
                                 
                                 # Relaxed acceptance for others (Couponami, etc.)
                                 if deal.get("title") and deal.get("affiliate_url"):
@@ -2748,12 +2747,12 @@ async def deal_engine(single_run=False):
                             if not ok_target:
                                 print(f"[WARN] Dispatch target check failed ({why_target}): {resolved_target}", flush=True)
                                 
-                                # STRICT Buyability for Amazon
+                                # RELAXED Buyability for Amazon
                                 if is_amazon:
-                                    logging.warning("Rejecting Amazon deal in dispatch phase due to mandatory buyability failure: %s", why_target)
-                                    log_rejection(raw_url, {"stage": "DispatchBuyability", "detail": f"dispatch_target_{why_target}"})
-                                    stats["enrich_fail"] += 1
-                                    continue
+                                    logging.info("Relaxed acceptance for Amazon deal in dispatch phase: %s", why_target)
+                                    # Fallback to the original URL if resolution failed
+                                    resolved_target = raw_url
+                                    ok_target = True
 
                                 # Relaxed for others: proceed with original or resolved URL if possible
                                 if not (deal.get("title") and (deal.get("affiliate_url") or resolved_target)):
