@@ -17,15 +17,14 @@ if __name__ == "__main__":
         import sys
         sys.exit('CRITICAL: BOT_TOKEN MISSING - Check .env or Secrets')
 
-    # EarnKaro key check moved to main entrypoint:
-    # If missing, warn and continue Amazon-only (do not crash entire process).
+    # Pre-flight checks
     try:
         import config
-        if not (os.getenv("EARNKARO_API_KEY") or "").strip():
-            print("[WARNING] EARNKARO_API_KEY missing. Running Amazon-only mode.", flush=True)
-            config.ENABLED_SOURCES = ["amazon"]
+        # EarnKaro scraper is now a web scraper, no API key required.
+        # But we still check for other essential config if needed.
+        pass
     except Exception as e:
-        logging.warning("Preflight EarnKaro check failed: %s", e)
+        logging.warning("Preflight check failed: %s", e)
 
     is_github_action = os.getenv("GITHUB_ACTIONS") == "true"
     single_run = os.getenv("SINGLE_RUN", "false").lower() in {"1", "true", "yes", "y"}

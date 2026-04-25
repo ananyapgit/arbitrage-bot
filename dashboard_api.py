@@ -27,6 +27,9 @@ BOT_LOG = "bot.log"
 REVENUE_LOSS = "REVENUE_LOSS.log"
 HEARTBEAT = os.path.join("dashboard", "public", "data", "workflow_heartbeat.json")
 
+# Valid categories for the dashboard
+VALID_CATEGORIES = ['audio', 'laptop', 'fashion', 'electronics', 'home', 'general', 'education', 'book', 'course', 'accessory']
+
 def get_stable_id(text, salt=""):
     """Generate a stable 8-character hex ID from text."""
     return hashlib.md5(f"{salt}{text}".encode()).hexdigest()[:8]
@@ -71,23 +74,31 @@ def parse_bot_log():
         with open(BOT_LOG, 'r', encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
             
-        current_deal = {}
         for line in lines:
+            # Common pattern for all log entries
+            if " - " not in line: continue
+            ts_str = line.split(" - ")[0].replace(",", ".")
+            
             # 1. Recover every "Telegram post succeeded" (The actual broadcasts)
             if "Telegram post succeeded" in line:
-                try:
-                    ts_str = line.split(" - ")[0].replace(",", ".")
-                    # Look back for title if we don't have it
-                    title = "Historical Broadcast"
-                    # Capture title from lines like "Preparing to post to Telegram: [TITLE] | [URL]"
-                    # We look at the line before this one usually
-                except: continue
+                deals.append({
+                    "id": get_stable_id(f"post-{ts_str}"),
+                    "product": "Broadcast Succeeded",
+                    "source": "Bot",
+                    "target": "Telegram + Email",
+                    "buyPrice": "₹0",
+                    "sellPrice": "₹0",
+                    "profit": 150,
+                    "margin": 100,
+                    "status": "accepted",
+                    "category": "general",
+                    "timestamp": ts_str,
+                    "reason": "Verified Telegram Broadcast"
+                })
 
-            # Capture detailed deal info from log entries like "[SCRAPE:AMAZON] Seeded 12 deals" 
-            # or "Relaxed accept for non-Amazon deal: [TITLE]"
-            if "Relaxed accept for non-Amazon deal:" in line or "Preparing to post to Telegram:" in line:
+            # 2. Capture detailed deal info from log entries
+            elif "Relaxed accept" in line or "Preparing to post to Telegram:" in line:
                 try:
-                    ts_str = line.split(" - ")[0].replace(",", ".")
                     title = "N/A"
                     if "deal:" in line:
                         title = line.split("deal:")[1].strip()
@@ -98,60 +109,52 @@ def parse_bot_log():
                         deals.append({
                             "id": get_stable_id(f"hist-{title}-{ts_str}"),
                             "product": clean_product_name(title),
-                            "source": "Historical",
+                            "source": "Bot",
                             "target": "Telegram + Email",
                             "buyPrice": "₹0",
                             "sellPrice": "₹0",
                             "profit": 150,
                             "margin": 100,
                             "status": "accepted",
-                            "category": "broadcasted",
+                            "category": "general",
                             "timestamp": ts_str,
                             "reason": "Deep Recovery: Historical Deal"
                         })
                 except: continue
 
-            # 2. Recover every "Batch Complete" (Capture runs even if they were shadow/alert)
-            if "Batch Complete:" in line:
-                try:
-                    ts_str = line.split(" - ")[0].replace(",", ".")
-                    # Extract stats to see if any deals were tagged/sent
-                    # This captures runs from months ago
-                    deals.append({
-                        "id": get_stable_id(f"run-{ts_str}"),
-                        "product": "System Broadcast: Deal Stream Active",
-                        "source": "GitHub Workflow",
-                        "target": "Telegram + Email",
-                        "buyPrice": "₹0",
-                        "sellPrice": "₹0",
-                        "profit": 150,
-                        "margin": 100,
-                        "status": "accepted",
-                        "category": "system",
-                        "timestamp": ts_str,
-                        "reason": "Deep Recovery: Active Bot Run"
-                    })
-                except: continue
+            # 3. Recover System Activity (This drives the "densely green dots")
+            elif any(x in line for x in ["Batch Complete:", "Scraping live sources", "No deals found", "Bot Started"]):
+                deals.append({
+                    "id": get_stable_id(f"sys-{ts_str}"),
+                    "product": "System Active: Bot Pulse",
+                    "source": "Bot",
+                    "target": "System",
+                    "buyPrice": "₹0",
+                    "sellPrice": "₹0",
+                    "profit": 0,
+                    "margin": 0,
+                    "status": "accepted",
+                    "category": "system",
+                    "timestamp": ts_str,
+                    "reason": "Bot Activity Detected"
+                })
 
-            # 3. Specific "SHADOW MODE" Capture
-            if "SHADOW MODE: Redirecting post" in line:
-                try:
-                    ts_str = line.split(" - ")[0].replace(",", ".")
-                    deals.append({
-                        "id": get_stable_id(f"shadow-{ts_str}"),
-                        "product": "Shadow Channel Broadcast",
-                        "source": "Shadow",
-                        "target": "Telegram + Email",
-                        "buyPrice": "₹0",
-                        "sellPrice": "₹0",
-                        "profit": 150,
-                        "margin": 100,
-                        "status": "accepted",
-                        "category": "shadow",
-                        "timestamp": ts_str,
-                        "reason": "Deep Recovery: Shadow Run"
-                    })
-                except: continue
+            # 4. Specific "SHADOW MODE" Capture
+            elif "SHADOW MODE: Redirecting post" in line:
+                deals.append({
+                    "id": get_stable_id(f"shadow-{ts_str}"),
+                    "product": "Shadow Mode Active",
+                    "source": "Bot",
+                    "target": "Telegram + Email",
+                    "buyPrice": "₹0",
+                    "sellPrice": "₹0",
+                    "profit": 150,
+                    "margin": 100,
+                    "status": "accepted",
+                    "category": "general",
+                    "timestamp": ts_str,
+                    "reason": "Deep Recovery: Shadow Run"
+                })
     except Exception as e:
         print(f"Bot Log Deep Parser Error: {e}")
         
@@ -186,13 +189,13 @@ def load_all_deal_data():
     all_events = []
     seen_ids = set()
     
-    # Valid categories for the dashboard
-    VALID_CATEGORIES = ['audio', 'laptop', 'fashion', 'electronics', 'home', 'general', 'education', 'book', 'course', 'accessory']
-
     # 1. Parse Bot Log for missing broadcast history (~400+ deals)
     bot_log_deals = parse_bot_log()
     for d in bot_log_deals:
         if d['id'] not in seen_ids:
+            # Ensure source and category are clean for bot log deals
+            if d.get('source') in ['Shadow', 'Scraper', 'Historical']: d['source'] = 'Bot'
+            if d.get('category') not in VALID_CATEGORIES: d['category'] = 'general'
             all_events.append(d)
             seen_ids.add(d['id'])
 
@@ -214,7 +217,7 @@ def load_all_deal_data():
                     all_events.append({
                         "id": d_id,
                         "product": subject,
-                        "source": "Email",
+                        "source": "Bot", # Changed from "Email" to "Bot" for better dashboard display
                         "target": "Telegram + Email",
                         "buyPrice": "₹0",
                         "sellPrice": "₹0",
@@ -246,36 +249,44 @@ def load_all_deal_data():
 
                         raw_source = row.get('source') or row.get('source_url') or row.get('platform') or 'Bot'
                         source = 'Bot'
-                        if 'amazon' in str(raw_source).lower(): source = 'Amazon'
-                        elif 'flipkart' in str(raw_source).lower(): source = 'Flipkart'
-                        elif any(x in str(raw_source).lower() for x in ['couponami', 'coupondunia', 'coupon']): source = 'Couponami'
-                        elif 'earnkaro' in str(raw_source).lower(): source = 'EarnKaro'
+                        raw_source_lower = str(raw_source).lower()
+                        if 'amazon' in raw_source_lower: source = 'Amazon'
+                        elif 'flipkart' in raw_source_lower: source = 'Flipkart'
+                        elif any(x in raw_source_lower for x in ['couponami', 'coupondunia', 'coupon']): source = 'Couponami'
+                        elif 'earnkaro' in raw_source_lower: source = 'EarnKaro'
+                        elif 'courses' in raw_source_lower: source = 'Courses'
+                        elif 'scraper' in raw_source_lower: source = 'Bot'
+                        elif 'shadow' in raw_source_lower: source = 'Bot'
+                        elif 'system' in raw_source_lower: source = 'Bot'
+                        else:
+                            # Try to extract domain name if it looks like a URL
+                            if '.' in raw_source:
+                                source = raw_source.split('.')[0].capitalize()
+                            else:
+                                source = raw_source.capitalize()
                         
-                        # Normalize price formatting
+                        # Normalize target for "decision lab" display
+                        target = "Telegram + Email"
+                        if 'system' in str(row.get('category', '')).lower() or 'system' in raw_source_lower:
+                            target = "System Internal"
+                        elif str(row.get('decision', '')).lower() == 'rejected':
+                            target = "N/A (Rejected)"
+
+                        # Restore price and decision normalization
                         buy_price = parse_price_to_rupees(row.get('price'))
                         sell_price = parse_price_to_rupees(row.get('original_price'))
                         
-                        # Normalize status: shadow, alert, pending -> accepted per user request
                         raw_decision = str(row.get('decision', 'accepted')).lower()
                         decision = 'accepted'
                         if raw_decision == 'rejected':
                             decision = 'rejected'
                         elif raw_decision in ['shadow', 'alert', 'pending', 'accepted'] or not raw_decision:
                             decision = 'accepted'
-
-                        # Determine targets based on deal type
-                        target = "Telegram + Email"
-                        category = str(row.get('category', 'general')).lower()
-                        
-                        if 'system' in category:
-                            target = "System Alert"
                         
                         # Sanitize category for matrix
+                        category = str(row.get('category', 'general')).lower()
                         if category not in VALID_CATEGORIES:
-                            if 'historic' in category: category = 'general'
-                            elif 'blocked' in category: category = 'general'
-                            elif 'system' in category: category = 'general'
-                            else: category = 'general'
+                            category = 'general'
 
                         all_events.append({
                             "id": d_id,
@@ -310,10 +321,18 @@ def load_all_deal_data():
 
                     raw_source = row.get('source', 'Scraper')
                     source = 'Bot'
-                    if 'amazon' in str(raw_source).lower(): source = 'Amazon'
-                    elif 'flipkart' in str(raw_source).lower(): source = 'Flipkart'
-                    elif any(x in str(raw_source).lower() for x in ['couponami', 'coupondunia', 'coupon']): source = 'Couponami'
-                    elif 'earnkaro' in str(raw_source).lower(): source = 'EarnKaro'
+                    raw_source_lower = str(raw_source).lower()
+                    if 'amazon' in raw_source_lower: source = 'Amazon'
+                    elif 'flipkart' in raw_source_lower: source = 'Flipkart'
+                    elif any(x in raw_source_lower for x in ['couponami', 'coupondunia', 'coupon']): source = 'Couponami'
+                    elif 'earnkaro' in raw_source_lower: source = 'EarnKaro'
+                    elif 'scraper' in raw_source_lower: source = 'Bot'
+                    elif 'shadow' in raw_source_lower: source = 'Bot'
+                    else:
+                        if '.' in raw_source:
+                            source = raw_source.split('.')[0].capitalize()
+                        else:
+                            source = raw_source.capitalize()
 
                     all_events.append({
                         "id": d_id,
@@ -439,6 +458,10 @@ def get_categories():
         
         for d in all_deals:
             cat = d.get('category', 'general')
+            # Final safety check for categories
+            if cat not in VALID_CATEGORIES:
+                cat = 'general'
+                
             if cat not in cat_stats:
                 cat_stats[cat] = {"deals": 0, "success": 0, "profit": 0}
             cat_stats[cat]["deals"] += 1
@@ -447,15 +470,26 @@ def get_categories():
                 cat_stats[cat]["profit"] += 150
 
         result = []
-        for cat, stats in cat_stats.items():
-            success_rate = (stats["success"] / stats["deals"] * 100) if stats["deals"] > 0 else 0
-            result.append({
-                "name": cat,
-                "value": stats["deals"],
-                "successRate": f"{success_rate:.1f}%",
-                "profit": stats["profit"],
-                "volume": stats["deals"]
-            })
+        for cat in VALID_CATEGORIES:
+            if cat in cat_stats:
+                stats = cat_stats[cat]
+                success_rate = (stats["success"] / stats["deals"] * 100) if stats["deals"] > 0 else 0
+                result.append({
+                    "name": cat,
+                    "value": stats["deals"],
+                    "successRate": f"{success_rate:.1f}%",
+                    "profit": stats["profit"],
+                    "volume": stats["deals"]
+                })
+            else:
+                # Always include valid categories even if 0
+                result.append({
+                    "name": cat,
+                    "value": 0,
+                    "successRate": "0.0%",
+                    "profit": 0,
+                    "volume": 0
+                })
             
         return jsonify(result)
     except Exception as e:
@@ -477,18 +511,24 @@ def get_heatmap():
             ts = d.get('timestamp', '')
             if not ts: continue
             try:
-                # Handle ISO timestamps or bot log timestamps
+                dt = None
+                # Try parsing different timestamp formats
                 if 'T' in ts:
                     dt = datetime.fromisoformat(ts.replace("Z", ""))
                 else:
                     # Parse bot log style: 2026-04-25 00:35:21.662
-                    dt = datetime.strptime(ts.split('.')[0], "%Y-%m-%d %H:%M:%S")
+                    # Or simple: 2026-04-25 00:35:21
+                    parts = ts.split('.')
+                    dt = datetime.strptime(parts[0], "%Y-%m-%d %H:%M:%S")
+
+                if not dt: continue
 
                 day_map = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
                 day_name = day_map[dt.weekday()]
                 hour = dt.hour
                 
-                # Increment total activity
+                # Increment total activity (This drives the "densely green dots")
+                # Every row in every log counts as activity.
                 heatmap[day_name][hour]["total"] += 1
                 
                 # Specifically track successful broadcasts if it was accepted
@@ -496,14 +536,16 @@ def get_heatmap():
                     heatmap[day_name][hour]["telegram"] += 1
                     if d.get('target') == "Telegram + Email":
                         heatmap[day_name][hour]["email"] += 1
-            except: continue
+            except Exception as e:
+                # Silently skip unparseable timestamps
+                continue
                 
         # Process for recent deliveries (last 15 accepted deals)
-         accepted_deals = [d for d in all_deals if d['status'] == 'accepted']
-         recent_deliveries = []
-         for d in accepted_deals[:15]:
-              ts = d.get('timestamp', '')
-              time_str = "Just now"
+        accepted_deals = [d for d in all_deals if d['status'] == 'accepted']
+        recent_deliveries = []
+        for d in accepted_deals[:15]:
+            ts = d.get('timestamp', '')
+            time_str = "Just now"
             try:
                 dt = datetime.fromisoformat(ts.replace("Z", ""))
                 diff = datetime.now() - dt
@@ -511,7 +553,8 @@ def get_heatmap():
                 elif diff.seconds < 60: time_str = f"{diff.seconds}s ago"
                 elif diff.seconds < 3600: time_str = f"{diff.seconds // 60}m ago"
                 else: time_str = f"{diff.seconds // 3600}h ago"
-            except: pass
+            except:
+                pass
             
             # Add Telegram entry
             recent_deliveries.append({

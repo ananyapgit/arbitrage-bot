@@ -43,23 +43,48 @@ class SendGridNotifier:
         self.from_email = (os.getenv("SENDGRID_FROM_EMAIL") or "").strip()
 
     def load_subscribers(self) -> list[str]:
-        if not SUBSCRIBERS_FILE.is_file():
+        # Robust path resolution: try relative to script and absolute from root
+        potential_paths = [
+            SUBSCRIBERS_FILE,
+            Path("dashboard/public/data/subscribers.txt"),
+            Path(__file__).parent / "dashboard/public/data/subscribers.txt"
+        ]
+        
+        actual_file = None
+        for p in potential_paths:
+            if p.is_file():
+                actual_file = p
+                break
+        
+        if not actual_file:
             print(f"[CRITICAL] No subscribers found in data folder: missing {SUBSCRIBERS_FILE}", flush=True)
             return []
+            
+        print(f"[DEBUG] Loading subscribers from: {actual_file.absolute()}", flush=True)
         seen: set[str] = set()
         out: list[str] = []
-        for line in SUBSCRIBERS_FILE.read_text(encoding="utf-8", errors="ignore").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            if "@" not in line:
-                continue
-            if line.lower() in seen:
-                continue
-            seen.add(line.lower())
-            out.append(line)
+        try:
+            content = actual_file.read_text(encoding="utf-8", errors="ignore")
+            lines = content.splitlines()
+            print(f"[DEBUG] Found {len(lines)} raw lines in subscribers file", flush=True)
+            
+            for line in lines:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "@" not in line:
+                    continue
+                if line.lower() in seen:
+                    continue
+                seen.add(line.lower())
+                out.append(line)
+        except Exception as e:
+            print(f"[CRITICAL] Failed to read subscribers file: {e}", flush=True)
+            
         if not out:
-            print(f"[CRITICAL] No subscribers found in data folder: empty {SUBSCRIBERS_FILE}", flush=True)
+            print(f"[CRITICAL] No valid subscribers parsed from {actual_file}", flush=True)
+        else:
+            print(f"[DEBUG] Successfully loaded {len(out)} unique subscribers", flush=True)
         return out
 
     def broadcast_loot_deal(self, deal: dict, discount_pct: float) -> int:

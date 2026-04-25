@@ -16,77 +16,157 @@ from bs4 import BeautifulSoup
 
 
 USER_AGENTS = [
-    # Desktop
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
-    # Mobile
-    "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15",
 ]
-
 
 SEED_URLS = [
-    "https://earnkaro.com/deals",
-    "https://earnkaro.com/offers",
+    "https://earnkaro.com/",
+    "https://earnkaro.com/stores",
     "https://earnkaro.com/stores/amazon-india-offers",
     "https://earnkaro.com/stores/flipkart-offers",
-    "https://earnkaro.com/stores/myntra-offers"
+    "https://earnkaro.com/stores/myntra-offers",
+    "https://earnkaro.com/stores/ajio-offers"
 ]
-
 
 def _clean(text: str) -> str:
     return " ".join((text or "").split()).strip()[:280]
-
 
 async def get_earnkaro_deals(limit: int = 20) -> list[dict]:
     out: list[dict] = []
     seen: set[str] = set()
 
-    headers = {
-        "User-Agent": random.choice(USER_AGENTS),
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-    }
+    def get_headers():
+        return {
+            "User-Agent": random.choice(USER_AGENTS),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "DNT": "1",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+            "Cache-Control": "max-age=0",
+            "Referer": "https://www.google.com/",
+        }
 
     connector = aiohttp.TCPConnector(ssl=False)
     try:
         async with aiohttp.ClientSession(connector=connector) as session:
             for base in SEED_URLS:
                 try:
-                    async with session.get(base, headers={**headers, "User-Agent": random.choice(USER_AGENTS)}, timeout=20) as resp:
+                    # Random delay to avoid 403
+                    await asyncio.sleep(random.uniform(2, 5))
+                    async with session.get(base, headers=get_headers(), timeout=20) as resp:
+                        if resp.status == 403:
+                            logging.warning(f"EarnKaro 403 Forbidden for {base} - possibly bot-detected")
+                            continue
                         if resp.status != 200:
+                            logging.warning(f"EarnKaro failed with status {resp.status} for {base}")
                             continue
-                        html = await resp.text()
-                    soup = BeautifulSoup(html, "html.parser")
-                    # Broader link extraction for EarnKaro
-                    for a in soup.find_all("a", href=True):
+                        html_content = await resp.text()
+                    
+                    soup = BeautifulSoup(html_content, "html.parser")
+                    
+                    # Log the page title to verify we got the right page
+                    pg_title = soup.title.string if soup.title else "No Title"
+                    logging.info(f"Scraping {base} - Title: {pg_title}")
+
+                    # 1. Try to find JSON data in __NEXT_DATA__ (common for Next.js sites like EarnKaro)
+                    next_data = soup.find("script", id="__NEXT_DATA__")
+                    if next_data:
+                        try:
+                            import json
+                            data = json.loads(next_data.string)
+                            logging.info(f"__NEXT_DATA__ keys: {list(data.keys())}")
+                            # Traverse the JSON to find deals. This is a guess on structure.
+                            # Usually it's in props -> pageProps -> initialData or similar.
+                            # We'll do a recursive search for anything that looks like a deal.
+                            def find_deals_in_json(obj, depth=0):
+                                found = []
+                                if depth > 15: return found # Prevent infinite recursion
+                                if isinstance(obj, dict):
+                                    # Look for profit links or product names
+                                    title = obj.get("title") or obj.get("productName") or obj.get("name")
+                                    url = obj.get("url") or obj.get("profitLink") or obj.get("link")
+                                    
+                                    if title and url and isinstance(url, str) and ("http" in url or url.startswith("/")):
+                                        found.append({
+                                            "title": str(title),
+                                            "url": url,
+                                            "source": "earnkaro",
+                                            "marketplace": "EarnKaro"
+                                        })
+                                    for v in obj.values():
+                                        found.extend(find_deals_in_json(v, depth + 1))
+                                elif isinstance(obj, list):
+                                    for item in obj:
+                                        found.extend(find_deals_in_json(item, depth + 1))
+                                return found
+                            
+                            json_deals = find_deals_in_json(data)
+                            logging.info(f"Found {len(json_deals)} candidate deals in JSON for {base}")
+                            for d in json_deals:
+                                if d["title"] and d["url"] and d["url"] not in seen:
+                                    seen.add(d["url"])
+                                    out.append(d)
+                                    if len(out) >= limit: return out
+                        except Exception as e:
+                            logging.warning(f"Failed to parse __NEXT_DATA__ for {base}: {e}")
+
+                    # 2. Fallback: Be more aggressive in finding links
+                    all_links = soup.find_all("a", href=True)
+                    logging.info(f"Total links found on {base}: {len(all_links)}")
+                    
+                    for a in all_links:
                         href = (a.get("href") or "").strip()
-                        if not href or "#" in href:
+                        if not href or "#" in href or "javascript:" in href:
                             continue
+                        
                         url = urljoin(base, href)
                         if url in seen:
                             continue
                         
-                        txt = _clean(a.get_text(" ", strip=True))
-                        # If title is empty, try to find one in siblings or parent
-                        if not txt or len(txt) < 4:
-                            parent = a.parent
-                            if parent:
-                                txt = _clean(parent.get_text(" ", strip=True))
-                        
-                        if not txt or len(txt) < 6:
-                            continue
-                        
-                        # Target profit-link redirects or store links
                         url_low = url.lower()
-                        if "earnkaro.com" not in url_low:
-                            continue
+                        # Look for anything that looks like a deal or profit link
+                        # EarnKaro links often look like earnkaro.com/p/123 or earnkaro.com/deal/abc
+                        is_likely_deal = any(x in url_low for x in ["/p/", "/deal/", "/offer/", "/profit-link/", "profitLink"])
                         
-                        is_deal = any(x in url_low for x in ["/deal", "/offer", "/store", "/p/", "/product"])
-                        if not is_deal:
+                        if not is_likely_deal:
+                            # Also check if it's a store link that might lead to deals
+                            if "/stores/" in url_low and url_low != base.lower():
+                                is_likely_deal = True
+                        
+                        if not is_likely_deal:
                             continue
+
+                        txt = _clean(a.get_text(" ", strip=True))
+                        # Try harder to find a title
+                        if not txt or len(txt) < 4:
+                            # Look at title or aria-label
+                            txt = _clean(a.get("title") or a.get("aria-label") or "")
+                        
+                        if not txt or len(txt) < 4:
+                            # Look at parent's text
+                            p = a.parent
+                            if p:
+                                txt = _clean(p.get_text(" ", strip=True))
+                        
+                        if not txt or len(txt) < 4:
+                            # Look for img alt
+                            img = a.find("img", alt=True)
+                            if img:
+                                txt = _clean(img["alt"])
+
+                        if not txt or len(txt) < 4:
+                            # Use the last part of URL as title if desperate
+                            txt = url.split("/")[-1].replace("-", " ").capitalize()
 
                         seen.add(url)
                         out.append(
@@ -108,4 +188,3 @@ async def get_earnkaro_deals(limit: int = 20) -> list[dict]:
         return []
 
     return out
-

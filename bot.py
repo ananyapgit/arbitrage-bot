@@ -85,6 +85,36 @@ SPAM_PAUSE_FILE = "spam_pause.json"
 # T-046: Memory Leak Prevention via SQLite Deduplication
 processed_cache = {}
 
+REPETITION_GUARD_FILE = "repetition_guard.json"
+
+def check_repetition_guard(deal_id: str) -> bool:
+    """
+    Ensures a deal is not repeated until at least 9 other unique deals have been sent.
+    Returns True if the deal should be skipped (is a recent repeat).
+    """
+    guard = load_json(REPETITION_GUARD_FILE, default=[])
+    if not isinstance(guard, list):
+        guard = []
+        
+    if deal_id in guard:
+        return True
+    return False
+
+def update_repetition_guard(deal_id: str):
+    """Adds a deal_id to the guard and keeps only the last 9."""
+    guard = load_json(REPETITION_GUARD_FILE, default=[])
+    if not isinstance(guard, list):
+        guard = []
+        
+    if deal_id not in guard:
+        guard.append(deal_id)
+        
+    # Keep only the last 9 deals
+    if len(guard) > 9:
+        guard = guard[-9:]
+        
+    save_json(REPETITION_GUARD_FILE, guard)
+
 MASTER_LOG_CSV = os.path.join("data", "master_log.csv")
 
 def append_to_master_log(deal, decision="accepted", reason="Broadcasted"):
@@ -1831,6 +1861,12 @@ def update_analytics(stats: dict):
     """Updates the analytics.json file with batch stats."""
     analytics = load_json(ANALYTICS_FILE, default={"batches": [], "daily_stats": {}})
     
+    # Ensure keys exist to avoid KeyError
+    if "batches" not in analytics or not isinstance(analytics["batches"], list):
+        analytics["batches"] = []
+    if "daily_stats" not in analytics or not isinstance(analytics["daily_stats"], dict):
+        analytics["daily_stats"] = {}
+
     # Append batch entry
     batch_entry = {
         "timestamp": datetime.now().isoformat(),
@@ -2046,7 +2082,8 @@ async def atomic_broadcast(
 
     # Validation relaxation for TEST_MODE or 100% OFF: allow URL+title even if price math is off.
     is_100_off = (discount_pct >= 99.0)
-    allow_missing_price = bool(TEST_MODE) or is_100_off
+    is_amazon = ("amazon" in src or "amazon." in final_url)
+    allow_missing_price = bool(TEST_MODE) or is_100_off or is_amazon
     
     # REVENUE PRIORITY: Never crash during broadcast. Log and return instead.
     if not allow_missing_price and _to_float_price(deal.get("new_price") or deal.get("price")) is None:
@@ -2617,6 +2654,13 @@ async def deal_engine(single_run=False):
                                 stats["rejected_duplicate"] += 1
                                 log_rejection(raw_url, {"stage": "Duplicate", "detail": "duplicate"})
                                 continue
+
+                            # ANTI-REPETITION GUARD: Skip if deal is in the last 9 sent deals
+                            if check_repetition_guard(deal_id):
+                                stats["skipped_cache"] += 1
+                                stats["rejected_duplicate"] += 1
+                                log_rejection(raw_url, {"stage": "Duplicate", "detail": "repetition_guard_hit"})
+                                continue
                             #             "old_price": deal.get("old_price"),
                             #             "new_price": deal.get("new_price"),
                             #             "last_checked": datetime.now().isoformat(),
@@ -2783,7 +2827,8 @@ async def deal_engine(single_run=False):
                                 
                                 # 4. Broadcast
                                 stats["telegram_attempts"] += 1
-                                deal_id = asin if asin else raw_url[-12:] if raw_url else "unknown"
+                                # Ensure deal_id is consistent with the one used in deduplication check
+                                # deal_id = asin if asin else raw_url[-12:] if raw_url else "unknown"
                                 
                                 try:
                                     update_heartbeat_status("SYNC_DISPATCH")
@@ -2800,6 +2845,7 @@ async def deal_engine(single_run=False):
                                     # ONLY MARK SENT IF AT LEAST ONE CHANNEL SUCCEEDED
                                     if tg_status == "Success" or sent_n > 0:
                                         mark_deal_sent(deal_id)
+                                        update_repetition_guard(deal_id)
                                         log_post(deal.get("url", "unknown"), deal.get("category", "general"))
                                         
                                         if sent_n:
