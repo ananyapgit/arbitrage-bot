@@ -16,25 +16,34 @@ from bs4 import BeautifulSoup
 
 
 USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
 ]
 
+def get_manual_fallback_url(url: str) -> str:
+    """Manual URL Constructor fallback for EarnKaro 403 scenarios."""
+    if "amazon.in" in url:
+        return f"https://earnkaro.com/api/v1/generate_link?url={url}"
+    return url
+
 SEED_URLS = [
-        "https://earnkaro.com/",
-        "https://earnkaro.com/stores",
-        "https://earnkaro.com/stores/amazon-india-offers",
-        "https://earnkaro.com/stores/flipkart-offers",
-        "https://earnkaro.com/stores/myntra-offers",
-        "https://earnkaro.com/stores/ajio-offers",
-        "https://earnkaro.com/stores/tata-cliq-offers",
-        "https://earnkaro.com/stores/mamaearth-offers",
-        "https://earnkaro.com/stores/wow-skin-science-offers",
-        "https://earnkaro.com/stores/beardo-offers"
-    ]
+    "https://earnkaro.com/",
+    "https://earnkaro.com/stores",
+    "https://earnkaro.com/stores/amazon-india-offers",
+    "https://earnkaro.com/stores/flipkart-offers",
+    "https://earnkaro.com/stores/myntra-offers",
+    "https://earnkaro.com/stores/ajio-offers",
+    "https://earnkaro.com/stores/tata-cliq-offers",
+    "https://earnkaro.com/stores/mamaearth-offers",
+    "https://earnkaro.com/stores/wow-skin-science-offers",
+    "https://earnkaro.com/stores/beardo-offers"
+]
 
 def _clean(text: str) -> str:
     return " ".join((text or "").split()).strip()[:280]
@@ -49,15 +58,14 @@ async def get_earnkaro_deals(limit: int = 20) -> list[dict]:
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
             "Accept-Language": "en-US,en;q=0.9",
             "Accept-Encoding": "gzip, deflate, br",
+            "Referer": "https://www.google.com/",
             "DNT": "1",
             "Connection": "keep-alive",
             "Upgrade-Insecure-Requests": "1",
             "Sec-Fetch-Dest": "document",
             "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-Site": "cross-site",
             "Sec-Fetch-User": "?1",
-            "Cache-Control": "max-age=0",
-            "Referer": "https://www.google.com/",
         }
 
     connector = aiohttp.TCPConnector(ssl=False)

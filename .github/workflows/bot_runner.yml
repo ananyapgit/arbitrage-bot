@@ -49,6 +49,14 @@ jobs:
         [ -f dashboard/public/data/subscribers.txt ] || printf "# one email per line\n" > dashboard/public/data/subscribers.txt
         touch rejection_audit.log heartbeat.timestamp trust_decay.json cache.json sale_followup_cache.json
 
+    - name: Debug Secrets Injection
+      env:
+        SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+        SENDGRID_FROM_EMAIL: ${{ secrets.SENDGRID_FROM_EMAIL }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        CHAT_ID: ${{ secrets.CHAT_ID }}
+      run: python debug_github_secrets.py
+
     - name: Run Arbitrage Bot (Single Cycle)
       env:
         # Required secrets (bridge into runtime env)
