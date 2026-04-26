@@ -40,6 +40,8 @@ class SendGridNotifier:
 
     def __init__(self) -> None:
         self.api_key = (os.getenv("SENDGRID_API_KEY") or "").strip()
+        if self.api_key:
+            print(f"[DEBUG] SendGrid API Key loaded (len={len(self.api_key)}, starts with {self.api_key[:6]})", flush=True)
         self.from_email = (os.getenv("SENDGRID_FROM_EMAIL") or "").strip()
 
     def load_subscribers(self) -> list[str]:
@@ -172,10 +174,13 @@ class SendGridNotifier:
                 code = getattr(resp, "status_code", None)
                 print(f"[SENDGRID] to={to_addr} status={code}", flush=True)
                 if code and int(code) >= 400:
-                    logging.warning("SendGrid error %s for %s", code, to_addr)
+                    logging.warning(f"SendGrid error {code} for {to_addr}. Response body: {getattr(resp, 'body', 'No body')}")
                 else:
                     sent += 1
             except Exception as e:
+                # Catch unauthorized specifically to provide better guidance
+                if "401" in str(e):
+                    print(f"[CRITICAL] SendGrid 401 Unauthorized: The API key (starts with {self.api_key[:6]}) is invalid or revoked.", flush=True)
                 logging.warning("SendGrid send failed for %s: %s", to_addr, e)
 
         if sent:
@@ -256,10 +261,12 @@ class SendGridNotifier:
                 code = getattr(resp, "status_code", None)
                 print(f"[SENDGRID] to={to_addr} status={code}", flush=True)
                 if code and int(code) >= 400:
-                    logging.warning("SendGrid error %s for %s", code, to_addr)
+                    logging.warning(f"SendGrid error {code} for {to_addr}. Response body: {getattr(resp, 'body', 'No body')}")
                 else:
                     sent += 1
             except Exception as e:
+                if "401" in str(e):
+                    print(f"[CRITICAL] SendGrid 401 Unauthorized: The API key (starts with {self.api_key[:6]}) is invalid or revoked.", flush=True)
                 logging.warning("SendGrid send failed for %s: %s", to_addr, e)
 
         if sent:

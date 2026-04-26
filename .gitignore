@@ -10,5 +10,5 @@ secrets.env
 *.csv
 *.log
 *.timestamp
-data/
-dashboard/public/data/
+# data/
+# dashboard/public/data/

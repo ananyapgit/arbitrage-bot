@@ -348,6 +348,13 @@ class AffiliateLinkGenerator:
             print(f"[MONEY_LOSS] No EARNKARO_API_KEY; returning raw URL for {raw}", flush=True)
             return raw
 
+        # UX GUARD: If the host is couponami or coupondunia, don't even try EarnKaro
+        # unless we know they support it. Usually they don't.
+        if any(x in host for x in ["couponami", "coupondunia", "udemy"]):
+            # Udemy might be supported, but couponami definitely isn't.
+            if "couponami" in host or "coupondunia" in host:
+                return raw
+
         # Use the specific generate_link endpoint
         api = f"https://earnkaro.com/api/v1/generate_link?url={quote(raw, safe='')}"
         try:
@@ -2103,11 +2110,12 @@ async def atomic_broadcast(
             print(f"[TELEGRAM_ERROR] {e!r}", flush=True)
             return f"Fail:{e!r}"
 
+    notifier = SendGridNotifier()
     async def _email():
         try:
             print(f"[EMAIL:ATTEMPT] deal_id={deal_id}", flush=True)
             # Use immediate alert path
-            return await asyncio.to_thread(SendGridNotifier().send_immediate_alert, deal)
+            return await asyncio.to_thread(notifier.send_immediate_alert, deal)
         except Exception as e:
             print(f"[EMAIL_ERROR] {e!r}", flush=True)
             return e
@@ -2133,6 +2141,9 @@ async def atomic_broadcast(
     return tg_status, sent_n
 
 
+# Initialize notifier once to reuse session/config
+notifier = SendGridNotifier()
+
 async def broadcast_deal(
     *,
     telegram_bot: Bot,
@@ -2155,13 +2166,16 @@ async def broadcast_deal(
 
     async def _tg():
         print(f"[TELEGRAM:ATTEMPT] deal_id={deal_id}", flush=True)
+        # Add jitter/delay to avoid 429
+        await asyncio.sleep(1.5) 
         _, st = await post_to_telegram(telegram_bot, chat_id, caption, final_url)
         return st
 
     async def _email():
         print(f"[EMAIL:ATTEMPT] deal_id={deal_id}", flush=True)
         # SendGrid is sync; run in thread so we can gather with Telegram.
-        return await asyncio.to_thread(SendGridNotifier().send_immediate_alert, deal)
+        # Use the global notifier instance
+        return await asyncio.to_thread(notifier.send_immediate_alert, deal)
 
     tg_status, sent_n = await asyncio.gather(_tg(), _email(), return_exceptions=False)
     return tg_status, int(sent_n or 0)

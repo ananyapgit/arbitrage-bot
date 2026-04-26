@@ -1,7 +1,14 @@
 import asyncio
 import os
+import sys
 import logging
 from bot import deal_engine
+
+# Force UTF-8 encoding for Windows consoles to avoid 'charmap' errors
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 # Load environment variables from .env file if present
 try:

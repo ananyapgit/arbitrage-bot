@@ -24,13 +24,17 @@ USER_AGENTS = [
 ]
 
 SEED_URLS = [
-    "https://earnkaro.com/",
-    "https://earnkaro.com/stores",
-    "https://earnkaro.com/stores/amazon-india-offers",
-    "https://earnkaro.com/stores/flipkart-offers",
-    "https://earnkaro.com/stores/myntra-offers",
-    "https://earnkaro.com/stores/ajio-offers"
-]
+        "https://earnkaro.com/",
+        "https://earnkaro.com/stores",
+        "https://earnkaro.com/stores/amazon-india-offers",
+        "https://earnkaro.com/stores/flipkart-offers",
+        "https://earnkaro.com/stores/myntra-offers",
+        "https://earnkaro.com/stores/ajio-offers",
+        "https://earnkaro.com/stores/tata-cliq-offers",
+        "https://earnkaro.com/stores/mamaearth-offers",
+        "https://earnkaro.com/stores/wow-skin-science-offers",
+        "https://earnkaro.com/stores/beardo-offers"
+    ]
 
 def _clean(text: str) -> str:
     return " ".join((text or "").split()).strip()[:280]
@@ -84,26 +88,42 @@ async def get_earnkaro_deals(limit: int = 20) -> list[dict]:
                         try:
                             import json
                             data = json.loads(next_data.string)
+                            
+                            # Log structure for debugging
+                            props = data.get('props', {})
+                            page_props = props.get('pageProps', {})
+                            if 'welcomepage' in page_props:
+                                logging.warning(f"EarnKaro returned 'welcomepage' for {base}. We might be blocked or need a session.")
+                            
                             logging.info(f"__NEXT_DATA__ keys: {list(data.keys())}")
-                            # Traverse the JSON to find deals. This is a guess on structure.
-                            # Usually it's in props -> pageProps -> initialData or similar.
-                            # We'll do a recursive search for anything that looks like a deal.
+                            logging.info(f"Props keys: {list(props.keys())}")
+                            logging.info(f"PageProps keys: {list(page_props.keys())}")
+                            
                             def find_deals_in_json(obj, depth=0):
                                 found = []
-                                if depth > 15: return found # Prevent infinite recursion
+                                if depth > 20: return found # Increased depth
                                 if isinstance(obj, dict):
-                                    # Look for profit links or product names
-                                    title = obj.get("title") or obj.get("productName") or obj.get("name")
-                                    url = obj.get("url") or obj.get("profitLink") or obj.get("link")
+                                    # Look for keys used by EarnKaro
+                                    # title, productName, name, brandName
+                                    # url, profitLink, link, targetUrl
+                                    title = obj.get("title") or obj.get("productName") or obj.get("name") or obj.get("brandName")
+                                    url = obj.get("url") or obj.get("profitLink") or obj.get("link") or obj.get("targetUrl")
                                     
+                                    # EarnKaro specific: sometimes deals are in 'deals' or 'offers' arrays
                                     if title and url and isinstance(url, str) and ("http" in url or url.startswith("/")):
-                                        found.append({
-                                            "title": str(title),
-                                            "url": url,
-                                            "source": "earnkaro",
-                                            "marketplace": "EarnKaro"
-                                        })
-                                    for v in obj.values():
+                                        # Ensure it's not just a menu link
+                                        url_low = url.lower()
+                                        if any(x in url_low for x in ["/p/", "/deal/", "/offer/", "/profit-link/", "profitLink"]):
+                                            found.append({
+                                                "title": str(title),
+                                                "url": url,
+                                                "source": "earnkaro",
+                                                "marketplace": "EarnKaro"
+                                            })
+                                    
+                                    for k, v in obj.items():
+                                        # Optimization: skip known large non-deal branches if needed
+                                        if k in ['menu', 'header', 'footer', 'seo']: continue
                                         found.extend(find_deals_in_json(v, depth + 1))
                                 elif isinstance(obj, list):
                                     for item in obj:
@@ -111,7 +131,23 @@ async def get_earnkaro_deals(limit: int = 20) -> list[dict]:
                                 return found
                             
                             json_deals = find_deals_in_json(data)
-                            logging.info(f"Found {len(json_deals)} candidate deals in JSON for {base}")
+                            # Fallback: Scrape links from HTML if JSON is empty
+                            if not json_deals:
+                                logging.info(f"JSON yielded 0 deals for {base}, trying HTML extraction...")
+                                for a in soup.find_all("a", href=True):
+                                    href = a['href']
+                                    text = a.get_text(strip=True)
+                                    # Look for profit links or product-like links
+                                    if any(x in href.lower() for x in ["/p/", "/deal/", "/offer/", "profitlink", "targeturl"]):
+                                        if len(text) > 10: # Likely a product title
+                                            json_deals.append({
+                                                "title": text,
+                                                "url": href,
+                                                "source": "earnkaro",
+                                                "marketplace": "EarnKaro"
+                                            })
+                            
+                            logging.info(f"Found {len(json_deals)} candidate deals for {base}")
                             for d in json_deals:
                                 if d["title"] and d["url"] and d["url"] not in seen:
                                     seen.add(d["url"])
