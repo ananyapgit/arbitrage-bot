@@ -7,7 +7,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Crawl.io Kinetic Command Center',
+  title: 'Namma Malige Kinetic Command Center',
   description: 'High-performance arbitrage bot dashboard with real-time analytics',
   generator: 'v0.app',
   icons: {

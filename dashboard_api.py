@@ -312,8 +312,10 @@ def load_all_deal_data():
                 reader = csv.DictReader(f)
                 for row in reader:
                     if not row: continue
-                    identifier = str(row.get('deal_identifier') or 'Unknown')
-                    ts = row.get('timestamp', '')
+                    identifier = str(row.get('deal_identifier') or row.get('url') or 'Unknown')
+                    ts = str(row.get('timestamp') or '')
+                    if not ts: continue
+                    
                     d_id = f"rej-{get_stable_id(identifier, ts)}"
                     
                     if d_id in seen_ids: continue
@@ -384,12 +386,12 @@ def get_stats():
         bot_status = "Sleeping"
         
         # Check for Git Runner / Active Process indicators
-        # If bot.log was updated in the last 120 seconds, it's definitely working
+        # If bot.log was updated in the last 60 seconds, it's definitely working
         if os.path.exists(BOT_LOG):
             try:
                 mtime = os.path.getmtime(BOT_LOG)
-                if (datetime.now().timestamp() - mtime) < 120:
-                    bot_status = "Scraping"
+                if (datetime.now().timestamp() - mtime) < 60:
+                    bot_status = "Working"
             except: pass
 
         if bot_status == "Sleeping" and os.path.exists(HEARTBEAT):
@@ -401,14 +403,20 @@ def get_stats():
                         last_hb = datetime.fromisoformat(ts_str.replace("Z", ""))
                         # Aggressive sync: if heartbeat within last 5 minutes, assume active
                         if (datetime.now() - last_hb).total_seconds() < 300:
-                            raw_status = hb.get("status", "Active")
+                            raw_status = str(hb.get("status", "Active")).upper()
                             status_map = {
                                 "RUNNING": "Scraping",
                                 "VALIDATING": "Working",
+                                "MIRROR_DISPATCH": "Broadcasting",
                                 "SYNC_DISPATCH": "Broadcasting",
-                                "IDLE": "Broadcasting"
+                                "IDLE": "Sleeping",
+                                "ERROR": "Error"
                             }
-                            bot_status = status_map.get(raw_status, "Broadcasting")
+                            bot_status = status_map.get(raw_status, "Sleeping")
+                            
+                            # If it's been IDLE for more than 30 seconds, it's definitely Sleeping
+                            if raw_status == "IDLE" or (datetime.now() - last_hb).total_seconds() > 300:
+                                bot_status = "Sleeping"
             except: pass
         
         # Infallible sync: If any log file changed recently, bot is not sleeping
@@ -456,40 +464,39 @@ def get_categories():
         all_deals = load_all_deal_data()
         cat_stats = {} 
         
+        # MIRROR PROTOCOL: Only include categories that actually have deals
         for d in all_deals:
             cat = d.get('category', 'general')
-            # Final safety check for categories
-            if cat not in VALID_CATEGORIES:
+            # Standardize and filter categories
+            if not cat or str(cat).lower() == 'none' or str(cat).lower() == 'n/a':
                 cat = 'general'
+            
+            cat = str(cat).lower().strip()
                 
             if cat not in cat_stats:
                 cat_stats[cat] = {"deals": 0, "success": 0, "profit": 0}
             cat_stats[cat]["deals"] += 1
-            if d['status'] == 'accepted':
+            if d.get('status') == 'accepted':
                 cat_stats[cat]["success"] += 1
                 cat_stats[cat]["profit"] += 150
 
         result = []
-        for cat in VALID_CATEGORIES:
-            if cat in cat_stats:
-                stats = cat_stats[cat]
-                success_rate = (stats["success"] / stats["deals"] * 100) if stats["deals"] > 0 else 0
-                result.append({
-                    "name": cat,
-                    "value": stats["deals"],
-                    "successRate": f"{success_rate:.1f}%",
-                    "profit": stats["profit"],
-                    "volume": stats["deals"]
-                })
-            else:
-                # Always include valid categories even if 0
-                result.append({
-                    "name": cat,
-                    "value": 0,
-                    "successRate": "0.0%",
-                    "profit": 0,
-                    "volume": 0
-                })
+        # Sort categories by volume
+        sorted_cats = sorted(cat_stats.items(), key=lambda x: x[1]["deals"], reverse=True)
+        
+        for cat, stats in sorted_cats:
+            # Filter out "random" or empty labels
+            if not cat or cat == "unknown" or cat == "none":
+                continue
+                
+            success_rate = (stats["success"] / stats["deals"] * 100) if stats["deals"] > 0 else 0
+            result.append({
+                "name": cat.capitalize(),
+                "value": stats["deals"],
+                "successRate": f"{success_rate:.1f}%",
+                "profit": stats["profit"],
+                "volume": stats["deals"]
+            })
             
         return jsonify(result)
     except Exception as e:
@@ -540,14 +547,19 @@ def get_heatmap():
                 # Silently skip unparseable timestamps
                 continue
                 
-        # Process for recent deliveries (last 15 accepted deals)
-        accepted_deals = [d for d in all_deals if d['status'] == 'accepted']
+        # Process for recent deliveries (last 15 events of any type)
         recent_deliveries = []
-        for d in accepted_deals[:15]:
+        for d in all_deals[:15]:
             ts = d.get('timestamp', '')
             time_str = "Just now"
             try:
-                dt = datetime.fromisoformat(ts.replace("Z", ""))
+                # Handle ISO format or bot log format
+                if 'T' in ts:
+                    dt = datetime.fromisoformat(ts.replace("Z", ""))
+                else:
+                    parts = ts.split('.')
+                    dt = datetime.strptime(parts[0], "%Y-%m-%d %H:%M:%S")
+                
                 diff = datetime.now() - dt
                 if diff.days > 0: time_str = f"{diff.days}d ago"
                 elif diff.seconds < 60: time_str = f"{diff.seconds}s ago"
@@ -556,20 +568,16 @@ def get_heatmap():
             except:
                 pass
             
-            # Add Telegram entry
+            # Map status to icon/color
+            status_type = "telegram" # Default
+            if d.get('status') == 'rejected':
+                status_type = "email" # Use email icon for rejected to distinguish
+            
             recent_deliveries.append({
-                "id": f"tg-{d['id']}",
-                "type": "telegram",
+                "id": f"event-{d['id']}",
+                "type": "telegram" if d['status'] == 'accepted' else "email",
                 "recipient": clean_product_name(d['product'])[:30],
-                "status": "success",
-                "time": time_str
-            })
-            # Add Email entry
-            recent_deliveries.append({
-                "id": f"em-{d['id']}",
-                "type": "email",
-                "recipient": clean_product_name(d['product'])[:30],
-                "status": "success",
+                "status": "success" if d['status'] == 'accepted' else "error",
                 "time": time_str
             })
         
@@ -621,4 +629,5 @@ def add_subscriber():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(port=5001, debug=True)
+    # MIRROR PROTOCOL: Bind to 0.0.0.0 to ensure dashboard can reach API
+    app.run(host='0.0.0.0', port=5001, debug=True)

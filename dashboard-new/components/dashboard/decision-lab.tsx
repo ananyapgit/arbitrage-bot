@@ -12,9 +12,10 @@ import {
   Package,
   Clock,
   X,
-  Zap,
+  Activity,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getApiUrl } from "@/lib/api-config"
 
 interface DecisionLabProps {
   className?: string
@@ -35,8 +36,8 @@ export function DecisionLab({ className }: DecisionLabProps) {
     const fetchData = async () => {
       try {
         const [statsRes, dealsRes] = await Promise.all([
-          fetch('http://localhost:5001/api/dashboard/stats'),
-          fetch('http://localhost:5001/api/dashboard/deals')
+          fetch(getApiUrl('/api/dashboard/stats')),
+          fetch(getApiUrl('/api/dashboard/deals'))
         ])
         const statsData = await statsRes.json()
         const dealsData = await dealsRes.json()
@@ -76,10 +77,10 @@ export function DecisionLab({ className }: DecisionLabProps) {
         <StatCard
           label="Workflow Status"
           value={stats.workflowStatus}
-          icon={Zap}
+          icon={Activity}
           variant={
-            stats.workflowStatus === "Sleeping" ? "default" :
-            stats.workflowStatus === "Scraping" ? "warning" :
+            stats.workflowStatus === "Sleeping" || stats.workflowStatus === "Idle" ? "default" :
+            stats.workflowStatus === "Scraping" || stats.workflowStatus === "Working" ? "warning" :
             stats.workflowStatus === "Broadcasting" ? "success" : "primary"
           }
         />

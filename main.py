@@ -39,9 +39,16 @@ if __name__ == "__main__":
     if is_github_action or single_run:
         logging.info("Running in Single-Run Mode")
         try:
+            from bot import write_workflow_heartbeat
+            write_workflow_heartbeat("RUNNING")
             asyncio.run(deal_engine(single_run=True))
+            write_workflow_heartbeat("IDLE")
         except Exception as e:
             logging.error(f"Execution failed: {e}")
+            try:
+                from bot import write_workflow_heartbeat
+                write_workflow_heartbeat("ERROR")
+            except: pass
             exit(1)
     else:
         logging.info("Running in Persistent Mode (Local/VPS) - Infinite Loop")

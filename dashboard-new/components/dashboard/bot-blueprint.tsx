@@ -10,7 +10,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock,
-  Zap,
+  Sparkles,
   Database,
   Bot,
 } from "lucide-react"
@@ -257,7 +257,7 @@ export function BotBlueprint({ className }: BotBlueprintProps) {
                     transition={{ delay: index * 0.05 }}
                     className="flex items-center gap-2 text-sm text-card-foreground"
                   >
-                    <Zap className="w-3 h-3 text-primary" />
+                    <Sparkles className="w-3 h-3 text-primary" />
                     {detail}
                   </motion.div>
                 ))}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Bell, Search, User, Zap } from "lucide-react"
+import { Bell, Search, User, Activity } from "lucide-react"
 import { Sidebar } from "./sidebar"
 import { DecisionLab } from "./decision-lab"
 import { CategoryMatrix } from "./category-matrix"
@@ -11,6 +11,7 @@ import { BotBlueprint } from "./bot-blueprint"
 import { SubscriberHub } from "./subscriber-hub"
 import { NeuralGrid } from "../neural-grid"
 import { cn } from "@/lib/utils"
+import { getApiUrl } from "@/lib/api-config"
 
 const tabs = {
   "decision-lab": DecisionLab,
@@ -36,7 +37,7 @@ export function CommandCenter() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await fetch('http://localhost:5001/api/dashboard/stats')
+        const res = await fetch(getApiUrl('/api/dashboard/stats'))
         const data = await res.json()
         setBotStatus(data.workflowStatus)
       } catch (error) {
@@ -75,12 +76,12 @@ export function CommandCenter() {
               </span>
               <div className={cn(
                 "flex items-center gap-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                botStatus === "Sleeping" ? "bg-muted/10 text-muted-foreground border-border" :
-                botStatus === "Scraping" ? "bg-warning/10 text-warning border-warning/20" :
+                botStatus === "Sleeping" || botStatus === "Idle" ? "bg-muted/10 text-muted-foreground border-border" :
+                botStatus === "Scraping" || botStatus === "Working" ? "bg-warning/10 text-warning border-warning/20" :
                 botStatus === "Broadcasting" ? "bg-success/10 text-success border-success/20" :
                 "bg-primary/10 text-primary border-primary/20"
               )}>
-                <Zap className={cn("w-3 h-3", botStatus !== "Sleeping" && "animate-pulse fill-current")} />
+                <Activity className={cn("w-3 h-3", botStatus !== "Sleeping" && "animate-pulse fill-current")} />
                 {botStatus}
               </div>
             </div>

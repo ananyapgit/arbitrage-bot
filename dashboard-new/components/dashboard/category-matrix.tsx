@@ -16,6 +16,7 @@ import {
 } from "recharts"
 import { TrendingUp, BarChart3, Layers } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getApiUrl } from "@/lib/api-config"
 
 interface CategoryMatrixProps {
   className?: string
@@ -29,7 +30,7 @@ export function CategoryMatrix({ className }: CategoryMatrixProps) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('http://localhost:5001/api/dashboard/categories')
+        const res = await fetch(getApiUrl('/api/dashboard/categories'))
         const data = await res.json()
         
         // Transform for charts

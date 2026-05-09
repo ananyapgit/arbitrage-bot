@@ -12,7 +12,7 @@ import {
   ChevronRight,
   Moon,
   Sun,
-  Zap,
+  Store,
 } from "lucide-react"
 import { useTheme } from "@/contexts/theme-context"
 import { cn } from "@/lib/utils"
@@ -45,7 +45,7 @@ export function Sidebar({ isCollapsed, onToggle, activeTab, onTabChange }: Sideb
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border">
         <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
-          <Zap className="w-5 h-5 text-primary" />
+          <Store className="w-5 h-5 text-primary" strokeWidth={1.5} />
         </div>
         <motion.div
           initial={false}
@@ -53,7 +53,7 @@ export function Sidebar({ isCollapsed, onToggle, activeTab, onTabChange }: Sideb
           transition={{ duration: 0.2 }}
           className="overflow-hidden"
         >
-          <span className="text-lg font-bold text-foreground whitespace-nowrap">Crawl.io</span>
+          <span className="text-lg font-bold text-foreground whitespace-nowrap">Namma Malige</span>
           <span className="block text-xs text-muted-foreground whitespace-nowrap">Command Center</span>
         </motion.div>
       </div>

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Activity, MessageSquare, Mail, Check, AlertCircle, Clock, Zap } from "lucide-react"
+import { Activity, MessageSquare, Mail, Check, AlertCircle, Clock, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getApiUrl } from "@/lib/api-config"
 
 // heatmap and recent deliveries will be fetched from API
 interface UptimePulseProps {
@@ -24,8 +25,8 @@ export function UptimePulse({ className }: UptimePulseProps) {
     const fetchData = async () => {
       try {
         const [statsRes, heatmapRes] = await Promise.all([
-          fetch('http://localhost:5001/api/dashboard/stats'),
-          fetch('http://localhost:5001/api/dashboard/heatmap')
+          fetch(getApiUrl('/api/dashboard/stats')),
+          fetch(getApiUrl('/api/dashboard/heatmap'))
         ])
         
         const statsData = await statsRes.json()
@@ -53,7 +54,7 @@ export function UptimePulse({ className }: UptimePulseProps) {
   }, [])
 
   const statsDisplay = [
-    { label: "Total Sends", value: liveStats.totalSends, icon: Zap, change: "All Time History" },
+    { label: "Total Sends", value: liveStats.totalSends, icon: BarChart3, change: "All Time History" },
     { label: "Telegram", value: liveStats.telegram, icon: MessageSquare, change: "Direct Broadcast" },
     { label: "Email", value: liveStats.email, icon: Mail, change: "SMTP Alerts" },
     { label: "Success Rate", value: liveStats.successRate, icon: Check, change: "Live Network Audit" },

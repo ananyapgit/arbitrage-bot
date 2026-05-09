@@ -1,0 +1,90 @@
+name: Namma Malige Bot Runner
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '*/5 * * * *'
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4.1.1
+      with:
+        token: ${{ secrets.GH_PAT }}
+        submodules: false
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Pre-Run Safety
+      run: |
+        [ -f deals.json ] || echo "[]" > deals.json
+        [ -f click_logs.csv ] || echo "timestamp,url,user_id,category" > click_logs.csv
+        [ -f analytics.json ] || echo "{}" > analytics.json
+        mkdir -p dashboard-new/public/data data
+        [ -f data/master_log.csv ] || printf "timestamp,source,title,price,original_price,category,decision,reason,affiliate_valid\n" > data/master_log.csv
+        [ -f dashboard-new/public/data/delivery_audit.csv ] || printf "timestamp,channel,status,deal_id\n" > dashboard-new/public/data/delivery_audit.csv
+        [ -f dashboard-new/public/data/broadcast_log.csv ] || printf "timestamp,deal_id,recipients\n" > dashboard-new/public/data/broadcast_log.csv
+        [ -f dashboard-new/public/data/subscribers.txt ] || printf "# one email per line\n" > dashboard-new/public/data/subscribers.txt
+        touch rejection_audit.log heartbeat.timestamp trust_decay.json cache.json sale_followup_cache.json
+
+    - name: Run Arbitrage Bot
+      env:
+        EARNKARO_API_KEY: ${{ secrets.EARNKARO_API_KEY }}
+        SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+        SENDGRID_FROM_EMAIL: ${{ secrets.SENDGRID_FROM_EMAIL }}
+        AMAZON_TAG: ${{ secrets.AMAZON_TAG }}
+        CHAT_ID: ${{ secrets.CHAT_ID }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.CHAT_ID }}
+        FLIPKART_TAG: ${{ secrets.FLIPKART_TAG }}
+        GITHUB_ACTIONS: "true"
+      run: python main.py
+
+    - name: Generate Dashboard Data
+      run: python tools/generate_dashboard_data.py
+
+    - name: Sync with origin/main
+      run: |
+        git fetch origin main
+        git rebase origin/main || (git rebase --abort || true; git reset --hard origin/main)
+
+    - name: Git Identity Configuration
+      run: |
+        git config --global user.name 'Namma-Malige-Bot'
+        git config --global user.email 'bot@noreply.github.com'
+
+    - name: Commit and Push Data Artifacts
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "🤖 Auto-Update: Bot Logs & Data [skip ci]"
+        file_pattern: "click_logs.csv deals.json analytics.json cache.json sale_followup_cache.json heartbeat.timestamp data/master_log.csv REVENUE_LOSS.log dashboard-new/public/data/*.csv dashboard-new/public/data/*.json dashboard-new/public/data/subscribers.txt heartbeat.json sent_deals.db"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+    - name: Trigger Next Run (5-Minute Loop)
+      if: always()
+      env:
+        GH_PAT: ${{ secrets.GH_PAT }}
+      run: |
+        chmod +x trigger_next_run.sh
+        ./trigger_next_run.sh

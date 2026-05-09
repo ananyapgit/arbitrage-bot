@@ -15,10 +15,10 @@ import {
   UserPlus,
   Activity,
   Check,
-  Zap,
   Clock,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getApiUrl } from "@/lib/api-config"
 
 interface SubscriberHubProps {
   className?: string
@@ -40,8 +40,8 @@ export function SubscriberHub({ className }: SubscriberHubProps) {
     const fetchData = async () => {
       try {
         const [statsRes, activityRes] = await Promise.all([
-          fetch('http://localhost:5001/api/dashboard/stats'),
-          fetch('http://localhost:5001/api/dashboard/subscribers/recent')
+          fetch(getApiUrl('/api/dashboard/stats')),
+          fetch(getApiUrl('/api/dashboard/subscribers/recent'))
         ])
         
         const statsData = await statsRes.json()
@@ -77,7 +77,9 @@ export function SubscriberHub({ className }: SubscriberHubProps) {
     setStatus("loading")
 
     try {
-      const res = await fetch('http://localhost:5001/api/dashboard/subscribers/add', {
+      // In production, we would use a real serverless function or DB.
+      // For this deployment, we'll try to use the local API if available.
+      const res = await fetch(getApiUrl('/api/dashboard/subscribers/add'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -289,7 +291,7 @@ export function SubscriberHub({ className }: SubscriberHubProps) {
             </p>
 
             <motion.a
-              href="https://t.me/crawl_io"
+              href="https://t.me/namma_malige"
               target="_blank"
               rel="noopener noreferrer"
               whileHover={{ scale: 1.02 }}
@@ -297,7 +299,7 @@ export function SubscriberHub({ className }: SubscriberHubProps) {
               className="w-full py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 bg-info text-info-foreground hover:opacity-90 transition-all"
             >
               <MessageSquare className="w-4 h-4" />
-              Join @crawl_io
+              Join @namma_malige
             </motion.a>
           </div>
 

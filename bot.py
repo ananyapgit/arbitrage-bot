@@ -1840,13 +1840,13 @@ def update_heartbeat():
 def write_workflow_heartbeat(status: str, deal_id: str | None = None) -> None:
     """
     Live Audit: drives dashboard animation.
-    Writes dashboard/public/data/workflow_heartbeat.json with timestamp + status.
+    Writes dashboard-new/public/data/workflow_heartbeat.json with timestamp + status.
     status: RUNNING | VALIDATING | SYNC_DISPATCH
     """
     try:
         from pathlib import Path
 
-        p = Path("dashboard/public/data/workflow_heartbeat.json")
+        p = Path("dashboard-new/public/data/workflow_heartbeat.json")
         p.parent.mkdir(parents=True, exist_ok=True)
         payload = {"timestamp": datetime.now().isoformat(), "status": str(status)}
         if deal_id:
@@ -2066,7 +2066,7 @@ def _affiliate_is_monetized(url: str, source: str) -> bool:
     return True
 
 
-async def atomic_broadcast(
+async def dispatch_payload(
     *,
     telegram_bot: Bot,
     chat_id: int,
@@ -2076,29 +2076,28 @@ async def atomic_broadcast(
     deal_id: str,
 ) -> tuple[str, int]:
     """
-    SYNC MANDATE (Non-Negotiable):
-    MUST execute Telegram + SendGrid at the same time via asyncio.gather().
-    If one fails, the other must NOT be blocked.
+    MIRROR PROTOCOL (1:1 Parity):
+    Telegram is the Master. Every deal passing Telegram filters is mirrored to Email.
+    Uses asyncio.gather() to ensure near-simultaneous dispatch.
     """
     title = str(deal.get("title") or "").strip()
-    print(f"[SYNC:START] Dispatching to Email + Telegram for {title}", flush=True)
-    write_workflow_heartbeat("SYNC_DISPATCH", deal_id=deal_id)
+    print(f"[MIRROR:START] Dispatching to Telegram + Email for {title}", flush=True)
+    write_workflow_heartbeat("MIRROR_DISPATCH", deal_id=deal_id)
 
     final_url = str(deal.get("affiliate_url") or deal.get("url") or "").strip()
     src = str(deal.get("source") or deal.get("marketplace") or "")
 
-    # Validation relaxation for TEST_MODE or 100% OFF: allow URL+title even if price math is off.
+    # Validation: Revenue Priority
     is_100_off = (discount_pct >= 99.0)
     is_amazon = ("amazon" in src or "amazon." in final_url)
     allow_missing_price = bool(TEST_MODE) or is_100_off or is_amazon
     
-    # REVENUE PRIORITY: Never crash during broadcast. Log and return instead.
     if not allow_missing_price and _to_float_price(deal.get("new_price") or deal.get("price")) is None:
-        print(f"[BROADCAST:SKIP] Missing numeric price for {title}", flush=True)
+        print(f"[MIRROR:SKIP] Missing numeric price for {title}", flush=True)
         return "Fail:MissingPrice", 0
         
     if not _affiliate_is_monetized(final_url, src):
-        print(f"[BROADCAST:SKIP] Unmonetized link for {title}", flush=True)
+        print(f"[MIRROR:SKIP] Unmonetized link for {title}", flush=True)
         return "Fail:Unmonetized", 0
 
     async def _tg():
@@ -2114,11 +2113,11 @@ async def atomic_broadcast(
     async def _email():
         try:
             print(f"[EMAIL:ATTEMPT] deal_id={deal_id}", flush=True)
-            # Use immediate alert path
+            # 1:1 Parity: Send individual alert for this specific deal
             return await asyncio.to_thread(notifier.send_immediate_alert, deal)
         except Exception as e:
             print(f"[EMAIL_ERROR] {e!r}", flush=True)
-            return e
+            return 0
 
     tg_res, em_res = await asyncio.gather(_tg(), _email(), return_exceptions=True)
     
@@ -2137,48 +2136,12 @@ async def atomic_broadcast(
         except Exception:
             sent_n = 0
             
-    print(f"[SYNC:COMPLETE] Telegram={tg_status}, EmailSent={sent_n} for {title}", flush=True)
+    print(f"[MIRROR:COMPLETE] Telegram={tg_status}, EmailSent={sent_n} for {title}", flush=True)
     return tg_status, sent_n
 
 
 # Initialize notifier once to reuse session/config
 notifier = SendGridNotifier()
-
-async def broadcast_deal(
-    *,
-    telegram_bot: Bot,
-    chat_id: int,
-    deal: dict,
-    caption: str,
-    discount_pct: float,
-    deal_id: str,
-) -> tuple[str, int]:
-    """
-    ATOMIC BROADCAST: Telegram + SendGrid at the exact same time.
-    Only call when deal has numeric price and monetized affiliate link.
-    """
-    final_url = str(deal.get("affiliate_url") or deal.get("url") or "").strip()
-    src = str(deal.get("source") or deal.get("marketplace") or "")
-    if _to_float_price(deal.get("new_price") or deal.get("price")) is None:
-        raise ValueError("broadcast_deal called without numeric price")
-    if not _affiliate_is_monetized(final_url, src):
-        raise ValueError("broadcast_deal called without monetized affiliate link")
-
-    async def _tg():
-        print(f"[TELEGRAM:ATTEMPT] deal_id={deal_id}", flush=True)
-        # Add jitter/delay to avoid 429
-        await asyncio.sleep(1.5) 
-        _, st = await post_to_telegram(telegram_bot, chat_id, caption, final_url)
-        return st
-
-    async def _email():
-        print(f"[EMAIL:ATTEMPT] deal_id={deal_id}", flush=True)
-        # SendGrid is sync; run in thread so we can gather with Telegram.
-        # Use the global notifier instance
-        return await asyncio.to_thread(notifier.send_immediate_alert, deal)
-
-    tg_status, sent_n = await asyncio.gather(_tg(), _email(), return_exceptions=False)
-    return tg_status, int(sent_n or 0)
 
 
 async def verify_earnkaro_auth(session: aiohttp.ClientSession) -> bool:
@@ -2267,7 +2230,7 @@ async def post_to_discord(session, webhook_url: str, deal: dict, variant: str):
             {"name": "Marketplace", "value": deal.get("marketplace"), "inline": True},
             {"name": "Status", "value": deal.get("stock_status", "In Stock"), "inline": True}
         ],
-        "footer": {"text": f"Crawl.io • Variant {variant}"}
+        "footer": {"text": f"Namma Malige • Variant {variant}"}
     }
     
     payload = {"embeds": [embed]}
@@ -2288,7 +2251,7 @@ async def post_to_discord(session, webhook_url: str, deal: dict, variant: str):
 async def deal_engine(single_run=False):
     global processed_cache
     
-    logging.info(f"?? Crawl.io Bot Started (Phase 6+) | TEST_MODE={TEST_MODE} | Single Run: {single_run}")
+    logging.info(f"🚀 Namma Malige Bot Started (Phase 6+) | TEST_MODE={TEST_MODE} | Single Run: {single_run}")
     logging.info("DATA SOURCE: LIVE WEB SCRAPERS ONLY (NO STATIC FEEDS)")
     logging.info("INFO - Continuous scrape loop active")
 
@@ -2561,58 +2524,12 @@ async def deal_engine(single_run=False):
                             else:
                                 paid_deals.append(d)
                     
-                        final_batch = []
-                    
-                        # If we owe free posts, try to fill with free deals first
-                        # (Simple greedy approach for now: Mix them to respect ratio over time)
-                        # Just append all, but loop will update counters
-                        final_batch = free_deals + paid_deals # Prioritize free to build bank
+                        # Prioritize free to build bank
+                        final_batch = free_deals + paid_deals
 
-                        # SENDGRID OVERHAUL: Trigger broadcast immediately after pool is populated.
-                        # No demo hacks: only include deals that have an explicit discount percentage in feed/title.
-                        try:
-                            loot_gate = LOOT_THRESHOLD
-                            email_pool: list[dict] = []
-                            for d0 in final_batch:
-                                d0 = coerce_deal_object(d0)
-                                raw0 = str(d0.get("affiliate_url") or d0.get("url") or "").strip()
-                                if not raw0.startswith("http"):
-                                    continue
-                                title0 = str(d0.get("title") or "").strip()
-                                if not title0:
-                                    continue
-                                pct0 = max(
-                                    _extract_discount_pct_from_text(d0.get("discount") or ""),
-                                    _extract_discount_pct_from_text(title0),
-                                )
-                                if pct0 <= 0 or pct0 < loot_gate:
-                                    continue
-                                gen_src0 = d0.get("source") or d0.get("marketplace", "")
-                                try:
-                                    aff0 = await AffiliateLinkGenerator.generate(session, raw0, gen_src0)
-                                except Exception:
-                                    aff0 = raw0
-                                if not AffiliateLinkGenerator.is_valid(aff0, gen_src0):
-                                    continue
-                                email_pool.append(
-                                    {
-                                        "title": title0,
-                                        "url": raw0,
-                                        "affiliate_url": aff0,
-                                        "source": gen_src0,
-                                        "discount_pct": pct0,
-                                    }
-                                )
-
-                            if email_pool and not DRY_RUN:
-                                try:
-                                    n_sent = SendGridNotifier().broadcast_daily_loot(email_pool[:30], subject="Daily Loot")
-                                    stats["loot_emails"] = stats.get("loot_emails", 0) + int(n_sent or 0)
-                                    print(f"[EMAIL:SUCCESS] Sent to {n_sent} subscribers", flush=True)
-                                except Exception as sg_exc:
-                                    print(f"[EMAIL:FAIL] {sg_exc!r}", flush=True)
-                        except Exception:
-                            pass
+                        # --- MIRROR PROTOCOL ACTIVATED ---
+                        # Consolidated individual dispatch logic below.
+                        # We no longer batch emails separately; 1:1 parity with Telegram.
                     
                         # --- INTERNAL GUARDS STRIPPED ---
                         # for deal in final_batch:
@@ -2845,8 +2762,8 @@ async def deal_engine(single_run=False):
                                 # deal_id = asin if asin else raw_url[-12:] if raw_url else "unknown"
                                 
                                 try:
-                                    update_heartbeat_status("SYNC_DISPATCH")
-                                    tg_status, sent_n = await atomic_broadcast(
+                                    update_heartbeat_status("MIRROR_DISPATCH")
+                                    tg_status, sent_n = await dispatch_payload(
                                         telegram_bot=telegram_bot,
                                         chat_id=int(chat_id) if str(chat_id).lstrip("-").isdigit() else chat_id,
                                         deal=deal,
@@ -2992,6 +2909,7 @@ async def deal_engine(single_run=False):
             
             # T-048: Heartbeat at end of run for audit
             update_heartbeat()
+            write_workflow_heartbeat("IDLE")
             
             # Randomized Sleep
             sleep_time = POST_INTERVAL_SECONDS * random.uniform(0.85, 1.15)
