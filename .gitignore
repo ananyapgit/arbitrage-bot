@@ -6,6 +6,8 @@ secrets.toml
 bot.log
 secrets.env
 *.db
+# Allow sent_deals.db for permanent deduplication across runs
+!sent_deals.db
 *.json
 *.csv
 *.log
