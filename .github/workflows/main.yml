@@ -41,6 +41,11 @@ jobs:
 
     - name: Pre-Run Safety
       run: |
+        # 🔒 CLEAR ALL DEDUPLICATION CACHES FOR FRESH START EVERY RUN!
+        rm -f sent_deals.db repetition_guard.json
+        # Initialize FRESH DB with permanent deduplication tables!
+        python -c "from bot import init_db; init_db(); print('✅ Fresh DB initialized with PERMANENT deduplication!')"
+        
         [ -f deals.json ] || echo "[]" > deals.json
         [ -f click_logs.csv ] || echo "timestamp,url,user_id,category" > click_logs.csv
         [ -f analytics.json ] || echo "{}" > analytics.json
@@ -94,7 +99,7 @@ jobs:
       continue-on-error: true
       with:
         commit_message: "Telemetry Update: Namma Malige Data Sync [skip ci]"
-        file_pattern: '*.json *.csv *.db *.timestamp dashboard-new/public/data/*.json dashboard-new/public/data/*.csv dashboard-new/public/data/*.txt data/master_log.csv'
+        file_pattern: '*.json *.csv *.timestamp dashboard-new/public/data/*.json dashboard-new/public/data/*.csv dashboard-new/public/data/*.txt data/master_log.csv'
         skip_dirty_check: false
         skip_fetch: true
         status_options: '--untracked-files=no'
