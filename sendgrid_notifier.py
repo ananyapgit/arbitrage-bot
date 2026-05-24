@@ -1,6 +1,6 @@
 """
-Serverless-style email outreach via SendGrid for high-loot deals.
-Reads dashboard/public/data/subscribers.txt (one email per line).
+Email outreach via native SMTP (replacing SendGrid).
+Reads dashboard-new/public/data/subscribers.txt (one email per line).
 """
 
 from __future__ import annotations
@@ -9,10 +9,14 @@ import csv
 import html
 import logging
 import os
+import smtplib
+import ssl
 from datetime import datetime
 from pathlib import Path
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
-DATA_DIR = Path("dashboard/public/data")
+DATA_DIR = Path("dashboard-new/public/data")
 SUBSCRIBERS_FILE = DATA_DIR / "subscribers.txt"
 BROADCAST_LOG = DATA_DIR / "broadcast_log.csv"
 
@@ -35,21 +39,24 @@ def _log_broadcast(deal_id: str, recipients: int) -> None:
         logging.error("broadcast_log write failed: %s", e)
 
 
-class SendGridNotifier:
-    """Broadcasts HTML loot alerts to subscribers when SendGrid is configured."""
+class SMTPNotifier:
+    """Broadcasts HTML loot alerts to subscribers using native SMTP."""
 
     def __init__(self) -> None:
-        self.api_key = (os.getenv("SENDGRID_API_KEY") or "").strip()
-        if self.api_key:
-            print(f"[DEBUG] SendGrid API Key loaded (len={len(self.api_key)}, starts with {self.api_key[:6]})", flush=True)
-        self.from_email = (os.getenv("SENDGRID_FROM_EMAIL") or "").strip()
+        self.host = (os.getenv("EMAIL_HOST") or "smtp.gmail.com").strip()
+        self.port = int(os.getenv("EMAIL_PORT") or "587")
+        self.user = (os.getenv("EMAIL_USER") or "").strip()
+        self.password = (os.getenv("EMAIL_PASS") or "").strip()
+        
+        if self.user:
+            print(f"[DEBUG] SMTP User loaded: {self.user}", flush=True)
+        self.from_email = self.user
 
     def load_subscribers(self) -> list[str]:
-        # Robust path resolution: try relative to script and absolute from root
         potential_paths = [
             SUBSCRIBERS_FILE,
-            Path("dashboard/public/data/subscribers.txt"),
-            Path(__file__).parent / "dashboard/public/data/subscribers.txt"
+            Path("dashboard-new/public/data/subscribers.txt"),
+            Path(__file__).parent / "dashboard-new/public/data/subscribers.txt"
         ]
         
         actual_file = None
@@ -95,36 +102,16 @@ class SendGridNotifier:
         """
         print("!!! EMAIL ENGINE ACTIVATED !!!", flush=True)
         if not self.from_email:
-            raise ValueError("SENDGRID_FROM_EMAIL is missing")
-        if not self.api_key:
-            logging.info("SendGrid: SENDGRID_API_KEY not set; skipping loot broadcast.")
+            raise ValueError("EMAIL_USER is missing")
+        if not self.password:
+            logging.info("SMTP: EMAIL_PASS not set; skipping loot broadcast.")
             return 0
-
-        try:
-            from sendgrid import SendGridAPIClient
-            from sendgrid.helpers.mail import Mail
-        except ImportError:
-            logging.error("SendGrid: install the 'sendgrid' package (pip install sendgrid).")
-            return 0
-
-        # STRICT SENDER CHECK: Ensure from_email matches environment variable
-        expected_from_email = os.getenv('SENDGRID_FROM_EMAIL')
-        if expected_from_email and self.from_email != expected_from_email.strip():
-            logging.error(f"SendGrid: from_email mismatch. Expected: {expected_from_email}, Got: {self.from_email}")
-            return 0
-        
-        # FORCE USE OF ENVIRONMENT SENDER EMAIL
-        if expected_from_email:
-            self.from_email = expected_from_email.strip()
-
-        # Threshold gating is enforced by the bot dispatcher (LOOT_THRESHOLD).
 
         recipients = self.load_subscribers()
         if not recipients:
-            logging.info("SendGrid: no subscribers in %s", SUBSCRIBERS_FILE)
+            logging.info("SMTP: no subscribers in %s", SUBSCRIBERS_FILE)
             return 0
 
-        # LOGGING FOR GITHUB ACTIONS
         deal_id = str(deal.get("id") or deal.get("deal_id") or "unknown")
         print(f"[EMAIL] Attempting to send deal {deal_id} to {len(recipients)} recipients", flush=True)
 
@@ -134,7 +121,7 @@ class SendGridNotifier:
         deal_id = str(deal.get("id") or deal.get("deal_id") or link[-24:] or "unknown")
 
         if not link:
-            logging.warning("SendGrid: missing affiliate/url for deal_id=%s; skipping.", deal_id)
+            logging.warning("SMTP: missing affiliate/url for deal_id=%s; skipping.", deal_id)
             return 0
 
         html_body = f"""<!DOCTYPE html>
@@ -157,31 +144,37 @@ class SendGridNotifier:
 </body></html>"""
 
         if not html_body or "<html" not in html_body.lower():
-            logging.error("SendGrid: empty/invalid HTML body; aborting broadcast.")
+            logging.error("SMTP: empty/invalid HTML body; aborting broadcast.")
             return 0
 
-        client = SendGridAPIClient(self.api_key)
         sent = 0
+        context = ssl.create_default_context()
+        
         for to_addr in recipients:
             try:
-                message = Mail(
-                    from_email=self.from_email,
-                    to_emails=to_addr,
-                    subject=f"Loot: {title[:60]}",
-                    html_content=html_body,
-                )
-                resp = client.send(message)
-                code = getattr(resp, "status_code", None)
-                print(f"[SENDGRID] to={to_addr} status={code}", flush=True)
-                if code and int(code) >= 400:
-                    logging.warning(f"SendGrid error {code} for {to_addr}. Response body: {getattr(resp, 'body', 'No body')}")
-                else:
-                    sent += 1
+                msg = MIMEMultipart("alternative")
+                msg["From"] = self.from_email
+                msg["To"] = to_addr
+                msg["Subject"] = f"Loot: {title[:60]}"
+                
+                part1 = MIMEText(f"Loot Alert: {title}\nBuy Now: {link}", "plain")
+                part2 = MIMEText(html_body, "html")
+                
+                msg.attach(part1)
+                msg.attach(part2)
+                
+                with smtplib.SMTP(self.host, self.port) as server:
+                    server.starttls(context=context)
+                    server.login(self.user, self.password)
+                    text = msg.as_string()
+                    server.sendmail(self.from_email, to_addr, text)
+                
+                print(f"[SMTP] to={to_addr} status=success", flush=True)
+                sent += 1
             except Exception as e:
-                # Catch unauthorized specifically to provide better guidance
-                if "401" in str(e):
-                    print(f"[CRITICAL] SendGrid 401 Unauthorized: The API key (starts with {self.api_key[:6]}) is invalid or revoked.", flush=True)
-                logging.warning("SendGrid send failed for %s: %s", to_addr, e)
+                if "535" in str(e):
+                    print(f"[CRITICAL] SMTP 535 Authentication Failed: Check EMAIL_USER and EMAIL_PASS (use App Password for Gmail)", flush=True)
+                logging.warning("SMTP send failed for %s: %s", to_addr, e)
 
         if sent:
             _log_broadcast(deal_id, sent)
@@ -198,36 +191,23 @@ class SendGridNotifier:
         """
         print("!!! EMAIL ENGINE ACTIVATED !!!", flush=True)
         if not self.from_email:
-            raise ValueError("SENDGRID_FROM_EMAIL is missing")
-        if not self.api_key:
-            logging.info("SendGrid: SENDGRID_API_KEY not set; skipping daily loot broadcast.")
+            raise ValueError("EMAIL_USER is missing")
+        if not self.password:
+            logging.info("SMTP: EMAIL_PASS not set; skipping daily loot broadcast.")
             return 0
-        try:
-            from sendgrid import SendGridAPIClient
-            from sendgrid.helpers.mail import Mail
-        except ImportError:
-            logging.error("SendGrid: install the 'sendgrid' package (pip install sendgrid).")
-            return 0
-
-        expected_from_email = os.getenv("SENDGRID_FROM_EMAIL")
-        if expected_from_email and self.from_email != expected_from_email.strip():
-            logging.error("SendGrid: from_email mismatch. Expected: %s, Got: %s", expected_from_email, self.from_email)
-            return 0
-        if expected_from_email:
-            self.from_email = expected_from_email.strip()
 
         recipients = self.load_subscribers()
         if not recipients:
-            logging.info("SendGrid: no subscribers in %s", SUBSCRIBERS_FILE)
+            logging.info("SMTP: no subscribers in %s", SUBSCRIBERS_FILE)
             return 0
 
         top = []
         for d in deals[:12]:
-            title = html.escape(str(d.get("title") or "Deal"))
-            link = str(d.get("affiliate_url") or d.get("url") or "").strip()
-            if not link:
+            t = html.escape(str(d.get("title") or "Deal"))
+            u = str(d.get("affiliate_url") or d.get("url") or "").strip()
+            if not u:
                 continue
-            top.append((title, html.escape(link, quote=True)))
+            top.append((t, html.escape(u, quote=True)))
 
         if not top:
             print("[CRITICAL] Daily Loot email body empty (no valid links)", flush=True)
@@ -252,22 +232,35 @@ class SendGridNotifier:
   </table>
 </body></html>"""
 
-        client = SendGridAPIClient(self.api_key)
         sent = 0
+        context = ssl.create_default_context()
+        
         for to_addr in recipients:
             try:
-                msg = Mail(from_email=self.from_email, to_emails=to_addr, subject=subject, html_content=html_body)
-                resp = client.send(msg)
-                code = getattr(resp, "status_code", None)
-                print(f"[SENDGRID] to={to_addr} status={code}", flush=True)
-                if code and int(code) >= 400:
-                    logging.warning(f"SendGrid error {code} for {to_addr}. Response body: {getattr(resp, 'body', 'No body')}")
-                else:
-                    sent += 1
+                msg = MIMEMultipart("alternative")
+                msg["From"] = self.from_email
+                msg["To"] = to_addr
+                msg["Subject"] = subject
+                
+                plain_text = "Daily Loot:\n" + "\n".join([f"{t}: {u}" for t, u in top])
+                part1 = MIMEText(plain_text, "plain")
+                part2 = MIMEText(html_body, "html")
+                
+                msg.attach(part1)
+                msg.attach(part2)
+                
+                with smtplib.SMTP(self.host, self.port) as server:
+                    server.starttls(context=context)
+                    server.login(self.user, self.password)
+                    text = msg.as_string()
+                    server.sendmail(self.from_email, to_addr, text)
+                
+                print(f"[SMTP] to={to_addr} status=success", flush=True)
+                sent += 1
             except Exception as e:
-                if "401" in str(e):
-                    print(f"[CRITICAL] SendGrid 401 Unauthorized: The API key (starts with {self.api_key[:6]}) is invalid or revoked.", flush=True)
-                logging.warning("SendGrid send failed for %s: %s", to_addr, e)
+                if "535" in str(e):
+                    print(f"[CRITICAL] SMTP 535 Authentication Failed: Check EMAIL_USER and EMAIL_PASS (use App Password for Gmail)", flush=True)
+                logging.warning("SMTP send failed for %s: %s", to_addr, e)
 
         if sent:
             _log_broadcast("daily_loot", sent)
@@ -280,7 +273,7 @@ class SendGridNotifier:
     def send_immediate_alert(self, deal: dict) -> int:
         """
         Immediate send path: no discount threshold gate.
-        Prints SendGrid status code for every attempt.
+        Prints SMTP status for every attempt.
         """
         pct = float(deal.get("discount_pct") or deal.get("discount_percentage") or 0.0)
         return self.broadcast_loot_deal(deal, pct)

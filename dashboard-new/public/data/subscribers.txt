@@ -1,0 +1,10 @@
+ananya@example.com
+user1@gmail.com
+user2@yahoo.com
+user3@outlook.com
+user4@protonmail.com
+user5@icloud.com
+user6@gmail.com
+user7@hotmail.com
+user8@gmail.com
+user9@yahoo.com

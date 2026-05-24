@@ -21,11 +21,11 @@ def health_check():
 # Real Log Paths
 DATA_DIR = os.path.join("data")
 MASTER_LOG_PRIMARY = os.path.join(DATA_DIR, "master_log.csv")
-MASTER_LOG_SECONDARY = os.path.join("dashboard", "public", "data", "master_log.csv")
-DELIVERY_AUDIT = os.path.join("dashboard", "public", "data", "delivery_audit.csv")
+MASTER_LOG_SECONDARY = os.path.join("dashboard-new", "public", "data", "master_log.csv")
+DELIVERY_AUDIT = os.path.join("dashboard-new", "public", "data", "delivery_audit.csv")
 BOT_LOG = "bot.log"
 REVENUE_LOSS = "REVENUE_LOSS.log"
-HEARTBEAT = os.path.join("dashboard", "public", "data", "workflow_heartbeat.json")
+HEARTBEAT = os.path.join("dashboard-new", "public", "data", "workflow_heartbeat.json")
 
 # Valid categories for the dashboard
 VALID_CATEGORIES = ['audio', 'laptop', 'fashion', 'electronics', 'home', 'general', 'education', 'book', 'course', 'accessory']
@@ -164,7 +164,7 @@ def parse_bot_log():
 def get_recent_subscribers():
     """Pulls real emails from subscribers.txt for the UI activity feed."""
     try:
-        sub_file = os.path.join("dashboard", "public", "data", "subscribers.txt")
+        sub_file = os.path.join("dashboard-new", "public", "data", "subscribers.txt")
         recent = []
         if os.path.exists(sub_file):
             with open(sub_file, 'r') as f:
@@ -200,7 +200,7 @@ def load_all_deal_data():
             seen_ids.add(d['id'])
 
     # 2. Process Email Logs
-    EMAIL_LOG = os.path.join("dashboard", "public", "data", "email_log.csv")
+    EMAIL_LOG = os.path.join("dashboard-new", "public", "data", "email_log.csv")
     if os.path.exists(EMAIL_LOG):
         try:
             with open(EMAIL_LOG, mode='r', encoding='utf-8', errors='ignore') as f:
@@ -432,7 +432,7 @@ def get_stats():
         stats["workflowStatus"] = bot_status
 
         # 2. Subscribers Stats
-        sub_file = os.path.join("dashboard", "public", "data", "subscribers.txt")
+        sub_file = os.path.join("dashboard-new", "public", "data", "subscribers.txt")
         if os.path.exists(sub_file):
             try:
                 with open(sub_file, 'r') as f:
@@ -611,7 +611,7 @@ def add_subscriber():
         if not email or '@' not in email:
             return jsonify({"error": "Invalid email"}), 400
             
-        sub_file = os.path.join("dashboard", "public", "data", "subscribers.txt")
+        sub_file = os.path.join("dashboard-new", "public", "data", "subscribers.txt")
         os.makedirs(os.path.dirname(sub_file), exist_ok=True)
         
         # Check for duplicates

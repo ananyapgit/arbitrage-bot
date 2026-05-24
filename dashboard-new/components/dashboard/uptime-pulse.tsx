@@ -31,17 +31,17 @@ export function UptimePulse({ className }: UptimePulseProps) {
         
         const statsData = await statsRes.json()
         setLiveStats({
-          totalSends: (statsData.telegramSends + statsData.emailSends).toLocaleString(),
-          telegram: statsData.telegramSends.toLocaleString(),
-          email: statsData.emailSends.toLocaleString(),
-          successRate: statsData.successRate,
+          totalSends: ((statsData?.telegramSends || 0) + (statsData?.emailSends || 0)).toLocaleString(),
+          telegram: (statsData?.telegramSends || 0).toLocaleString(),
+          email: (statsData?.emailSends || 0).toLocaleString(),
+          successRate: statsData?.successRate || "0%",
         })
 
         const heatmapJson = await heatmapRes.json()
-        if (heatmapJson.heatmap) {
+        if (heatmapJson?.heatmap) {
           setHeatmapData(heatmapJson.heatmap)
         }
-        if (heatmapJson.recent) {
+        if (heatmapJson?.recent) {
           setRecentDeliveries(heatmapJson.recent)
         }
       } catch (error) {

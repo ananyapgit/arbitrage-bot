@@ -7,7 +7,7 @@ A high-frequency arbitrage deal bot designed for automated affiliate marketing w
 ## 🚀 Features
 
 ### Serverless & Security (New!)
-- **GitHub Actions Scraper**: The scraping engine runs every 60 minutes on GitHub's infrastructure, completely removing the need for a local server.
+- **GitHub Actions Scraper**: The scraping engine runs every 5 minutes on GitHub's infrastructure, completely removing the need for a local server.
 - **Secret Management**: All credentials (API Keys, Affiliate Tags) are strictly managed via GitHub Secrets and Streamlit Secrets. No hardcoded tokens.
 - **Streamlit Cloud Dashboard**: The Redirect Bridge and Admin Dashboard are hosted 24/7 on Streamlit Cloud.
 
@@ -62,7 +62,7 @@ Operational Rules:
 ## 🏃‍♂️ Usage
 
 ### 1. Serverless Scraper (GitHub Actions)
-The bot runs automatically every hour via `.github/workflows/bot_runner.yml`.
+The bot runs automatically every 5 minutes via `.github/workflows/main.yml`.
 - **Trigger Manually**: Go to GitHub Actions -> Arbitrage Bot Runner -> Run Workflow.
 - **Output**: Logs and data files (`deals.json`, `click_logs.csv`) are automatically committed back to the repo.
 

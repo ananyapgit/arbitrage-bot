@@ -39,7 +39,7 @@ export function CommandCenter() {
       try {
         const res = await fetch(getApiUrl('/api/dashboard/stats'))
         const data = await res.json()
-        setBotStatus(data.workflowStatus)
+        setBotStatus(data?.workflowStatus || "Sleeping")
       } catch (error) {
         console.error("Failed to fetch bot status:", error)
       }

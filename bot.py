@@ -24,7 +24,7 @@ from scrapers.earnkaro import get_earnkaro_deals
 from scrapers.courses import get_free_courses
 from scrapers.amazon import get_amazon_product, get_diverse_amazon_deals
 from scrapers.flipkart import get_flipkart_product, get_flipkart_deals
-from sendgrid_notifier import SendGridNotifier
+from sendgrid_notifier import SMTPNotifier
 
 import config
 
@@ -89,7 +89,7 @@ REPETITION_GUARD_FILE = "repetition_guard.json"
 
 def check_repetition_guard(deal_id: str) -> bool:
     """
-    Ensures a deal is not repeated until at least 9 other unique deals have been sent.
+    Ensures a deal is not repeated until at least 10 other unique deals have been sent.
     Returns True if the deal should be skipped (is a recent repeat).
     """
     guard = load_json(REPETITION_GUARD_FILE, default=[])
@@ -101,7 +101,7 @@ def check_repetition_guard(deal_id: str) -> bool:
     return False
 
 def update_repetition_guard(deal_id: str):
-    """Adds a deal_id to the guard and keeps only the last 9."""
+    """Adds a deal_id to the guard and keeps only the last 10."""
     guard = load_json(REPETITION_GUARD_FILE, default=[])
     if not isinstance(guard, list):
         guard = []
@@ -109,9 +109,9 @@ def update_repetition_guard(deal_id: str):
     if deal_id not in guard:
         guard.append(deal_id)
         
-    # Keep only the last 9 deals
-    if len(guard) > 9:
-        guard = guard[-9:]
+    # Keep only the last 10 deals
+    if len(guard) > 10:
+        guard = guard[-10:]
         
     save_json(REPETITION_GUARD_FILE, guard)
 
@@ -151,7 +151,7 @@ def update_heartbeat_status(status):
     Stages: RUNNING (Scraping), VALIDATING (Filtering), SYNC_DISPATCH (Completing Dispatch)
     """
     try:
-        hb_path = os.path.join("dashboard", "public", "data", "workflow_heartbeat.json")
+        hb_path = os.path.join("dashboard-new", "public", "data", "workflow_heartbeat.json")
         os.makedirs(os.path.dirname(hb_path), exist_ok=True)
         with open(hb_path, 'w', encoding='utf-8') as f:
             json.dump({
@@ -503,9 +503,49 @@ def init_db():
     c = conn.cursor()
     c.execute("""CREATE TABLE IF NOT EXISTS sent_deals
                  (product_id TEXT PRIMARY KEY, timestamp DATETIME)""")
-    # T-051: Track sent sequence for the 9-deal gap logic
+    # T-051: Track sent sequence for the 10-deal gap logic
     c.execute("""CREATE TABLE IF NOT EXISTS sent_sequence
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id TEXT)""")
+    # PERMANENT DEDUPLICATION: Store ALL sent deals forever!
+    c.execute("""CREATE TABLE IF NOT EXISTS permanent_sent_deals
+                 (deal_hash TEXT PRIMARY KEY, title TEXT, url TEXT, timestamp DATETIME)""")
+    conn.commit()
+    conn.close()
+
+def get_deal_hash(deal):
+    """Generate a unique hash for a deal to prevent duplicates FOREVER!"""
+    import hashlib
+    title = str(deal.get("title", "")).strip().lower()
+    url = str(deal.get("url", "")).strip().lower()
+    # Extract ASIN if present
+    asin_match = re.search(r"/dp/([A-Z0-9]{10})", url)
+    asin = asin_match.group(1) if asin_match else ""
+    
+    # Create a hash from title, ASIN, and URL
+    hash_input = f"{title}|{asin}|{url}".encode("utf-8")
+    return hashlib.sha256(hash_input).hexdigest()
+
+def is_deal_permanently_sent(deal):
+    """Check if a deal has EVER been sent before (PERMANENT DEDUPLICATION)!"""
+    deal_hash = get_deal_hash(deal)
+    conn = sqlite3.connect("sent_deals.db")
+    c = conn.cursor()
+    c.execute("SELECT 1 FROM permanent_sent_deals WHERE deal_hash=?", (deal_hash,))
+    res = c.fetchone()
+    conn.close()
+    return res is not None
+
+def mark_deal_permanently_sent(deal):
+    """Mark a deal as sent PERMANENTLY so it NEVER gets sent again!"""
+    deal_hash = get_deal_hash(deal)
+    title = str(deal.get("title", "")).strip()
+    url = str(deal.get("url", "")).strip()
+    conn = sqlite3.connect("sent_deals.db")
+    c = conn.cursor()
+    c.execute("""INSERT OR IGNORE INTO permanent_sent_deals 
+                 (deal_hash, title, url, timestamp) 
+                 VALUES (?, ?, ?, ?)""", 
+                 (deal_hash, title, url, datetime.now().isoformat()))
     conn.commit()
     conn.close()
 
@@ -521,8 +561,8 @@ def is_deal_sent(product_id):
     conn = sqlite3.connect("sent_deals.db")
     c = conn.cursor()
 
-    # T-051: Mandatory 9-deal gap check (Don't repeat until 9 other deals sent)
-    c.execute("SELECT product_id FROM sent_sequence ORDER BY id DESC LIMIT 9")
+    # T-051: Mandatory 10-deal gap check (Don't repeat until 10 other deals sent)
+    c.execute("SELECT product_id FROM sent_sequence ORDER BY id DESC LIMIT 10")
     recent_ids = [row[0] for row in c.fetchall()]
     if product_id in recent_ids:
         conn.close()
@@ -1700,7 +1740,7 @@ SUPERBOT_MASTER_FILE = os.path.join(SUPERBOT_MASTER_DIR, "master_log.csv")
 
 
 def _ensure_dashboard_dir() -> str:
-    stats_dir = "dashboard/public/data"
+    stats_dir = "dashboard-new/public/data"
     os.makedirs(stats_dir, exist_ok=True)
     return stats_dir
 
@@ -2076,12 +2116,17 @@ async def dispatch_payload(
     deal_id: str,
 ) -> tuple[str, int]:
     """
-    MIRROR PROTOCOL (1:1 Parity):
-    Telegram is the Master. Every deal passing Telegram filters is mirrored to Email.
-    Uses asyncio.gather() to ensure near-simultaneous dispatch.
+    MIRROR PROTOCOL (1:1 Parity - Final Implementation):
+    Telegram is the ONLY Master. Email is ONLY sent if Telegram SUCCEEDS.
+    1. Telegram post first
+    2. If Telegram fails (rejected, 429 rate-limit, etc.) → NO Email
+    3. If Telegram succeeds → Sleep 5 seconds → Send Email
+    Both use EXACTLY the same deal_title and deal_url.
     """
+    import time
+
     title = str(deal.get("title") or "").strip()
-    print(f"[MIRROR:START] Dispatching to Telegram + Email for {title}", flush=True)
+    print(f"[MIRROR:START] Telegram as Master for {title}", flush=True)
     write_workflow_heartbeat("MIRROR_DISPATCH", deal_id=deal_id)
 
     final_url = str(deal.get("affiliate_url") or deal.get("url") or "").strip()
@@ -2100,48 +2145,47 @@ async def dispatch_payload(
         print(f"[MIRROR:SKIP] Unmonetized link for {title}", flush=True)
         return "Fail:Unmonetized", 0
 
-    async def _tg():
-        try:
-            print(f"[TELEGRAM:ATTEMPT] deal_id={deal_id}", flush=True)
-            _, st = await post_to_telegram(telegram_bot, chat_id, caption, final_url)
-            return st
-        except Exception as e:
-            print(f"[TELEGRAM_ERROR] {e!r}", flush=True)
-            return f"Fail:{e!r}"
-
-    notifier = SendGridNotifier()
-    async def _email():
-        try:
-            print(f"[EMAIL:ATTEMPT] deal_id={deal_id}", flush=True)
-            # 1:1 Parity: Send individual alert for this specific deal
-            return await asyncio.to_thread(notifier.send_immediate_alert, deal)
-        except Exception as e:
-            print(f"[EMAIL_ERROR] {e!r}", flush=True)
-            return 0
-
-    tg_res, em_res = await asyncio.gather(_tg(), _email(), return_exceptions=True)
-    
+    # Step 1: ONLY send to TELEGRAM FIRST
     tg_status = "Fail"
-    if isinstance(tg_res, str):
-        tg_status = tg_res
-    elif isinstance(tg_res, Exception):
-        print(f"[TELEGRAM_EXCEPTION] {tg_res!r}", flush=True)
+    try:
+        print(f"[TELEGRAM:ATTEMPT] deal_id={deal_id}", flush=True)
+        _, st = await post_to_telegram(telegram_bot, chat_id, caption, final_url)
+        tg_status = st
+    except Exception as e:
+        print(f"[TELEGRAM_ERROR] {e!r}", flush=True)
+        tg_status = f"Fail:{e!r}"
 
+    # Step 2: IF TELEGRAM FAILED → DO NOT SEND EMAIL
+    if tg_status != "Success":
+        print(f"[MIRROR:ABORT] Telegram failed ({tg_status}) — NOT sending Email for {title}", flush=True)
+        append_delivery_audit_row("Telegram", "Failed", deal_id)
+        append_delivery_audit_row("Email", "Skipped (Telegram Failed)", deal_id)
+        return tg_status, 0
+
+    # Step 3: TELEGRAM SUCCEEDED — Sleep 5s, THEN Send Email
+    print(f"[MIRROR:SUCCESS] Telegram posted successfully! Waiting 5s before Email...", flush=True)
+    await asyncio.sleep(5)  # Anti-Congestion Logic: 5s buffer
+
+    # Now send Email with EXACTLY same deal_title and deal_url
     sent_n = 0
-    if isinstance(em_res, Exception):
-        print(f"[EMAIL_EXCEPTION] {em_res!r}", flush=True)
-    else:
-        try:
-            sent_n = int(em_res or 0)
-        except Exception:
-            sent_n = 0
-            
+    try:
+        print(f"[EMAIL:ATTEMPT] deal_id={deal_id}", flush=True)
+        notifier = SendGridNotifier()
+        sent_n = await asyncio.to_thread(notifier.send_immediate_alert, deal)
+    except Exception as e:
+        print(f"[EMAIL_ERROR] {e!r}", flush=True)
+        sent_n = 0
+
+    # Log both results
+    append_delivery_audit_row("Telegram", "Success", deal_id)
+    append_delivery_audit_row("Email", "Success" if sent_n > 0 else "Failed", deal_id)
+
     print(f"[MIRROR:COMPLETE] Telegram={tg_status}, EmailSent={sent_n} for {title}", flush=True)
     return tg_status, sent_n
 
 
 # Initialize notifier once to reuse session/config
-notifier = SendGridNotifier()
+notifier = SMTPNotifier()
 
 
 async def verify_earnkaro_auth(session: aiohttp.ClientSession) -> bool:
@@ -2398,47 +2442,35 @@ async def deal_engine(single_run=False):
                         source_used = "amazon_fallback"
 
                 if not deals:
-                    logging.warning("Amazon fallback empty. Using hardcoded validation URLs.")
-                    source_used = "hardcoded_validation_urls"
-                    deals = [
-                        {
-                            "title": "Rich Dad Poor Dad Paperback",
-                            "url": "https://www.amazon.in/dp/8172234988",
-                            "affiliate_url": ensure_affiliate_url("https://www.amazon.in/dp/8172234988", "amazon"),
-                            "price": "Check Price",
-                            "new_price": "Check Price",
-                            "source": "amazon",
-                            "marketplace": "Amazon",
-                        },
-                        {
-                            "title": "Amazon Product Deal",
-                            "url": "https://www.amazon.in/dp/B0BSHF7WHW",
-                            "affiliate_url": ensure_affiliate_url("https://www.amazon.in/dp/B0BSHF7WHW", "amazon"),
-                            "price": "Check Price",
-                            "new_price": "Check Price",
-                            "source": "amazon",
-                            "marketplace": "Amazon",
-                        },
-                    ]
-                    total += len(deals)
+                    logging.warning("No scraped deals - skipping this run (NO HARDCODED DEALS)")
 
-                # Unified deal pool: dedupe by normalized title (EarnKaro vs Flipkart etc.)
+                # ULTRA-STRICT: PRE-DEDUPLICATE before even processing!
                 try:
                     seen_titles: set[str] = set()
+                    seen_hashes: set[str] = set()
                     uniq: list[dict] = []
                     for d in deals:
+                        # PERMANENT HASH CHECK FIRST!
+                        deal_hash = get_deal_hash(d)
+                        if deal_hash in seen_hashes:
+                            continue
+                        # Check if permanently sent already
+                        if is_deal_permanently_sent(d):
+                            continue
+                        # Title check
                         title_key = str(d.get("title") or "").strip().lower()
                         if not title_key:
                             continue
                         if title_key in seen_titles:
                             continue
                         seen_titles.add(title_key)
+                        seen_hashes.add(deal_hash)
                         uniq.append(d)
                     if len(uniq) != len(deals):
-                        print(f"[DEDUP] Reduced pool {len(deals)} -> {len(uniq)} (title hash)", flush=True)
+                        print(f"[ULTRA-DEDUP] Reduced pool {len(deals)} -> {len(uniq)} (title + hash + permanent)", flush=True)
                     deals = uniq
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"[ULTRA-DEDUP] Error: {e}", flush=True)
                 
                 for deal in deals:
                     src = (deal.get("source") or deal.get("marketplace") or "unknown").lower()
@@ -2559,14 +2591,22 @@ async def deal_engine(single_run=False):
                             if "category" not in deal:
                                 if "audio" in deal.get("title", "").lower(): cat = "audio"
                                 elif "laptop" in deal.get("title", "").lower(): cat = "laptop"
-    
+
+                            # 🔒 ULTRA-STRICT: PERMANENT DEDUPLICATION CHECK FIRST!
+                            if is_deal_permanently_sent(deal):
+                                print(f"[SKIP:PERMANENT] Deal already sent forever: {deal.get('title', 'N/A')}", flush=True)
+                                stats["skipped_cache"] += 1
+                                stats["rejected_duplicate"] += 1
+                                log_rejection(deal.get("url", "unknown"), {"stage": "Duplicate", "detail": "permanent_deduplication"})
+                                continue
+
                             # REVENUE IS THE ONLY PRIORITY: BYPASS CATEGORY THROTTLE
                             # if check_category_throttle(cat):
                             #     logging.info(f"Skipping deal in throttled category '{cat}': {deal.get('title')}")
                             #     stats["throttled"] += 1
                             #     log_rejection(deal.get("url", "unknown"), {"stage": "Revenue", "detail": f"category_throttled_{cat}"})
                             #     continue
-    
+
                             raw_url = deal.get("url", "")
                         
                             # ASIN Extraction & Dedup
@@ -2608,14 +2648,30 @@ async def deal_engine(single_run=False):
                                 deal.get("affiliate_url") or raw_url,
                                 gen_source,
                             )
-                            if not AffiliateLinkGenerator.is_valid(generated, gen_source):
-                                print(f"[REJECTED: NO AFFILIATE LINK] {raw_url}", flush=True)
-                                log_rejection(raw_url, {"stage": "Affiliate", "detail": "affiliate_generation_failed"})
+                            
+                            # NON-NEGOTIABLE: ONLY ALLOW DEALS WITH VALID AFFILIATE TAGS!
+                            has_valid_affiliate = False
+                            gen_source_lower = str(gen_source).lower()
+                            generated_lower = generated.lower()
+                            
+                            if "amazon" in gen_source_lower and "tag=" in generated_lower:
+                                has_valid_affiliate = True
+                                print(f"[AFFILIATE:AMAZON] tag injected ok for {raw_url}", flush=True)
+                            elif "flipkart" in gen_source_lower and "affid=" in generated_lower:
+                                has_valid_affiliate = True
+                                print(f"[AFFILIATE:FLIPKART] tag injected ok for {raw_url}", flush=True)
+                            elif "earnkaro" in gen_source_lower or "topdeal.app.link" in generated_lower:
+                                has_valid_affiliate = True
+                            elif generated.startswith("http") and len(generated) > 10:
+                                has_valid_affiliate = True
+                            
+                            if not has_valid_affiliate:
+                                print(f"[REJECTED: NO AFFILIATE TAG] {raw_url}", flush=True)
+                                log_rejection(raw_url, {"stage": "Affiliate", "detail": "no_valid_affiliate_tag"})
                                 stats["invalid"] += 1
                                 stats["rejected_invalid_affiliate"] += 1
                                 continue
-                            if "amazon" in str(gen_source).lower() and "tag=" in generated:
-                                print(f"[AFFILIATE:AMAZON] tag injected ok for {raw_url}", flush=True)
+                            
                             deal["affiliate_url"] = generated
                             stats["tagged"] += 1
 
@@ -2776,6 +2832,7 @@ async def deal_engine(single_run=False):
                                     # ONLY MARK SENT IF AT LEAST ONE CHANNEL SUCCEEDED
                                     if tg_status == "Success" or sent_n > 0:
                                         mark_deal_sent(deal_id)
+                                        mark_deal_permanently_sent(deal)  # 🔒 PERMANENT MARK!
                                         update_repetition_guard(deal_id)
                                         log_post(deal.get("url", "unknown"), deal.get("category", "general"))
                                         

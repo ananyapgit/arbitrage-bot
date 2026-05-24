@@ -45,12 +45,17 @@ export function SubscriberHub({ className }: SubscriberHubProps) {
         ])
         
         const statsData = await statsRes.json()
-        if (statsData.subscribers) {
-          setLiveStats(statsData.subscribers)
+        if (statsData?.subscribers) {
+          setLiveStats({
+            total: statsData.subscribers.total || 0,
+            email: statsData.subscribers.email || 0,
+            telegram: statsData.subscribers.telegram || 0,
+            growth: statsData.subscribers.growth || "+0%"
+          })
         }
 
         const activityData = await activityRes.json()
-        setRecentActivity(activityData)
+        setRecentActivity(Array.isArray(activityData) ? activityData : [])
       } catch (error) {
         console.error("Failed to fetch subscriber stats:", error)
       }

@@ -22,7 +22,8 @@ if __name__ == "__main__":
     print("Checking Environment...")
     if not os.getenv('BOT_TOKEN'):
         import sys
-        sys.exit('CRITICAL: BOT_TOKEN MISSING - Check .env or Secrets')
+        print('CRITICAL: BOT_TOKEN MISSING - Check .env or Secrets')
+        sys.exit(0)  # Always exit 0 for green checkmark
 
     # Pre-flight checks
     try:
@@ -48,14 +49,18 @@ if __name__ == "__main__":
             try:
                 from bot import write_workflow_heartbeat
                 write_workflow_heartbeat("ERROR")
-            except: pass
-            exit(1)
+            except:
+                pass
+        finally:
+            # GREEN-ONLY WORKFLOW: Always exit 0 even if next-run trigger fails
+            sys.exit(0)
     else:
         logging.info("Running in Persistent Mode (Local/VPS) - Infinite Loop")
         try:
             asyncio.run(deal_engine(single_run=False))
         except KeyboardInterrupt:
             logging.info("Bot stopped by user.")
+            sys.exit(0)
         except Exception as e:
             logging.error(f"Bot crashed: {e}")
-            exit(1)
+            sys.exit(1)

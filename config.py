@@ -6,14 +6,8 @@ def env_bool(env_name, default):
     return val in ('true', '1', 'yes', 'y') 
 
 from dotenv import load_dotenv
-load_dotenv("secrets.env")
+load_dotenv("secrets.env", override=True)
 
-
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
 
 # ================== CONFIGURATION ==================
 
@@ -25,7 +19,7 @@ if not BOT_TOKEN:
     sys.exit(1)
 
 # Telegram Config
-TELEGRAM_CHAT_ID = "-1003561797352"
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "-1003561797352")
 EDUCATION_CHANNEL_ID = os.getenv("EDUCATION_CHANNEL_ID")
 DEALS_CHANNEL_ID = os.getenv("DEALS_CHANNEL_ID")
 

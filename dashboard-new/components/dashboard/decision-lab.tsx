@@ -43,7 +43,13 @@ export function DecisionLab({ className }: DecisionLabProps) {
         const dealsData = await dealsRes.json()
         
         if (statsData && typeof statsData === 'object' && !statsData.error) {
-          setStats(statsData)
+          setStats({
+            totalOpportunities: statsData.totalOpportunities || 0,
+            pending: statsData.pending || 0,
+            accepted: statsData.accepted || 0,
+            totalProfit: statsData.totalProfit || 0,
+            workflowStatus: statsData.workflowStatus || "Sleeping"
+          })
         }
         
         if (Array.isArray(dealsData)) {
@@ -117,12 +123,9 @@ export function DecisionLab({ className }: DecisionLabProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {Array.isArray(deals) && deals.map((deal, index) => (
-                <motion.tr
+              {Array.isArray(deals) && deals.slice(0, 50).map((deal, index) => (
+                <tr
                   key={deal.id || `deal-${index}-${deal.timestamp}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(index * 0.05, 0.5) }}
                   onClick={() => setSelectedDeal(deal)}
                   className="group hover:bg-muted/30 cursor-pointer transition-colors"
                 >
@@ -160,7 +163,7 @@ export function DecisionLab({ className }: DecisionLabProps) {
                   <td className="px-6 py-4 text-right">
                     <StatusBadge status={deal.status} />
                   </td>
-                </motion.tr>
+                </tr>
               ))}
             </tbody>
           </table>

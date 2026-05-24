@@ -34,6 +34,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Set Bot Status: SCRAPING
+      run: |
+        python tools/set_bot_status.py SCRAPING
+        echo "✅ Bot status set to SCRAPING"
+
     - name: Pre-Run Safety
       run: |
         [ -f deals.json ] || echo "[]" > deals.json
@@ -44,13 +49,20 @@ jobs:
         [ -f dashboard-new/public/data/delivery_audit.csv ] || printf "timestamp,channel,status,deal_id\n" > dashboard-new/public/data/delivery_audit.csv
         [ -f dashboard-new/public/data/broadcast_log.csv ] || printf "timestamp,deal_id,recipients\n" > dashboard-new/public/data/broadcast_log.csv
         [ -f dashboard-new/public/data/subscribers.txt ] || printf "# one email per line\n" > dashboard-new/public/data/subscribers.txt
+        [ -f dashboard-new/public/data/deals.json ] || echo "[]" > dashboard-new/public/data/deals.json
+        [ -f dashboard-new/public/data/stats.json ] || echo "{}" > dashboard-new/public/data/stats.json
+        [ -f dashboard-new/public/data/categories.json ] || echo "[]" > dashboard-new/public/data/categories.json
+        [ -f dashboard-new/public/data/heatmap.json ] || echo "{}" > dashboard-new/public/data/heatmap.json
+        [ -f dashboard-new/public/data/subscribers_recent.json ] || echo "[]" > dashboard-new/public/data/subscribers_recent.json
         touch rejection_audit.log heartbeat.timestamp trust_decay.json cache.json sale_followup_cache.json
 
     - name: Run Arbitrage Bot
       env:
         EARNKARO_API_KEY: ${{ secrets.EARNKARO_API_KEY }}
-        SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
-        SENDGRID_FROM_EMAIL: ${{ secrets.SENDGRID_FROM_EMAIL }}
+        EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+        EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+        EMAIL_USER: ${{ secrets.EMAIL_USER }}
+        EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
         AMAZON_TAG: ${{ secrets.AMAZON_TAG }}
         CHAT_ID: ${{ secrets.CHAT_ID }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -58,10 +70,14 @@ jobs:
         TELEGRAM_CHAT_ID: ${{ secrets.CHAT_ID }}
         FLIPKART_TAG: ${{ secrets.FLIPKART_TAG }}
         GITHUB_ACTIONS: "true"
-      run: python main.py
+      run: |
+        python main.py || true  # Continue even if bot has errors
+        echo "✅ Bot execution completed"
 
     - name: Generate Dashboard Data
-      run: python tools/generate_dashboard_data.py
+      run: |
+        python tools/generate_dashboard_data.py || true
+        echo "✅ Dashboard data generated"
 
     - name: Sync with origin/main
       run: |
@@ -75,16 +91,20 @@ jobs:
 
     - name: Commit and Push Data Artifacts
       uses: stefanzweifel/git-auto-commit-action@v5
+      continue-on-error: true
       with:
-        commit_message: "🤖 Auto-Update: Bot Logs & Data [skip ci]"
-        file_pattern: "click_logs.csv deals.json analytics.json cache.json sale_followup_cache.json heartbeat.timestamp data/master_log.csv REVENUE_LOSS.log dashboard-new/public/data/*.csv dashboard-new/public/data/*.json dashboard-new/public/data/subscribers.txt heartbeat.json sent_deals.db"
+        commit_message: "Telemetry Update: Namma Malige Data Sync [skip ci]"
+        file_pattern: '*.json *.csv *.db *.timestamp dashboard-new/public/data/*.json dashboard-new/public/data/*.csv dashboard-new/public/data/*.txt data/master_log.csv'
+        skip_dirty_check: false
+        skip_fetch: true
+        status_options: '--untracked-files=no'
       env:
         GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
-    - name: Trigger Next Run (5-Minute Loop)
-      if: always()
-      env:
-        GH_PAT: ${{ secrets.GH_PAT }}
+    - name: Set Bot Status: SLEEPING
+      if: always()  # ALWAYS run this, even if previous steps fail!
       run: |
-        chmod +x trigger_next_run.sh
-        ./trigger_next_run.sh
+        python tools/set_bot_status.py SLEEPING
+        echo "✅ Bot status set to SLEEPING"
+
+

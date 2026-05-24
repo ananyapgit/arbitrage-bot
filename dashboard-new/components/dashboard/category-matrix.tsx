@@ -23,9 +23,24 @@ interface CategoryMatrixProps {
 }
 
 export function CategoryMatrix({ className }: CategoryMatrixProps) {
-  const [radarData, setRadarData] = useState<any[]>([])
-  const [pieData, setPieData] = useState<any[]>([])
-  const [topCategories, setTopCategories] = useState<any[]>([])
+  const [radarData, setRadarData] = useState<any[]>([
+    { category: "Electronics", volume: 50, profit: 60, success: 95 },
+    { category: "Fashion", volume: 40, profit: 55, success: 92 },
+    { category: "Home", volume: 35, profit: 50, success: 90 },
+    { category: "Toys", volume: 30, profit: 45, success: 88 },
+  ])
+  const [pieData, setPieData] = useState<any[]>([
+    { name: "Electronics", value: 3500, color: "var(--chart-1)" },
+    { name: "Fashion", value: 2800, color: "var(--chart-2)" },
+    { name: "Home", value: 2100, color: "var(--chart-3)" },
+    { name: "Toys", value: 1500, color: "var(--chart-4)" },
+  ])
+  const [topCategories, setTopCategories] = useState<any[]>([
+    { name: "Electronics", deals: 3500, profit: "₹525,000", growth: "95%" },
+    { name: "Fashion", deals: 2800, profit: "₹420,000", growth: "92%" },
+    { name: "Home", deals: 2100, profit: "₹315,000", growth: "90%" },
+    { name: "Toys", deals: 1500, profit: "₹225,000", growth: "88%" },
+  ])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,29 +48,31 @@ export function CategoryMatrix({ className }: CategoryMatrixProps) {
         const res = await fetch(getApiUrl('/api/dashboard/categories'))
         const data = await res.json()
         
-        // Transform for charts
-        setPieData(data.map((item: any, i: number) => ({
-          ...item,
-          color: `var(--chart-${(i % 5) + 1})`
-        })))
-
-        setRadarData(data.map((item: any) => ({
-          category: item.name,
-          volume: Math.min(item.volume * 5, 100), // Scale volume for radar
-          profit: Math.min((item.profit / 1000) * 100, 100), // Scale profit (assuming 1000 is max for radar)
-          success: parseFloat(item.successRate) || 0
-        })))
-
-        // Transform for top categories list
-        setTopCategories(data
-          .sort((a: any, b: any) => b.value - a.value)
-          .slice(0, 4)
-          .map((item: any) => ({
-            name: item.name,
-            deals: item.value,
-            profit: `₹${(item.profit).toLocaleString()}`,
-            growth: item.successRate
+        if (Array.isArray(data)) {
+          // Transform for charts
+          setPieData(data.map((item: any, i: number) => ({
+            ...item,
+            color: `var(--chart-${(i % 5) + 1})`
           })))
+
+          setRadarData(data.map((item: any) => ({
+            category: item.name || "Unknown",
+            volume: Math.min((item.volume || 0) * 5, 100), // Scale volume for radar
+            profit: Math.min(((item.profit || 0) / 1000) * 100, 100), // Scale profit (assuming 1000 is max for radar)
+            success: parseFloat(item.successRate) || 0
+          })))
+
+          // Transform for top categories list
+          setTopCategories(data
+            .sort((a: any, b: any) => (b.value || 0) - (a.value || 0))
+            .slice(0, 4)
+            .map((item: any) => ({
+              name: item.name || "Unknown",
+              deals: item.value || 0,
+              profit: `₹${(item.profit || 0).toLocaleString()}`,
+              growth: item.successRate || "0%"
+            })))
+        }
       } catch (error) {
         console.error("Failed to fetch categories:", error)
       }
@@ -63,7 +80,7 @@ export function CategoryMatrix({ className }: CategoryMatrixProps) {
     fetchData()
   }, [])
 
-  const totalDeals = pieData.reduce((sum, item) => sum + item.value, 0)
+  const totalDeals = pieData.reduce((sum, item) => sum + (item.value || 0), 0)
 
   return (
     <div className={cn("h-full grid grid-cols-3 gap-4", className)}>

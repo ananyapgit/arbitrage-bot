@@ -15,6 +15,7 @@ import {
   Bot,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getApiUrl } from "@/lib/api-config"
 
 const modules = [
   {
@@ -87,7 +88,7 @@ export function BotBlueprint({ className }: BotBlueprintProps) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('http://localhost:5001/api/dashboard/stats')
+        const res = await fetch(getApiUrl('/api/dashboard/stats'))
         const data = await res.json()
         setLiveStats(data)
       } catch (error) {
